@@ -23,11 +23,12 @@ jobs:
 - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
-    - name: Prepare local.properties from Secrets
+    - name: Prepare local.properties and Google Services
       run: |
-        echo "RELEASE_KEY_ALIAS=${{ secrets.RELEASE_KEY_ALIAS }}" >> local.properties
+        echo "RELEASE_KEY_ALIAS=${{ secrets.RELEASE_KEY_ALIAS }}" > local.properties
         echo "RELEASE_KEY_PASSWORD=${{ secrets.RELEASE_KEY_PASSWORD }}" >> local.properties
         echo "RELEASE_KEYSTORE_BASE64=${{ secrets.RELEASE_KEYSTORE_BASE64 }}" >> local.properties
+        echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
 
     # Added step: Write the raw JSON secret into the app directory
     
@@ -40,10 +41,12 @@ jobs:
 
     # Now this will succeed because the file is exactly where Gradle expects it
     - name: Build with Gradle
-      run: ./gradlew assembleRelease
+      run: ./gradlew assembleDebug assembleRelease
 
-    - name: Upload APK
+    - name: Upload APKs
       uses: actions/upload-artifact@v4
       with:
-        name: release-apk
-        path: app/build/outputs/apk/release/*.apk
+        name: app-apks
+        path: |
+          app/build/outputs/apk/release/*.apk
+          app/build/outputs/apk/debug/*.apk
