@@ -30,14 +30,14 @@ android {
 
     signingConfigs {
         release {
-            def alias = localProperties.getProperty('RELEASE_KEY_ALIAS')
-            def password = localProperties.getProperty('RELEASE_KEY_PASSWORD')
-            def keystoreBase64 = localProperties.getProperty('RELEASE_KEYSTORE_BASE64')
+            def alias = localProperties.getProperty('RELEASE_KEY_ALIAS') ?: System.getenv('RELEASE_KEY_ALIAS')
+            def keyPassword = localProperties.getProperty('RELEASE_KEY_PASSWORD') ?: System.getenv('RELEASE_KEY_PASSWORD')
+            def keystoreBase64 = localProperties.getProperty('RELEASE_KEYSTORE_BASE64') ?: System.getenv('RELEASE_KEYSTORE_BASE64')
 
-            if (alias && password) {
+            if (alias && keyPassword) {
                 keyAlias alias
-                keyPassword password
-                storePassword password
+                this.keyPassword keyPassword
+                this.storePassword keyPassword // Using key password as store password
 
                 // Use existing jks file or decode from Base64 if missing (for CI/CD)
                 def keystoreFile = rootProject.file('release-key.jks')
