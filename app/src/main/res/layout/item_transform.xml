@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="12dp"
+    android:background="?attr/selectableItemBackground">
+
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/image_view_item_transform"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:contentDescription="@string/image_view_item_transform_content_description"
+        app:shapeAppearanceOverlay="@style/CircleAppearance"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:src="@tools:sample/avatars" />
+
+    <View
+        android:id="@+id/online_indicator"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:background="@drawable/online_indicator_bg"
+        android:elevation="2dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/image_view_item_transform"
+        app:layout_constraintEnd_toEndOf="@id/image_view_item_transform" />
+
+    <TextView
+        android:id="@+id/text_view_item_transform"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="8dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textAppearance="?attr/textAppearanceTitleMedium"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toStartOf="@+id/text_view_time"
+        app:layout_constraintStart_toEndOf="@id/image_view_item_transform"
+        app:layout_constraintTop_toTopOf="@id/image_view_item_transform"
+        tools:text="Contact Name" />
+
+    <TextView
+        android:id="@+id/text_view_last_message"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textColor="?android:attr/textColorSecondary"
+        app:layout_constraintEnd_toEndOf="@+id/text_view_item_transform"
+        app:layout_constraintStart_toStartOf="@+id/text_view_item_transform"
+        app:layout_constraintTop_toBottomOf="@id/text_view_item_transform"
+        tools:text="Last message will appear here..." />
+
+    <TextView
+        android:id="@+id/text_view_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textColor="?android:attr/textColorSecondary"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/text_view_item_transform"
+        tools:text="12:45 PM" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
