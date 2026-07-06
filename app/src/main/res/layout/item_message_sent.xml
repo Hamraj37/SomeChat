@@ -29,14 +29,31 @@
 
     </com.google.android.material.card.MaterialCardView>
 
-    <TextView
-        android:id="@+id/text_timestamp"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
         android:layout_marginEnd="4dp"
-        android:alpha="0.6"
-        android:textAppearance="?attr/textAppearanceLabelSmall"
-        tools:text="12:30 PM" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/text_timestamp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:alpha="0.6"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            tools:text="12:30 PM" />
+
+        <ImageView
+            android:id="@+id/image_status"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_marginStart="4dp"
+            android:src="@drawable/ic_double_tick"
+            android:contentDescription="@string/msg_status"
+            app:tint="@android:color/darker_gray" />
+
+    </LinearLayout>
 
 </LinearLayout>

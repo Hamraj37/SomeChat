@@ -61,7 +61,8 @@ public class TransformViewModel extends AndroidViewModel {
                     entity.getUid(),
                     entity.getPhotoUrl(),
                     entity.isOnline(),
-                    entity.getTimestamp()
+                    entity.getTimestamp(),
+                    entity.getUnreadCount()
             );
             items.add(item);
             chatsMap.put(item.getUid(), item);
@@ -111,7 +112,7 @@ public class TransformViewModel extends AndroidViewModel {
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         User user = snapshot.getValue(User.class);
                         if (user != null) {
-                            updateChatItem(friendUid, user, null);
+                            updateChatItem(friendUid, user, null, -1);
                         }
                     }
 
@@ -133,7 +134,7 @@ public class TransformViewModel extends AndroidViewModel {
                             for (DataSnapshot ds : snapshot.getChildren()) {
                                 Message message = ds.getValue(Message.class);
                                 if (message != null) {
-                                    updateChatItem(friendUid, null, message);
+                                    updateChatItem(friendUid, null, message, -1);
                                 }
                             }
                         }
@@ -142,9 +143,28 @@ public class TransformViewModel extends AndroidViewModel {
                     @Override
                     public void onCancelled(@NonNull DatabaseError error) {}
                 });
+
+        // Observe Unread Count
+        FirebaseDatabase.getInstance().getReference("chats").child(chatId)
+                .addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        int count = 0;
+                        for (DataSnapshot ds : snapshot.getChildren()) {
+                            Message m = ds.getValue(Message.class);
+                            if (m != null && !m.isSeen() && myUid.equals(m.getReceiverId())) {
+                                count++;
+                            }
+                        }
+                        updateChatItem(friendUid, null, null, count);
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {}
+                });
     }
 
-    private synchronized void updateChatItem(String friendUid, User user, Message lastMsg) {
+    private synchronized void updateChatItem(String friendUid, User user, Message lastMsg, int unreadCount) {
         ChatItem existing = chatsMap.get(friendUid);
         String myUid = FirebaseAuth.getInstance().getUid();
         
@@ -163,9 +183,10 @@ public class TransformViewModel extends AndroidViewModel {
 
         String time = lastMsg != null ? formatTime(lastMsg.getTimestamp()) : (existing != null ? existing.getTime() : "");
         long timestamp = lastMsg != null ? lastMsg.getTimestamp() : (existing != null ? existing.getTimestamp() : 0);
+        int finalUnreadCount = unreadCount != -1 ? unreadCount : (existing != null ? existing.getUnreadCount() : 0);
 
         // Save to local DB
-        ChatItemEntity entity = new ChatItemEntity(friendUid, name, displayMsgText, time, photoUrl, online, timestamp);
+        ChatItemEntity entity = new ChatItemEntity(friendUid, name, displayMsgText, time, photoUrl, online, timestamp, finalUnreadCount);
         AppDatabase.databaseWriteExecutor.execute(() -> chatItemDao.insert(entity));
     }
 
@@ -190,6 +211,10 @@ public class TransformViewModel extends AndroidViewModel {
 
     public LiveData<List<ChatItem>> getChats() {
         return mFilteredChats;
+    }
+
+    public LiveData<List<ChatItem>> getAllChats() {
+        return mAllChats;
     }
 
     public void filter(String query) {

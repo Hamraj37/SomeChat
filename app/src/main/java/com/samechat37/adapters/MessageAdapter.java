@@ -70,16 +70,24 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     static class SentMessageViewHolder extends RecyclerView.ViewHolder {
         TextView textMessage;
         TextView textTimestamp;
+        android.widget.ImageView imageStatus;
 
         public SentMessageViewHolder(@NonNull View itemView) {
             super(itemView);
             textMessage = itemView.findViewById(R.id.text_message);
             textTimestamp = itemView.findViewById(R.id.text_timestamp);
+            imageStatus = itemView.findViewById(R.id.image_status);
         }
 
         void bind(Message message) {
             textMessage.setText(message.getText());
             textTimestamp.setText(formatDate(message.getTimestamp()));
+
+            if (message.isSeen()) {
+                imageStatus.setColorFilter(androidx.core.content.ContextCompat.getColor(itemView.getContext(), R.color.whatsapp_blue));
+            } else {
+                imageStatus.setColorFilter(androidx.core.content.ContextCompat.getColor(itemView.getContext(), android.R.color.darker_gray));
+            }
         }
     }
 

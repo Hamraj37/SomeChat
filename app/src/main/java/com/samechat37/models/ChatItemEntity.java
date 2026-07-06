@@ -15,8 +15,9 @@ public class ChatItemEntity {
     private String photoUrl;
     private boolean online;
     private long timestamp;
+    private int unreadCount;
 
-    public ChatItemEntity(@NonNull String uid, String name, String lastMessage, String time, String photoUrl, boolean online, long timestamp) {
+    public ChatItemEntity(@NonNull String uid, String name, String lastMessage, String time, String photoUrl, boolean online, long timestamp, int unreadCount) {
         this.uid = uid;
         this.name = name;
         this.lastMessage = lastMessage;
@@ -24,6 +25,7 @@ public class ChatItemEntity {
         this.photoUrl = photoUrl;
         this.online = online;
         this.timestamp = timestamp;
+        this.unreadCount = unreadCount;
     }
 
     @NonNull
@@ -47,4 +49,7 @@ public class ChatItemEntity {
 
     public long getTimestamp() { return timestamp; }
     public void setTimestamp(long timestamp) { this.timestamp = timestamp; }
+
+    public int getUnreadCount() { return unreadCount; }
+    public void setUnreadCount(int unreadCount) { this.unreadCount = unreadCount; }
 }

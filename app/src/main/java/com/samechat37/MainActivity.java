@@ -81,9 +81,34 @@ public class MainActivity extends BaseActivity {
         }
 
         setupNavHeader();
+        setupUnreadCountBadge();
         PresenceManager.setUserOnline();
         checkAndRequestPermissions();
         startCallService();
+    }
+
+    private void setupUnreadCountBadge() {
+        BottomNavigationView bottomNavigationView = binding.appBarMain.contentMain.bottomNavView;
+        if (bottomNavigationView == null) return;
+
+        transformViewModel.getAllChats().observe(this, chatItems -> {
+            int totalUnread = 0;
+            if (chatItems != null) {
+                for (com.samechat37.ui.transform.ChatItem item : chatItems) {
+                    totalUnread += item.getUnreadCount();
+                }
+            }
+
+            com.google.android.material.badge.BadgeDrawable badge = bottomNavigationView.getOrCreateBadge(R.id.nav_chats);
+            if (totalUnread > 0) {
+                badge.setVisible(true);
+                badge.setNumber(totalUnread);
+                badge.setBackgroundColor(androidx.core.content.ContextCompat.getColor(this, R.color.whatsapp_light_green));
+                badge.setBadgeTextColor(android.graphics.Color.WHITE);
+            } else {
+                badge.setVisible(false);
+            }
+        });
     }
 
     private void checkAndRequestPermissions() {

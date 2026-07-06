@@ -133,7 +133,8 @@ public class TransformFragment extends Fragment {
                     return oldItem.getLastMessage().equals(newItem.getLastMessage()) &&
                            oldItem.getTime().equals(newItem.getTime()) &&
                            oldItem.isOnline() == newItem.isOnline() &&
-                           oldItem.getTimestamp() == newItem.getTimestamp();
+                           oldItem.getTimestamp() == newItem.getTimestamp() &&
+                           oldItem.getUnreadCount() == newItem.getUnreadCount();
                 }
             });
         }
@@ -154,6 +155,13 @@ public class TransformFragment extends Fragment {
             
             holder.onlineIndicator.setVisibility(chatItem.isOnline() ? View.VISIBLE : View.GONE);
             
+            if (chatItem.getUnreadCount() > 0) {
+                holder.unreadCountBadge.setVisibility(View.VISIBLE);
+                holder.unreadCountBadge.setText(String.valueOf(chatItem.getUnreadCount()));
+            } else {
+                holder.unreadCountBadge.setVisibility(View.GONE);
+            }
+
             if (chatItem.getPhotoUrl() != null && !chatItem.getPhotoUrl().isEmpty()) {
                 Glide.with(holder.itemView.getContext())
                         .load(chatItem.getPhotoUrl())
@@ -181,6 +189,7 @@ public class TransformFragment extends Fragment {
         private final TextView textViewLastMessage;
         private final TextView textViewTime;
         private final View onlineIndicator;
+        private final TextView unreadCountBadge;
 
         public TransformViewHolder(ItemTransformBinding binding) {
             super(binding.getRoot());
@@ -189,6 +198,7 @@ public class TransformFragment extends Fragment {
             textViewLastMessage = binding.textViewLastMessage;
             textViewTime = binding.textViewTime;
             onlineIndicator = binding.onlineIndicator;
+            unreadCountBadge = binding.unreadCountBadge;
         }
     }
 }

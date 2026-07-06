@@ -3,6 +3,7 @@
     <color name="whatsapp_green">#075E54</color>
     <color name="whatsapp_green_dark">#128C7E</color>
     <color name="whatsapp_light_green">#25D366</color>
+    <color name="whatsapp_blue">#34B7F1</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 </resources>

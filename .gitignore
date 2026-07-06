@@ -25,3 +25,4 @@ release-key.jks
 /.idea/planningMode.xml
 /.idea/runConfigurations.xml
 /.idea/vcs.xml
+/app/google-services (4).json

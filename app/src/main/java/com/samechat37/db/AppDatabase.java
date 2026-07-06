@@ -11,7 +11,7 @@ import com.samechat37.models.ChatItemEntity;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-@Database(entities = {ChatItemEntity.class}, version = 1, exportSchema = false)
+@Database(entities = {ChatItemEntity.class}, version = 2, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
     public abstract ChatItemDao chatItemDao();
 
@@ -26,6 +26,7 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                                     AppDatabase.class, "same_chat_database")
+                            .fallbackToDestructiveMigration()
                             .build();
                 }
             }

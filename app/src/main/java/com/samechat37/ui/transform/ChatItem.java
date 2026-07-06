@@ -9,8 +9,9 @@ public class ChatItem {
     private final String photoUrl;
     private final boolean online;
     private final long timestamp;
+    private final int unreadCount;
 
-    public ChatItem(String name, String lastMessage, String time, int avatarResId, String uid, String photoUrl, boolean online, long timestamp) {
+    public ChatItem(String name, String lastMessage, String time, int avatarResId, String uid, String photoUrl, boolean online, long timestamp, int unreadCount) {
         this.name = name;
         this.lastMessage = lastMessage;
         this.time = time;
@@ -19,6 +20,7 @@ public class ChatItem {
         this.photoUrl = photoUrl;
         this.online = online;
         this.timestamp = timestamp;
+        this.unreadCount = unreadCount;
     }
 
     public String getName() { return name; }
@@ -29,4 +31,5 @@ public class ChatItem {
     public String getPhotoUrl() { return photoUrl; }
     public boolean isOnline() { return online; }
     public long getTimestamp() { return timestamp; }
+    public int getUnreadCount() { return unreadCount; }
 }
