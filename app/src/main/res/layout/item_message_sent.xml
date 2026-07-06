@@ -24,6 +24,36 @@
             android:orientation="vertical">
 
             <LinearLayout
+                android:id="@+id/forward_indicator"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="12dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="12dp"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <ImageView
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:src="@drawable/ic_forward"
+                    app:tint="?attr/colorOnPrimary"
+                    android:alpha="0.6" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="Forwarded"
+                    android:textSize="11sp"
+                    android:textStyle="italic"
+                    android:alpha="0.6"
+                    android:textColor="?attr/colorOnPrimary" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:id="@+id/reply_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

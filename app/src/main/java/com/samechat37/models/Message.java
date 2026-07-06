@@ -10,6 +10,7 @@ public class Message {
     private String type; // "text" or "voice"
     private String mediaUrl;
     private int duration;
+    private boolean forwarded;
     
     // Reply fields
     private String replyToId;
@@ -72,4 +73,7 @@ public class Message {
 
     public int getDuration() { return duration; }
     public void setDuration(int duration) { this.duration = duration; }
+
+    public boolean isForwarded() { return forwarded; }
+    public void setForwarded(boolean forwarded) { this.forwarded = forwarded; }
 }

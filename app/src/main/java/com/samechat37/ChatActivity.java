@@ -1,5 +1,8 @@
 package com.samechat37;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -8,9 +11,11 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.PopupMenu;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -50,6 +55,8 @@ public class ChatActivity extends BaseActivity {
     private DatabaseReference chatRef;
     private boolean isFriend = false;
     private ValueEventListener messageListener;
+    private ValueEventListener presenceListener;
+    private DatabaseReference presenceRef;
     public static String openedChatId = null;
     private String receiverPublicKey = null;
     private int messageLimit = 50;
@@ -97,18 +104,8 @@ public class ChatActivity extends BaseActivity {
         new WindowInsetsControllerCompat(getWindow(), getWindow().getDecorView()).setAppearanceLightStatusBars(!isNightMode);
         setContentView(R.layout.activity_chat);
 
-        receiverId = getIntent().getStringExtra("uid");
-        receiverName = getIntent().getStringExtra("displayName");
-        receiverAvatar = getIntent().getStringExtra("photoUrl");
-        senderId = FirebaseAuth.getInstance().getUid();
-
-        // Set openedChatId for notification filtering
-        openedChatId = receiverId;
-
-        setupToolbar();
         setupRecyclerView();
-        checkFriendStatus();
-
+        
         messageInput = findViewById(R.id.message_input);
         btnSend = findViewById(R.id.btn_send);
         btnAttachment = findViewById(R.id.btn_attachment);
@@ -138,7 +135,90 @@ public class ChatActivity extends BaseActivity {
         findViewById(R.id.btn_audio_call).setOnClickListener(v -> startCall(false));
         findViewById(R.id.btn_video_call).setOnClickListener(v -> startCall(true));
 
+        initChat();
+        checkForwardedMessage();
+    }
+
+    private void initChat() {
+        receiverId = getIntent().getStringExtra("uid");
+        receiverName = getIntent().getStringExtra("displayName");
+        receiverAvatar = getIntent().getStringExtra("photoUrl");
+        senderId = FirebaseAuth.getInstance().getUid();
+
+        openedChatId = receiverId;
+
+        setupToolbar();
+        
+        if (chatRef != null && messageListener != null) {
+            chatRef.removeEventListener(messageListener);
+        }
+        
+        messageList.clear();
+        if (adapter != null) adapter.notifyDataSetChanged();
+        
+        checkFriendStatus();
         setupPresenceListener();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        initChat();
+        checkForwardedMessage();
+    }
+
+    private void checkForwardedMessage() {
+        if (getIntent().hasExtra("forward_content")) {
+            String content = getIntent().getStringExtra("forward_content");
+            String type = getIntent().getStringExtra("forward_type");
+            if (type == null) type = "text";
+            
+            final String finalType = type;
+            // Wait for receiverPublicKey to be loaded if it's not yet
+            if (receiverPublicKey == null) {
+                FirebaseDatabase.getInstance().getReference("users").child(receiverId).child("publicKey")
+                        .addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                receiverPublicKey = snapshot.getValue(String.class);
+                                sendForwardedMessage(content, finalType);
+                            }
+                            @Override public void onCancelled(@NonNull DatabaseError error) {}
+                        });
+            } else {
+                sendForwardedMessage(content, type);
+            }
+            getIntent().removeExtra("forward_content");
+            getIntent().removeExtra("forward_type");
+        }
+    }
+
+    private void sendForwardedMessage(String content, String type) {
+        if (content == null) return;
+
+        if ("text".equals(type) || type == null) {
+            messageInput.setText(content);
+            sendMessage();
+        } else {
+            // For media, content is likely the mediaInfo JSON (u and k)
+            // We need to re-encrypt it for the new receiver
+            String encryptedMediaInfo = content;
+            String myPubKey = com.samechat37.utils.EncryptionManager.getMyPublicKey(this);
+            if (receiverPublicKey != null && myPubKey != null) {
+                try {
+                    // Content is decrypted JSON info from forwardMessage()
+                    encryptedMediaInfo = com.samechat37.utils.EncryptionManager.encrypt(content, receiverPublicKey, myPubKey);
+                } catch (Exception e) { e.printStackTrace(); }
+            }
+
+            String messageId = chatRef.push().getKey();
+            Message message = new Message(messageId, senderId, receiverId, type.substring(0,1).toUpperCase() + type.substring(1), System.currentTimeMillis(), type, encryptedMediaInfo, 0);
+            message.setForwarded(true);
+            if (messageId != null) {
+                chatRef.child(messageId).setValue(message);
+            }
+        }
     }
 
     private void setupAttachmentMenuListeners() {
@@ -508,33 +588,38 @@ public class ChatActivity extends BaseActivity {
     }
 
     private void setupPresenceListener() {
+        if (presenceRef != null && presenceListener != null) {
+            presenceRef.removeEventListener(presenceListener);
+        }
+
         TextView toolbarStatus = findViewById(R.id.toolbar_status);
-        FirebaseDatabase.getInstance().getReference("users").child(receiverId)
-                .addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        if (snapshot.exists()) {
-                            Boolean isOnline = snapshot.child("online").getValue(Boolean.class);
-                            Long lastSeen = snapshot.child("lastSeen").getValue(Long.class);
-                            receiverPublicKey = snapshot.child("publicKey").getValue(String.class);
+        presenceRef = FirebaseDatabase.getInstance().getReference("users").child(receiverId);
+        presenceListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    Boolean isOnline = snapshot.child("online").getValue(Boolean.class);
+                    Long lastSeen = snapshot.child("lastSeen").getValue(Long.class);
+                    receiverPublicKey = snapshot.child("publicKey").getValue(String.class);
 
-                            if (isOnline != null && isOnline) {
-                                toolbarStatus.setText("Online");
-                                toolbarStatus.setVisibility(android.view.View.VISIBLE);
-                            } else if (lastSeen != null) {
-                                // Simple last seen formatting
-                                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MMM dd, h:mm a", java.util.Locale.getDefault());
-                                toolbarStatus.setText("Last seen: " + sdf.format(new java.util.Date(lastSeen)));
-                                toolbarStatus.setVisibility(android.view.View.VISIBLE);
-                            } else {
-                                toolbarStatus.setVisibility(android.view.View.GONE);
-                            }
-                        }
+                    if (isOnline != null && isOnline) {
+                        toolbarStatus.setText("Online");
+                        toolbarStatus.setVisibility(android.view.View.VISIBLE);
+                    } else if (lastSeen != null) {
+                        // Simple last seen formatting
+                        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MMM dd, h:mm a", java.util.Locale.getDefault());
+                        toolbarStatus.setText("Last seen: " + sdf.format(new java.util.Date(lastSeen)));
+                        toolbarStatus.setVisibility(android.view.View.VISIBLE);
+                    } else {
+                        toolbarStatus.setVisibility(android.view.View.GONE);
                     }
+                }
+            }
 
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {}
-                });
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        };
+        presenceRef.addValueEventListener(presenceListener);
     }
 
     @Override
@@ -557,6 +642,9 @@ public class ChatActivity extends BaseActivity {
         if (chatRef != null && messageListener != null) {
             chatRef.removeEventListener(messageListener);
         }
+        if (presenceRef != null && presenceListener != null) {
+            presenceRef.removeEventListener(presenceListener);
+        }
     }
 
     private void setupToolbar() {
@@ -573,6 +661,8 @@ public class ChatActivity extends BaseActivity {
         toolbarName.setText(receiverName);
         if (receiverAvatar != null && !receiverAvatar.isEmpty()) {
             Glide.with(this).load(receiverAvatar).circleCrop().into(toolbarAvatar);
+        } else {
+            toolbarAvatar.setImageResource(R.mipmap.ic_launcher_round);
         }
 
         findViewById(R.id.user_info_container).setOnClickListener(v -> {
@@ -584,13 +674,21 @@ public class ChatActivity extends BaseActivity {
 
     private void setupRecyclerView() {
         chatRecycler = findViewById(R.id.chat_recycler);
-        adapter = new MessageAdapter(messageList, messageId -> {
-            for (int i = 0; i < messageList.size(); i++) {
-                if (messageList.get(i).getMessageId().equals(messageId)) {
-                    chatRecycler.smoothScrollToPosition(i + 1); // +1 for header
-                    adapter.highlightMessage(messageId);
-                    break;
+        adapter = new MessageAdapter(messageList, new MessageAdapter.OnMessageClickListener() {
+            @Override
+            public void onReplyClick(String messageId) {
+                for (int i = 0; i < messageList.size(); i++) {
+                    if (messageList.get(i).getMessageId().equals(messageId)) {
+                        chatRecycler.smoothScrollToPosition(i + 1); // +1 for header
+                        adapter.highlightMessage(messageId);
+                        break;
+                    }
                 }
+            }
+
+            @Override
+            public void onMessageLongClick(Message message, View view) {
+                showPopupMenu(message, view);
             }
         });
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
@@ -654,6 +752,85 @@ public class ChatActivity extends BaseActivity {
             }
             return false;
         });
+    }
+
+    private void showPopupMenu(Message message, View view) {
+        PopupMenu popup = new PopupMenu(this, view);
+        popup.getMenu().add("Copy Text");
+        popup.getMenu().add("Reply");
+        popup.getMenu().add("Forward");
+        popup.getMenu().add("Delete");
+
+        popup.setOnMenuItemClickListener(item -> {
+            String title = item.getTitle().toString();
+            switch (title) {
+                case "Copy Text":
+                    copyMessage(message);
+                    return true;
+                case "Reply":
+                    showReplyLayout(message);
+                    return true;
+                case "Forward":
+                    forwardMessage(message);
+                    return true;
+                case "Delete":
+                    deleteMessage(message);
+                    return true;
+            }
+            return false;
+        });
+        popup.show();
+    }
+
+    private void copyMessage(Message message) {
+        String textToCopy;
+        boolean isMe = message.getSenderId().equals(senderId);
+        if (message.getType() == null || message.getType().equals("text")) {
+            textToCopy = com.samechat37.utils.EncryptionManager.decrypt(message.getText(), this, isMe);
+        } else {
+            textToCopy = message.getType();
+        }
+
+        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        ClipData clip = ClipData.newPlainText("message", textToCopy);
+        if (clipboard != null) {
+            clipboard.setPrimaryClip(clip);
+            Toast.makeText(this, "Copied to clipboard", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void forwardMessage(Message message) {
+        // Simple forward: send message content to SearchUserActivity to pick a recipient
+        Intent intent = new Intent(this, SearchUserActivity.class);
+        intent.putExtra("forward_message", true);
+        
+        boolean isMe = message.getSenderId().equals(senderId);
+        String content;
+        if (message.getType() == null || message.getType().equals("text")) {
+            content = com.samechat37.utils.EncryptionManager.decrypt(message.getText(), this, isMe);
+        } else {
+            content = com.samechat37.utils.EncryptionManager.decrypt(message.getMediaUrl(), this, isMe);
+        }
+        
+        intent.putExtra("content", content);
+        intent.putExtra("type", message.getType());
+        startActivity(intent);
+        Toast.makeText(this, "Select a user to forward to", Toast.LENGTH_SHORT).show();
+    }
+
+    private void deleteMessage(Message message) {
+        if (message.getSenderId().equals(senderId)) {
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle("Delete Message")
+                    .setMessage("Are you sure you want to delete this message?")
+                    .setPositiveButton("Delete", (dialog, which) -> {
+                        chatRef.child(message.getMessageId()).removeValue();
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        } else {
+            Toast.makeText(this, "You can only delete your own messages", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void showReplyLayout(Message message) {
@@ -843,6 +1020,10 @@ public class ChatActivity extends BaseActivity {
         }
         
         Message message = new Message(messageId, senderId, receiverId, encryptedText, System.currentTimeMillis());
+        
+        if (getIntent().hasExtra("forward_content")) {
+            message.setForwarded(true);
+        }
         
         if (replyingToMessage != null) {
             message.setReplyToId(replyingToMessage.getMessageId());

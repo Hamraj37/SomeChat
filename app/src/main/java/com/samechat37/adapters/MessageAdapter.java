@@ -42,6 +42,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
     public interface OnMessageClickListener {
         void onReplyClick(String messageId);
+        void onMessageLongClick(Message message, View view);
     }
 
     public MessageAdapter(List<Message> messageList, OnMessageClickListener listener) {
@@ -265,41 +266,67 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         TextView textMessage;
         TextView textTimestamp;
         android.widget.ImageView imageStatus;
+        View forwardIndicator;
 
         public SentMessageViewHolder(@NonNull View itemView) {
             super(itemView);
             textMessage = itemView.findViewById(R.id.text_message);
             textTimestamp = itemView.findViewById(R.id.text_timestamp);
             imageStatus = itemView.findViewById(R.id.image_status);
+            forwardIndicator = itemView.findViewById(R.id.forward_indicator);
         }
 
         void bind(Message message) {
             textMessage.setText(message.getText());
             textTimestamp.setText(formatDate(message.getTimestamp()));
             bindReply(itemView, message);
+            
+            if (forwardIndicator != null) {
+                forwardIndicator.setVisibility(message.isForwarded() ? View.VISIBLE : View.GONE);
+            }
 
             if (message.isSeen()) {
                 imageStatus.setColorFilter(androidx.core.content.ContextCompat.getColor(itemView.getContext(), R.color.whatsapp_blue));
             } else {
                 imageStatus.setColorFilter(androidx.core.content.ContextCompat.getColor(itemView.getContext(), android.R.color.darker_gray));
             }
+
+            itemView.setOnLongClickListener(v -> {
+                if (listener != null) {
+                    listener.onMessageLongClick(message, v);
+                }
+                return true;
+            });
         }
     }
 
     class ReceivedMessageViewHolder extends RecyclerView.ViewHolder {
         TextView textMessage;
         TextView textTimestamp;
+        View forwardIndicator;
 
         public ReceivedMessageViewHolder(@NonNull View itemView) {
             super(itemView);
             textMessage = itemView.findViewById(R.id.text_message);
             textTimestamp = itemView.findViewById(R.id.text_timestamp);
+            forwardIndicator = itemView.findViewById(R.id.forward_indicator);
         }
 
         void bind(Message message) {
             textMessage.setText(message.getText());
             textTimestamp.setText(formatDate(message.getTimestamp()));
             bindReply(itemView, message);
+
+            if (forwardIndicator != null) {
+                forwardIndicator.setVisibility(message.isForwarded() ? View.VISIBLE : View.GONE);
+            }
+
+            itemView.setOnLongClickListener(v -> {
+                if (listener != null) {
+                    listener.onMessageLongClick(message, v);
+                }
+                return true;
+            });
         }
     }
 
@@ -310,6 +337,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         TextView textDuration;
         TextView textTimestamp;
         android.widget.ImageView imageStatus;
+        View forwardIndicator;
 
         public VoiceSentViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -319,12 +347,17 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             textDuration = itemView.findViewById(R.id.text_duration);
             textTimestamp = itemView.findViewById(R.id.text_timestamp);
             imageStatus = itemView.findViewById(R.id.image_status);
+            forwardIndicator = itemView.findViewById(R.id.forward_indicator);
         }
 
         void bind(Message message, int position) {
             textTimestamp.setText(formatDate(message.getTimestamp()));
             textDuration.setText(formatDuration(message.getDuration()));
             bindReply(itemView, message);
+            
+            if (forwardIndicator != null) {
+                forwardIndicator.setVisibility(message.isForwarded() ? View.VISIBLE : View.GONE);
+            }
             
             if (message.isSeen()) {
                 imageStatus.setColorFilter(androidx.core.content.ContextCompat.getColor(itemView.getContext(), R.color.whatsapp_blue));
@@ -345,6 +378,13 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             updatePlayPauseUI(btnPlayPause, voiceProgress, message, position);
 
             btnPlayPause.setOnClickListener(v -> togglePlay(message, position));
+
+            itemView.setOnLongClickListener(v -> {
+                if (listener != null) {
+                    listener.onMessageLongClick(message, v);
+                }
+                return true;
+            });
         }
     }
 
@@ -354,6 +394,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         com.google.android.material.progressindicator.CircularProgressIndicator downloadProgress;
         TextView textDuration;
         TextView textTimestamp;
+        View forwardIndicator;
 
         public VoiceReceivedViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -362,12 +403,17 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             downloadProgress = itemView.findViewById(R.id.download_progress);
             textDuration = itemView.findViewById(R.id.text_duration);
             textTimestamp = itemView.findViewById(R.id.text_timestamp);
+            forwardIndicator = itemView.findViewById(R.id.forward_indicator);
         }
 
         void bind(Message message, int position) {
             textTimestamp.setText(formatDate(message.getTimestamp()));
             textDuration.setText(formatDuration(message.getDuration()));
             bindReply(itemView, message);
+
+            if (forwardIndicator != null) {
+                forwardIndicator.setVisibility(message.isForwarded() ? View.VISIBLE : View.GONE);
+            }
 
             Integer progress = downloadProgressMap.get(message.getMessageId());
             if (progress != null && progress < 100) {
@@ -382,6 +428,13 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             updatePlayPauseUI(btnPlayPause, voiceProgress, message, position);
 
             btnPlayPause.setOnClickListener(v -> togglePlay(message, position));
+
+            itemView.setOnLongClickListener(v -> {
+                if (listener != null) {
+                    listener.onMessageLongClick(message, v);
+                }
+                return true;
+            });
         }
     }
 
@@ -390,6 +443,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         TextView textTimestamp;
         android.widget.ImageView imageStatus;
         com.google.android.material.progressindicator.CircularProgressIndicator uploadProgress;
+        View forwardIndicator;
 
         public ImageSentViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -397,11 +451,16 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             textTimestamp = itemView.findViewById(R.id.text_timestamp);
             imageStatus = itemView.findViewById(R.id.image_status);
             uploadProgress = itemView.findViewById(R.id.upload_progress);
+            forwardIndicator = itemView.findViewById(R.id.forward_indicator);
         }
 
         void bind(Message message) {
             textTimestamp.setText(formatDate(message.getTimestamp()));
             bindReply(itemView, message);
+
+            if (forwardIndicator != null) {
+                forwardIndicator.setVisibility(message.isForwarded() ? View.VISIBLE : View.GONE);
+            }
             
             String mediaData = message.getMediaUrl();
             if (mediaData != null && mediaData.startsWith("local:")) {
@@ -426,6 +485,13 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 uploadProgress.setVisibility(View.GONE);
                 itemView.setOnClickListener(v -> openFullMedia(v.getContext(), message));
             }
+
+            itemView.setOnLongClickListener(v -> {
+                if (listener != null) {
+                    listener.onMessageLongClick(message, v);
+                }
+                return true;
+            });
         }
     }
 
@@ -433,17 +499,23 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         android.widget.ImageView imageMessage;
         TextView textTimestamp;
         com.google.android.material.progressindicator.CircularProgressIndicator downloadProgress;
+        View forwardIndicator;
 
         public ImageReceivedViewHolder(@NonNull View itemView) {
             super(itemView);
             imageMessage = itemView.findViewById(R.id.image_message);
             textTimestamp = itemView.findViewById(R.id.text_timestamp);
             downloadProgress = itemView.findViewById(R.id.download_progress);
+            forwardIndicator = itemView.findViewById(R.id.forward_indicator);
         }
 
         void bind(Message message) {
             textTimestamp.setText(formatDate(message.getTimestamp()));
             bindReply(itemView, message);
+
+            if (forwardIndicator != null) {
+                forwardIndicator.setVisibility(message.isForwarded() ? View.VISIBLE : View.GONE);
+            }
             
             Integer progress = downloadProgressMap.get(message.getMessageId());
             if (progress != null && progress < 100) {
@@ -455,6 +527,13 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
             loadEncryptedMedia(imageMessage, message.getMediaUrl(), false, message.getMessageId());
             itemView.setOnClickListener(v -> openFullMedia(v.getContext(), message));
+
+            itemView.setOnLongClickListener(v -> {
+                if (listener != null) {
+                    listener.onMessageLongClick(message, v);
+                }
+                return true;
+            });
         }
     }
 
@@ -463,6 +542,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         TextView textTimestamp;
         android.widget.ImageView imageStatus;
         com.google.android.material.progressindicator.CircularProgressIndicator uploadProgress;
+        View forwardIndicator;
 
         public VideoSentViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -470,11 +550,16 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             textTimestamp = itemView.findViewById(R.id.text_timestamp);
             imageStatus = itemView.findViewById(R.id.image_status);
             uploadProgress = itemView.findViewById(R.id.upload_progress);
+            forwardIndicator = itemView.findViewById(R.id.forward_indicator);
         }
 
         void bind(Message message) {
             textTimestamp.setText(formatDate(message.getTimestamp()));
             bindReply(itemView, message);
+
+            if (forwardIndicator != null) {
+                forwardIndicator.setVisibility(message.isForwarded() ? View.VISIBLE : View.GONE);
+            }
             
             String mediaData = message.getMediaUrl();
             if (mediaData != null && mediaData.startsWith("local:")) {
@@ -500,6 +585,13 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 uploadProgress.setVisibility(View.GONE);
                 itemView.setOnClickListener(v -> openFullMedia(v.getContext(), message));
             }
+
+            itemView.setOnLongClickListener(v -> {
+                if (listener != null) {
+                    listener.onMessageLongClick(message, v);
+                }
+                return true;
+            });
         }
     }
 
@@ -507,17 +599,23 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         android.widget.ImageView videoThumbnail;
         TextView textTimestamp;
         com.google.android.material.progressindicator.CircularProgressIndicator downloadProgress;
+        View forwardIndicator;
 
         public VideoReceivedViewHolder(@NonNull View itemView) {
             super(itemView);
             videoThumbnail = itemView.findViewById(R.id.video_thumbnail);
             textTimestamp = itemView.findViewById(R.id.text_timestamp);
             downloadProgress = itemView.findViewById(R.id.download_progress);
+            forwardIndicator = itemView.findViewById(R.id.forward_indicator);
         }
 
         void bind(Message message) {
             textTimestamp.setText(formatDate(message.getTimestamp()));
             bindReply(itemView, message);
+
+            if (forwardIndicator != null) {
+                forwardIndicator.setVisibility(message.isForwarded() ? View.VISIBLE : View.GONE);
+            }
 
             Integer progress = downloadProgressMap.get(message.getMessageId());
             if (progress != null && progress < 100) {
@@ -529,6 +627,13 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
             loadEncryptedMedia(videoThumbnail, message.getMediaUrl(), true, message.getMessageId());
             itemView.setOnClickListener(v -> openFullMedia(v.getContext(), message));
+
+            itemView.setOnLongClickListener(v -> {
+                if (listener != null) {
+                    listener.onMessageLongClick(message, v);
+                }
+                return true;
+            });
         }
     }
 

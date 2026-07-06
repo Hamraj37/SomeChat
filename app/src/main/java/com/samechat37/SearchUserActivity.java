@@ -38,6 +38,8 @@ public class SearchUserActivity extends BaseActivity {
     private UserAdapter adapter;
     private List<User> userList = new ArrayList<>();
     private Map<String, User> userMap = new HashMap<>(); // To avoid duplicates
+    private boolean isForwardMode = false;
+    private List<String> friendIds = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,6 +49,8 @@ public class SearchUserActivity extends BaseActivity {
         new WindowInsetsControllerCompat(getWindow(), getWindow().getDecorView()).setAppearanceLightStatusBars(!isNightMode);
         setContentView(R.layout.activity_search_user);
 
+        isForwardMode = getIntent().getBooleanExtra("forward_message", false);
+
         searchInput = findViewById(R.id.search_input);
         searchResultsRecycler = findViewById(R.id.search_results_recycler);
         emptyView = findViewById(R.id.empty_view);
@@ -55,9 +59,73 @@ public class SearchUserActivity extends BaseActivity {
         setupRecyclerView();
         setupSearchListener();
 
+        if (isForwardMode) {
+            loadFriends();
+            searchInput.setHint("Search friends...");
+        }
+
         // Handle back navigation
         androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setNavigationOnClickListener(v -> finish());
+    }
+
+    private void loadFriends() {
+        String myUid = com.google.firebase.auth.FirebaseAuth.getInstance().getUid();
+        if (myUid == null) return;
+
+        emptyView.setText("Loading friends...");
+        emptyStateContainer.setVisibility(View.VISIBLE);
+
+        FirebaseDatabase.getInstance().getReference("friends").child(myUid)
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        friendIds.clear();
+                        for (DataSnapshot ds : snapshot.getChildren()) {
+                            friendIds.add(ds.getKey());
+                        }
+                        
+                        if (friendIds.isEmpty()) {
+                            emptyView.setText("No friends found. Search for users to add them.");
+                        } else {
+                            fetchFriendDetails();
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {}
+                });
+    }
+
+    private void fetchFriendDetails() {
+        userMap.clear();
+        final int total = friendIds.size();
+        final int[] loaded = {0};
+
+        for (String uid : friendIds) {
+            FirebaseDatabase.getInstance().getReference("users").child(uid)
+                    .addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot snapshot) {
+                            User user = snapshot.getValue(User.class);
+                            if (user != null) {
+                                userMap.put(user.getUid(), user);
+                            }
+                            loaded[0]++;
+                            if (loaded[0] == total) {
+                                updateUI("");
+                            }
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+                            loaded[0]++;
+                            if (loaded[0] == total) {
+                                updateUI("");
+                            }
+                        }
+                    });
+        }
     }
 
     private void setupRecyclerView() {
@@ -66,7 +134,17 @@ public class SearchUserActivity extends BaseActivity {
             intent.putExtra("uid", user.getUid());
             intent.putExtra("displayName", user.getDisplayName());
             intent.putExtra("photoUrl", user.getPhotoUrl());
+            
+            if (getIntent().getBooleanExtra("forward_message", false)) {
+                intent.putExtra("forward_content", getIntent().getStringExtra("content"));
+                intent.putExtra("forward_type", getIntent().getStringExtra("type"));
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            }
+            
             startActivity(intent);
+            if (getIntent().getBooleanExtra("forward_message", false)) {
+                finish();
+            }
         });
         searchResultsRecycler.setLayoutManager(new LinearLayoutManager(this));
         searchResultsRecycler.setAdapter(adapter);
@@ -82,6 +160,8 @@ public class SearchUserActivity extends BaseActivity {
                 String query = s.toString().trim();
                 if (!query.isEmpty()) {
                     searchUsers(query);
+                } else if (isForwardMode) {
+                    fetchFriendDetails();
                 } else {
                     userMap.clear();
                     userList.clear();
@@ -134,7 +214,13 @@ public class SearchUserActivity extends BaseActivity {
                 for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
                     User user = dataSnapshot.getValue(User.class);
                     if (user != null && user.getUid() != null) {
-                        userMap.put(user.getUid(), user);
+                        if (isForwardMode) {
+                            if (friendIds.contains(user.getUid())) {
+                                userMap.put(user.getUid(), user);
+                            }
+                        } else {
+                            userMap.put(user.getUid(), user);
+                        }
                     }
                 }
                 updateUI(originalInput);
