@@ -341,8 +341,11 @@ public class ProfileInfoActivity extends BaseActivity {
 
                                 if (name != null) binding.profileName.setText(name);
                                 if (handle != null) binding.profileHandle.setText("@" + handle);
-                                if (email != null) {
+                                if (isOwnProfile && email != null) {
+                                    binding.profileEmailHeader.setVisibility(android.view.View.VISIBLE);
                                     binding.profileEmailHeader.setText(email);
+                                } else {
+                                    binding.profileEmailHeader.setVisibility(android.view.View.GONE);
                                 }
                                 if (photoUrl != null && !photoUrl.isEmpty()) {
                                     Glide.with(ProfileInfoActivity.this)
