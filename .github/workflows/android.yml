@@ -23,12 +23,29 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
+    # 1. Decode the Keystore Base64 string into a physical file first
+    - name: Decode Keystore File
+      env:
+        RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+      run: |
+        echo "$RELEASE_KEYSTORE_BASE64" | base64 --decode > app/release.jks
+
+    # 2. Write the properties to local.properties (passing the PATH to the file, not the base64 string)
     - name: Prepare local.properties from Secrets
       run: |
         echo "RELEASE_KEY_ALIAS=${{ secrets.RELEASE_KEY_ALIAS }}" >> local.properties
         echo "RELEASE_KEY_PASSWORD=${{ secrets.RELEASE_KEY_PASSWORD }}" >> local.properties
-        echo "RELEASE_KEYSTORE_BASE64=${{ secrets.RELEASE_KEYSTORE_BASE64 }}" >> local.properties
+        echo "RELEASE_STORE_PASSWORD=${{ secrets.RELEASE_STORE_PASSWORD }}" >> local.properties
+        echo "RELEASE_STORE_FILE=app/release.jks" >> local.properties
 
+    # 3. Create the Google Services JSON file
+    - name: Create google-services.json
+      env:
+        GOOGLE_SERVICES_CONTENT: ${{ secrets.GOOGLE_SERVICES_JSON }}
+      run: |
+        echo "$GOOGLE_SERVICES_CONTENT" > app/google-services.json
+
+    # 4. Now this will succeed because both the JSON and Keystore are perfectly ready
     - name: Build with Gradle
       run: ./gradlew assembleRelease
 
