@@ -66,6 +66,11 @@ public class ChatActivity extends BaseActivity {
     private TextView replyText;
     private Message replyingToMessage = null;
 
+    private View userInfoContainer;
+    private View callButtonsContainer;
+    private View selectionActionsContainer;
+    private TextView selectionCountText;
+
     private android.media.MediaRecorder mediaRecorder;
     private String audioPath = null;
     private long recordStartTime = 0;
@@ -115,6 +120,16 @@ public class ChatActivity extends BaseActivity {
         replyName = findViewById(R.id.reply_name);
         replyText = findViewById(R.id.reply_text);
         findViewById(R.id.btn_cancel_reply).setOnClickListener(v -> cancelReply());
+
+        userInfoContainer = findViewById(R.id.user_info_container);
+        callButtonsContainer = findViewById(R.id.call_buttons_container);
+        selectionActionsContainer = findViewById(R.id.selection_actions_container);
+        selectionCountText = findViewById(R.id.selection_count);
+
+        findViewById(R.id.btn_copy_selected).setOnClickListener(v -> copySelectedMessages());
+        findViewById(R.id.btn_reply_selected).setOnClickListener(v -> replyToSelectedMessage());
+        findViewById(R.id.btn_forward_selected).setOnClickListener(v -> forwardSelectedMessages());
+        findViewById(R.id.btn_delete_selected).setOnClickListener(v -> deleteSelectedMessages());
         
         replyLayout.setOnClickListener(v -> {
             if (replyingToMessage != null) {
@@ -648,6 +663,111 @@ public class ChatActivity extends BaseActivity {
         }
     }
 
+    private void updateSelectionUI(int count) {
+        if (count > 0) {
+            userInfoContainer.setVisibility(View.GONE);
+            callButtonsContainer.setVisibility(View.GONE);
+            selectionCountText.setVisibility(View.VISIBLE);
+            selectionActionsContainer.setVisibility(View.VISIBLE);
+            selectionCountText.setText(String.valueOf(count));
+            
+            // Show/hide reply based on count
+            findViewById(R.id.btn_reply_selected).setVisibility(count == 1 ? View.VISIBLE : View.GONE);
+            
+            androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
+            toolbar.setNavigationIcon(androidx.appcompat.R.drawable.abc_ic_ab_back_material); 
+            toolbar.setNavigationOnClickListener(v -> adapter.clearSelection());
+        } else {
+            userInfoContainer.setVisibility(View.VISIBLE);
+            callButtonsContainer.setVisibility(View.VISIBLE);
+            selectionCountText.setVisibility(View.GONE);
+            selectionActionsContainer.setVisibility(View.GONE);
+            
+            androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
+            toolbar.setNavigationIcon(android.R.drawable.ic_menu_revert);
+            toolbar.setNavigationOnClickListener(v -> finish());
+        }
+    }
+
+    private void copySelectedMessages() {
+        List<Message> selected = adapter.getSelectedMessages();
+        if (selected.isEmpty()) return;
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < selected.size(); i++) {
+            Message m = selected.get(i);
+            boolean isMe = m.getSenderId().equals(senderId);
+            String text;
+            if (m.getType() == null || m.getType().equals("text")) {
+                text = com.samechat37.utils.EncryptionManager.decrypt(m.getText(), this, isMe);
+            } else {
+                text = m.getType();
+            }
+            sb.append(text);
+            if (i < selected.size() - 1) sb.append("\n");
+        }
+
+        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        ClipData clip = ClipData.newPlainText("messages", sb.toString());
+        if (clipboard != null) {
+            clipboard.setPrimaryClip(clip);
+            Toast.makeText(this, "Copied to clipboard", Toast.LENGTH_SHORT).show();
+        }
+        adapter.clearSelection();
+    }
+
+    private void replyToSelectedMessage() {
+        List<Message> selected = adapter.getSelectedMessages();
+        if (selected.size() == 1) {
+            showReplyLayout(selected.get(0));
+            adapter.clearSelection();
+        }
+    }
+
+    private void forwardSelectedMessages() {
+        List<Message> selected = adapter.getSelectedMessages();
+        if (selected.isEmpty()) return;
+
+        // For simplicity, we only support forwarding one message at a time in the current SearchUserActivity logic
+        // but let's just forward the first one for now or update it.
+        forwardMessage(selected.get(0));
+        adapter.clearSelection();
+    }
+
+    private void deleteSelectedMessages() {
+        List<Message> selected = adapter.getSelectedMessages();
+        if (selected.isEmpty()) return;
+
+        if (selected.size() == 1) {
+            deleteMessage(selected.get(0));
+        } else {
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle("Delete " + selected.size() + " messages?")
+                    .setPositiveButton("Delete for me", (dialog, which) -> {
+                        for (Message m : selected) {
+                            boolean isMeSender = m.getSenderId().equals(senderId);
+                            if (isMeSender) {
+                                chatRef.child(m.getMessageId()).child("deletedBySender").setValue(true);
+                            } else {
+                                chatRef.child(m.getMessageId()).child("deletedByReceiver").setValue(true);
+                            }
+                        }
+                        adapter.clearSelection();
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (adapter != null && adapter.isSelectionMode()) {
+            adapter.clearSelection();
+        } else {
+            super.onBackPressed();
+        }
+    }
+
     private void setupToolbar() {
         androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -689,7 +809,18 @@ public class ChatActivity extends BaseActivity {
 
             @Override
             public void onMessageLongClick(Message message, View view) {
-                showPopupMenu(message, view);
+                // Now handled by adapter's toggleSelection internally
+                // but we can still use this if needed.
+            }
+
+            @Override
+            public void onMessageClick(Message message) {
+                // Handle message click (e.g. open image) - already handled for media in adapter
+            }
+
+            @Override
+            public void onSelectionChanged(int count) {
+                updateSelectionUI(count);
             }
         });
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
@@ -753,56 +884,6 @@ public class ChatActivity extends BaseActivity {
             }
             return false;
         });
-    }
-
-    private void showPopupMenu(Message message, View view) {
-        PopupMenu popup = new PopupMenu(this, view);
-        popup.getMenu().add("Copy Text");
-        popup.getMenu().add("Reply");
-        
-        boolean isLocal = message.getMediaUrl() != null && message.getMediaUrl().startsWith("local:");
-        if (!isLocal) {
-            popup.getMenu().add("Forward");
-        }
-
-        popup.getMenu().add("Delete");
-
-        popup.setOnMenuItemClickListener(item -> {
-            String title = item.getTitle().toString();
-            switch (title) {
-                case "Copy Text":
-                    copyMessage(message);
-                    return true;
-                case "Reply":
-                    showReplyLayout(message);
-                    return true;
-                case "Forward":
-                    forwardMessage(message);
-                    return true;
-                case "Delete":
-                    deleteMessage(message);
-                    return true;
-            }
-            return false;
-        });
-        popup.show();
-    }
-
-    private void copyMessage(Message message) {
-        String textToCopy;
-        boolean isMe = message.getSenderId().equals(senderId);
-        if (message.getType() == null || message.getType().equals("text")) {
-            textToCopy = com.samechat37.utils.EncryptionManager.decrypt(message.getText(), this, isMe);
-        } else {
-            textToCopy = message.getType();
-        }
-
-        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-        ClipData clip = ClipData.newPlainText("message", textToCopy);
-        if (clipboard != null) {
-            clipboard.setPrimaryClip(clip);
-            Toast.makeText(this, "Copied to clipboard", Toast.LENGTH_SHORT).show();
-        }
     }
 
     private void forwardMessage(Message message) {

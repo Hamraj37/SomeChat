@@ -30,6 +30,8 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     private static final int VIEW_TYPE_VIDEO_RECEIVED = 8;
 
     private List<Message> messageList;
+    private java.util.Set<String> selectedMessageIds = new java.util.HashSet<>();
+    private boolean isSelectionMode = false;
     private String currentUserId;
     private android.media.MediaPlayer mediaPlayer;
     private int playingPosition = -1;
@@ -43,6 +45,8 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     public interface OnMessageClickListener {
         void onReplyClick(String messageId);
         void onMessageLongClick(Message message, View view);
+        void onMessageClick(Message message);
+        void onSelectionChanged(int count);
     }
 
     public MessageAdapter(List<Message> messageList, OnMessageClickListener listener) {
@@ -118,6 +122,63 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 break;
             }
         }
+    }
+
+    public void toggleSelection(String messageId) {
+        if (selectedMessageIds.contains(messageId)) {
+            selectedMessageIds.remove(messageId);
+        } else {
+            selectedMessageIds.add(messageId);
+        }
+        
+        if (selectedMessageIds.isEmpty()) {
+            isSelectionMode = false;
+        } else {
+            isSelectionMode = true;
+        }
+
+        for (int i = 0; i < messageList.size(); i++) {
+            if (messageId.equals(messageList.get(i).getMessageId())) {
+                notifyItemChanged(i + 1);
+                break;
+            }
+        }
+        
+        if (listener != null) {
+            listener.onSelectionChanged(selectedMessageIds.size());
+        }
+    }
+
+    public void clearSelection() {
+        java.util.Set<String> previousSelected = new java.util.HashSet<>(selectedMessageIds);
+        selectedMessageIds.clear();
+        isSelectionMode = false;
+        for (int i = 0; i < messageList.size(); i++) {
+            if (previousSelected.contains(messageList.get(i).getMessageId())) {
+                notifyItemChanged(i + 1);
+            }
+        }
+        if (listener != null) {
+            listener.onSelectionChanged(0);
+        }
+    }
+
+    public boolean isSelectionMode() {
+        return isSelectionMode;
+    }
+
+    public java.util.Set<String> getSelectedMessageIds() {
+        return selectedMessageIds;
+    }
+
+    public List<Message> getSelectedMessages() {
+        List<Message> selected = new java.util.ArrayList<>();
+        for (Message m : messageList) {
+            if (selectedMessageIds.contains(m.getMessageId())) {
+                selected.add(m);
+            }
+        }
+        return selected;
     }
 
     @Override
@@ -208,9 +269,10 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         displayMessage.setReplyToText(message.getReplyToText());
 
         boolean isHighlighted = message.getMessageId() != null && message.getMessageId().equals(highlightMessageId);
+        boolean isSelected = selectedMessageIds.contains(message.getMessageId());
+        
         holder.itemView.setAlpha(isHighlighted ? 0.5f : 1.0f);
-        // Better: change bubble background. But for simplicity let's stick to alpha or a dedicated View.
-        // Let's use a subtle alpha change for now, or if I can find the bubble views.
+        holder.itemView.setBackgroundColor(isSelected ? 0x20000000 : android.graphics.Color.TRANSPARENT);
         
         View bubble = null;
         if (holder.itemView instanceof ViewGroup) {
@@ -293,8 +355,18 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 imageStatus.setColorFilter(androidx.core.content.ContextCompat.getColor(itemView.getContext(), android.R.color.darker_gray));
             }
 
+            itemView.setOnClickListener(v -> {
+                if (isSelectionMode) {
+                    toggleSelection(message.getMessageId());
+                } else if (listener != null) {
+                    listener.onMessageClick(message);
+                }
+            });
+
             itemView.setOnLongClickListener(v -> {
-                if (listener != null) {
+                if (!isSelectionMode) {
+                    toggleSelection(message.getMessageId());
+                } else if (listener != null) {
                     listener.onMessageLongClick(message, v);
                 }
                 return true;
@@ -323,8 +395,18 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 forwardIndicator.setVisibility(message.isForwarded() ? View.VISIBLE : View.GONE);
             }
 
+            itemView.setOnClickListener(v -> {
+                if (isSelectionMode) {
+                    toggleSelection(message.getMessageId());
+                } else if (listener != null) {
+                    listener.onMessageClick(message);
+                }
+            });
+
             itemView.setOnLongClickListener(v -> {
-                if (listener != null) {
+                if (!isSelectionMode) {
+                    toggleSelection(message.getMessageId());
+                } else if (listener != null) {
                     listener.onMessageLongClick(message, v);
                 }
                 return true;
@@ -380,10 +462,26 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
             updatePlayPauseUI(btnPlayPause, voiceProgress, message, position);
 
-            btnPlayPause.setOnClickListener(v -> togglePlay(message, position));
+            btnPlayPause.setOnClickListener(v -> {
+                if (isSelectionMode) {
+                    toggleSelection(message.getMessageId());
+                } else {
+                    togglePlay(message, position);
+                }
+            });
+
+            itemView.setOnClickListener(v -> {
+                if (isSelectionMode) {
+                    toggleSelection(message.getMessageId());
+                } else if (listener != null) {
+                    listener.onMessageClick(message);
+                }
+            });
 
             itemView.setOnLongClickListener(v -> {
-                if (listener != null) {
+                if (!isSelectionMode) {
+                    toggleSelection(message.getMessageId());
+                } else if (listener != null) {
                     listener.onMessageLongClick(message, v);
                 }
                 return true;
@@ -430,10 +528,26 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
             updatePlayPauseUI(btnPlayPause, voiceProgress, message, position);
 
-            btnPlayPause.setOnClickListener(v -> togglePlay(message, position));
+            btnPlayPause.setOnClickListener(v -> {
+                if (isSelectionMode) {
+                    toggleSelection(message.getMessageId());
+                } else {
+                    togglePlay(message, position);
+                }
+            });
+
+            itemView.setOnClickListener(v -> {
+                if (isSelectionMode) {
+                    toggleSelection(message.getMessageId());
+                } else if (listener != null) {
+                    listener.onMessageClick(message);
+                }
+            });
 
             itemView.setOnLongClickListener(v -> {
-                if (listener != null) {
+                if (!isSelectionMode) {
+                    toggleSelection(message.getMessageId());
+                } else if (listener != null) {
                     listener.onMessageLongClick(message, v);
                 }
                 return true;
@@ -487,11 +601,20 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 uploadProgress.setProgress(progress);
             } else {
                 uploadProgress.setVisibility(View.GONE);
-                itemView.setOnClickListener(v -> openFullMedia(v.getContext(), message));
             }
 
+            itemView.setOnClickListener(v -> {
+                if (isSelectionMode) {
+                    toggleSelection(message.getMessageId());
+                } else {
+                    openFullMedia(v.getContext(), message);
+                }
+            });
+
             itemView.setOnLongClickListener(v -> {
-                if (listener != null) {
+                if (!isSelectionMode) {
+                    toggleSelection(message.getMessageId());
+                } else if (listener != null) {
                     listener.onMessageLongClick(message, v);
                 }
                 return true;
@@ -530,10 +653,19 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             }
 
             loadEncryptedMedia(imageMessage, message.getMediaUrl(), false, message.getMessageId());
-            itemView.setOnClickListener(v -> openFullMedia(v.getContext(), message));
+            
+            itemView.setOnClickListener(v -> {
+                if (isSelectionMode) {
+                    toggleSelection(message.getMessageId());
+                } else {
+                    openFullMedia(v.getContext(), message);
+                }
+            });
 
             itemView.setOnLongClickListener(v -> {
-                if (listener != null) {
+                if (!isSelectionMode) {
+                    toggleSelection(message.getMessageId());
+                } else if (listener != null) {
                     listener.onMessageLongClick(message, v);
                 }
                 return true;
@@ -588,11 +720,20 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 uploadProgress.setProgress(progress);
             } else {
                 uploadProgress.setVisibility(View.GONE);
-                itemView.setOnClickListener(v -> openFullMedia(v.getContext(), message));
             }
 
+            itemView.setOnClickListener(v -> {
+                if (isSelectionMode) {
+                    toggleSelection(message.getMessageId());
+                } else {
+                    openFullMedia(v.getContext(), message);
+                }
+            });
+
             itemView.setOnLongClickListener(v -> {
-                if (listener != null) {
+                if (!isSelectionMode) {
+                    toggleSelection(message.getMessageId());
+                } else if (listener != null) {
                     listener.onMessageLongClick(message, v);
                 }
                 return true;
@@ -631,10 +772,19 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             }
 
             loadEncryptedMedia(videoThumbnail, message.getMediaUrl(), true, message.getMessageId());
-            itemView.setOnClickListener(v -> openFullMedia(v.getContext(), message));
+            
+            itemView.setOnClickListener(v -> {
+                if (isSelectionMode) {
+                    toggleSelection(message.getMessageId());
+                } else {
+                    openFullMedia(v.getContext(), message);
+                }
+            });
 
             itemView.setOnLongClickListener(v -> {
-                if (listener != null) {
+                if (!isSelectionMode) {
+                    toggleSelection(message.getMessageId());
+                } else if (listener != null) {
                     listener.onMessageLongClick(message, v);
                 }
                 return true;

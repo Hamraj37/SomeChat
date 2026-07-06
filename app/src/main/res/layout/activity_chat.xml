@@ -43,52 +43,70 @@
                     android:gravity="center_vertical"
                     android:paddingEnd="8dp">
 
-                    <LinearLayout
-                        android:id="@+id/user_info_container"
+                    <FrameLayout
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
-                        android:layout_weight="1"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingStart="4dp">
-
-                        <com.google.android.material.imageview.ShapeableImageView
-                            android:id="@+id/toolbar_avatar"
-                            android:layout_width="36dp"
-                            android:layout_height="36dp"
-                            android:scaleType="centerCrop"
-                            android:src="@mipmap/ic_launcher_round"
-                            app:shapeAppearanceOverlay="@style/CircleAppearance" />
+                        android:layout_weight="1">
 
                         <LinearLayout
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:orientation="vertical">
+                            android:id="@+id/user_info_container"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingStart="4dp">
 
-                            <TextView
-                                android:id="@+id/toolbar_name"
+                            <com.google.android.material.imageview.ShapeableImageView
+                                android:id="@+id/toolbar_avatar"
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
+                                android:scaleType="centerCrop"
+                                android:src="@mipmap/ic_launcher_round"
+                                app:shapeAppearanceOverlay="@style/CircleAppearance" />
+
+                            <LinearLayout
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:textAppearance="?attr/textAppearanceTitleMedium"
-                                android:textColor="?attr/colorOnSurface"
-                                tools:text="User Name" />
+                                android:layout_marginStart="12dp"
+                                android:orientation="vertical">
 
-                            <TextView
-                                android:id="@+id/toolbar_status"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Offline"
-                                android:textAppearance="?attr/textAppearanceLabelSmall"
-                                android:textColor="?attr/colorOnSurface"
-                                android:alpha="0.7"
-                                android:visibility="gone" />
+                                <TextView
+                                    android:id="@+id/toolbar_name"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:textAppearance="?attr/textAppearanceTitleMedium"
+                                    android:textColor="?attr/colorOnSurface"
+                                    tools:text="User Name" />
+
+                                <TextView
+                                    android:id="@+id/toolbar_status"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Offline"
+                                    android:textAppearance="?attr/textAppearanceLabelSmall"
+                                    android:textColor="?attr/colorOnSurface"
+                                    android:alpha="0.7"
+                                    android:visibility="gone" />
+
+                            </LinearLayout>
 
                         </LinearLayout>
 
-                    </LinearLayout>
+                        <TextView
+                            android:id="@+id/selection_count"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:gravity="center_vertical"
+                            android:paddingStart="12dp"
+                            android:textAppearance="?attr/textAppearanceTitleLarge"
+                            android:textColor="?attr/colorOnSurface"
+                            android:visibility="gone"
+                            tools:text="1" />
+
+                    </FrameLayout>
 
                     <LinearLayout
+                        android:id="@+id/call_buttons_container"
                         android:layout_width="wrap_content"
                         android:layout_height="match_parent"
                         android:gravity="center_vertical"
@@ -113,6 +131,56 @@
                             android:src="@android:drawable/ic_menu_call"
                             android:contentDescription="Audio Call"
                             app:tint="?attr/colorPrimary" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/selection_actions_container"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+
+                        <ImageView
+                            android:id="@+id/btn_reply_selected"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:padding="12dp"
+                            android:src="@drawable/ic_reply"
+                            android:contentDescription="@string/reply"
+                            app:tint="?attr/colorOnSurface" />
+
+                        <ImageView
+                            android:id="@+id/btn_copy_selected"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:padding="12dp"
+                            android:src="@drawable/ic_copy"
+                            android:contentDescription="@string/copy"
+                            app:tint="?attr/colorOnSurface" />
+
+                        <ImageView
+                            android:id="@+id/btn_forward_selected"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:padding="12dp"
+                            android:src="@drawable/ic_forward"
+                            android:contentDescription="@string/forward"
+                            app:tint="?attr/colorOnSurface" />
+
+                        <ImageView
+                            android:id="@+id/btn_delete_selected"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:padding="12dp"
+                            android:src="@drawable/ic_delete"
+                            android:contentDescription="@string/delete"
+                            app:tint="?attr/colorOnSurface" />
 
                     </LinearLayout>
 

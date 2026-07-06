@@ -45,4 +45,8 @@
     <string name="back">Back</string>
     <string name="attach_file">Attach File</string>
     <string name="unfriend">Unfriend</string>
+    <string name="reply">Reply</string>
+    <string name="copy">Copy</string>
+    <string name="forward">Forward</string>
+    <string name="delete">Delete</string>
 </resources>
