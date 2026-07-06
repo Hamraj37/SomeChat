@@ -202,6 +202,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 message.getDuration()
         );
         displayMessage.setSeen(message.isSeen());
+        displayMessage.setForwarded(message.isForwarded());
         displayMessage.setReplyToId(message.getReplyToId());
         displayMessage.setReplyToName(message.getReplyToName());
         displayMessage.setReplyToText(message.getReplyToText());

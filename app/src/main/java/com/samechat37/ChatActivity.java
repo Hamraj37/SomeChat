@@ -136,7 +136,6 @@ public class ChatActivity extends BaseActivity {
         findViewById(R.id.btn_video_call).setOnClickListener(v -> startCall(true));
 
         initChat();
-        checkForwardedMessage();
     }
 
     private void initChat() {
@@ -165,7 +164,6 @@ public class ChatActivity extends BaseActivity {
         super.onNewIntent(intent);
         setIntent(intent);
         initChat();
-        checkForwardedMessage();
     }
 
     private void checkForwardedMessage() {
@@ -189,13 +187,13 @@ public class ChatActivity extends BaseActivity {
             } else {
                 sendForwardedMessage(content, type);
             }
-            getIntent().removeExtra("forward_content");
-            getIntent().removeExtra("forward_type");
         }
     }
 
     private void sendForwardedMessage(String content, String type) {
         if (content == null) return;
+        
+        int duration = getIntent().getIntExtra("forward_duration", 0);
 
         if ("text".equals(type) || type == null) {
             messageInput.setText(content);
@@ -213,12 +211,15 @@ public class ChatActivity extends BaseActivity {
             }
 
             String messageId = chatRef.push().getKey();
-            Message message = new Message(messageId, senderId, receiverId, type.substring(0,1).toUpperCase() + type.substring(1), System.currentTimeMillis(), type, encryptedMediaInfo, 0);
+            Message message = new Message(messageId, senderId, receiverId, type.substring(0,1).toUpperCase() + type.substring(1), System.currentTimeMillis(), type, encryptedMediaInfo, duration);
             message.setForwarded(true);
             if (messageId != null) {
                 chatRef.child(messageId).setValue(message);
             }
         }
+        getIntent().removeExtra("forward_content");
+        getIntent().removeExtra("forward_type");
+        getIntent().removeExtra("forward_duration");
     }
 
     private void setupAttachmentMenuListeners() {
@@ -758,7 +759,12 @@ public class ChatActivity extends BaseActivity {
         PopupMenu popup = new PopupMenu(this, view);
         popup.getMenu().add("Copy Text");
         popup.getMenu().add("Reply");
-        popup.getMenu().add("Forward");
+        
+        boolean isLocal = message.getMediaUrl() != null && message.getMediaUrl().startsWith("local:");
+        if (!isLocal) {
+            popup.getMenu().add("Forward");
+        }
+
         popup.getMenu().add("Delete");
 
         popup.setOnMenuItemClickListener(item -> {
@@ -814,6 +820,7 @@ public class ChatActivity extends BaseActivity {
         
         intent.putExtra("content", content);
         intent.putExtra("type", message.getType());
+        intent.putExtra("duration", message.getDuration());
         startActivity(intent);
         Toast.makeText(this, "Select a user to forward to", Toast.LENGTH_SHORT).show();
     }
@@ -934,6 +941,7 @@ public class ChatActivity extends BaseActivity {
             public void onCancelled(@NonNull DatabaseError error) {}
         };
         chatRef.limitToLast(messageLimit).addValueEventListener(messageListener);
+        checkForwardedMessage();
     }
 
     private void checkFriendStatus() {

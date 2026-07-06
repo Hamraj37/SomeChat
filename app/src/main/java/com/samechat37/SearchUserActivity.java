@@ -138,6 +138,7 @@ public class SearchUserActivity extends BaseActivity {
             if (getIntent().getBooleanExtra("forward_message", false)) {
                 intent.putExtra("forward_content", getIntent().getStringExtra("content"));
                 intent.putExtra("forward_type", getIntent().getStringExtra("type"));
+                intent.putExtra("forward_duration", getIntent().getIntExtra("duration", 0));
                 intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             }
             
