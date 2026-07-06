@@ -19,6 +19,7 @@ import java.util.Locale;
 
 public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
+    private static final int VIEW_TYPE_HEADER = 0;
     private static final int VIEW_TYPE_SENT = 1;
     private static final int VIEW_TYPE_RECEIVED = 2;
     private static final int VIEW_TYPE_VOICE_SENT = 3;
@@ -31,7 +32,6 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     private List<Message> messageList;
     private String currentUserId;
     private android.media.MediaPlayer mediaPlayer;
-    private String currentlyPlayingUrl;
     private int playingPosition = -1;
     private android.os.Handler progressHandler = new android.os.Handler(android.os.Looper.getMainLooper());
     private final java.util.Map<String, Integer> uploadProgressMap = new java.util.HashMap<>();
@@ -52,7 +52,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         uploadProgressMap.put(messageId, progress);
         for (int i = 0; i < messageList.size(); i++) {
             if (messageId.equals(messageList.get(i).getMessageId())) {
-                notifyItemChanged(i, "progress");
+                notifyItemChanged(i + 1, "progress"); // +1 for header
                 break;
             }
         }
@@ -62,7 +62,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         uploadProgressMap.remove(messageId);
         for (int i = 0; i < messageList.size(); i++) {
             if (messageId.equals(messageList.get(i).getMessageId())) {
-                notifyItemChanged(i, "progress");
+                notifyItemChanged(i + 1, "progress"); // +1 for header
                 break;
             }
         }
@@ -70,7 +70,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
     @Override
     public int getItemViewType(int position) {
-        Message message = messageList.get(position);
+        if (position == 0) return VIEW_TYPE_HEADER;
+
+        Message message = messageList.get(position - 1);
         if (message == null) return VIEW_TYPE_RECEIVED;
         
         String senderId = message.getSenderId();
@@ -101,6 +103,8 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         LayoutInflater inflater = LayoutInflater.from(parent.getContext());
         switch (viewType) {
+            case VIEW_TYPE_HEADER:
+                return new HeaderViewHolder(inflater.inflate(R.layout.layout_encryption_header, parent, false));
             case VIEW_TYPE_SENT:
                 return new SentMessageViewHolder(inflater.inflate(R.layout.item_message_sent, parent, false));
             case VIEW_TYPE_RECEIVED:
@@ -124,7 +128,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-        Message message = messageList.get(position);
+        if (holder instanceof HeaderViewHolder) return;
+
+        Message message = messageList.get(position - 1);
         if (message == null) return;
 
         boolean isSender = message.getSenderId().equals(currentUserId);
@@ -163,13 +169,19 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
     @Override
     public int getItemCount() {
-        return messageList.size();
+        return messageList.size() + 1;
     }
 
     @Override
     public void onDetachedFromRecyclerView(@NonNull RecyclerView recyclerView) {
         super.onDetachedFromRecyclerView(recyclerView);
         stopPlayback();
+    }
+
+    static class HeaderViewHolder extends RecyclerView.ViewHolder {
+        public HeaderViewHolder(@NonNull View itemView) {
+            super(itemView);
+        }
     }
 
     static class SentMessageViewHolder extends RecyclerView.ViewHolder {
@@ -353,7 +365,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 public void onFailure(@NonNull okhttp3.Call call, @NonNull java.io.IOException e) {}
 
                 @Override
-                public void onResponse(@NonNull okhttp3.Call call, @NonNull okhttp3.Response response) throws java.io.IOException {
+                public void onResponse(@NonNull okhttp3.Call call, @NonNull okhttp3.Response response) {
                     if (response.isSuccessful() && response.body() != null) {
                         try {
                             byte[] encryptedBytes = response.body().bytes();
@@ -464,9 +476,6 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
         try {
             org.json.JSONObject json = new org.json.JSONObject(mediaData);
-            String url = json.getString("u");
-            String key = json.getString("k");
-
             // For full screen, we pass the encrypted info, FullMediaActivity will handle download/decrypt
             android.content.Intent intent = new android.content.Intent(context, com.samechat37.FullMediaActivity.class);
             intent.putExtra("type", message.getType());
@@ -522,7 +531,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                     public void onFailure(@NonNull okhttp3.Call call, @NonNull java.io.IOException e) {}
 
                     @Override
-                    public void onResponse(@NonNull okhttp3.Call call, @NonNull okhttp3.Response response) throws java.io.IOException {
+                    public void onResponse(@NonNull okhttp3.Call call, @NonNull okhttp3.Response response) {
                         if (response.isSuccessful() && response.body() != null) {
                             try {
                                 byte[] encryptedBytes = response.body().bytes();
