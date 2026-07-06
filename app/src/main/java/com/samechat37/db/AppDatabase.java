@@ -11,7 +11,7 @@ import com.samechat37.models.ChatItemEntity;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-@Database(entities = {ChatItemEntity.class}, version = 2, exportSchema = false)
+@Database(entities = {ChatItemEntity.class}, version = 3, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
     public abstract ChatItemDao chatItemDao();
 

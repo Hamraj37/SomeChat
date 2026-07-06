@@ -63,7 +63,8 @@ public class TransformViewModel extends AndroidViewModel {
                     entity.getPhotoUrl(),
                     entity.isOnline(),
                     entity.getTimestamp(),
-                    entity.getUnreadCount()
+                    entity.getUnreadCount(),
+                    entity.getLastMessageType()
             );
             items.add(item);
             chatsMap.put(item.getUid(), item);
@@ -175,6 +176,8 @@ public class TransformViewModel extends AndroidViewModel {
         boolean online = user != null ? user.isOnline() : (existing != null && existing.isOnline());
         
         String rawMsgText = lastMsg != null ? lastMsg.getText() : (existing != null ? getRawMessage(existing.getLastMessage()) : "No messages yet");
+        String type = lastMsg != null ? lastMsg.getType() : (existing != null ? existing.getLastMessageType() : "text");
+        
         String displayMsgText = rawMsgText;
         
         if (lastMsg != null && myUid != null && myUid.equals(lastMsg.getSenderId())) {
@@ -188,7 +191,7 @@ public class TransformViewModel extends AndroidViewModel {
         int finalUnreadCount = unreadCount != -1 ? unreadCount : (existing != null ? existing.getUnreadCount() : 0);
 
         // Save to local DB
-        ChatItemEntity entity = new ChatItemEntity(friendUid, name, displayMsgText, time, photoUrl, online, timestamp, finalUnreadCount);
+        ChatItemEntity entity = new ChatItemEntity(friendUid, name, displayMsgText, time, photoUrl, online, timestamp, finalUnreadCount, type);
         AppDatabase.databaseWriteExecutor.execute(() -> chatItemDao.insert(entity));
     }
 

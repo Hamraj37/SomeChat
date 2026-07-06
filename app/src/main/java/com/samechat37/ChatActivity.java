@@ -3,6 +3,8 @@ package com.samechat37;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -44,6 +46,7 @@ public class ChatActivity extends BaseActivity {
     private EditText messageInput;
     private com.google.android.material.floatingactionbutton.FloatingActionButton btnSend;
     private ImageView btnAttachment;
+    private View attachmentMenu;
     private DatabaseReference chatRef;
     private boolean isFriend = false;
     private ValueEventListener messageListener;
@@ -54,6 +57,7 @@ public class ChatActivity extends BaseActivity {
     private String audioPath = null;
     private long recordStartTime = 0;
     private boolean isRecording = false;
+    private android.net.Uri photoUri;
 
     private final androidx.activity.result.ActivityResultLauncher<String> pickImageLauncher =
             registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.GetContent(),
@@ -68,6 +72,14 @@ public class ChatActivity extends BaseActivity {
                     uri -> {
                         if (uri != null) {
                             uploadMedia(uri, "video");
+                        }
+                    });
+
+    private final androidx.activity.result.ActivityResultLauncher<android.net.Uri> takePhotoLauncher =
+            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.TakePicture(),
+                    success -> {
+                        if (success && photoUri != null) {
+                            uploadMedia(photoUri, "image");
                         }
                     });
 
@@ -94,8 +106,10 @@ public class ChatActivity extends BaseActivity {
         messageInput = findViewById(R.id.message_input);
         btnSend = findViewById(R.id.btn_send);
         btnAttachment = findViewById(R.id.btn_attachment);
+        attachmentMenu = findViewById(R.id.attachment_menu);
         
         setupInputListeners();
+        setupAttachmentMenuListeners();
 
         findViewById(R.id.btn_audio_call).setOnClickListener(v -> startCall(false));
         findViewById(R.id.btn_video_call).setOnClickListener(v -> startCall(true));
@@ -103,8 +117,38 @@ public class ChatActivity extends BaseActivity {
         setupPresenceListener();
     }
 
+    private void setupAttachmentMenuListeners() {
+        findViewById(R.id.option_photo).setOnClickListener(v -> {
+            toggleAttachmentMenu();
+            pickImageLauncher.launch("image/*");
+        });
+        findViewById(R.id.option_video).setOnClickListener(v -> {
+            toggleAttachmentMenu();
+            pickVideoLauncher.launch("video/*");
+        });
+        findViewById(R.id.option_camera).setOnClickListener(v -> {
+            toggleAttachmentMenu();
+            openCamera();
+        });
+    }
+
+    private void openCamera() {
+        if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            androidx.core.app.ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.CAMERA}, 201);
+            return;
+        }
+
+        try {
+            File photoFile = File.createTempFile("IMG_", ".jpg", getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES));
+            photoUri = androidx.core.content.FileProvider.getUriForFile(this, "com.samechat37.provider", photoFile);
+            takePhotoLauncher.launch(photoUri);
+        } catch (IOException e) {
+            android.util.Log.e("ChatActivity", "Error creating photo file", e);
+        }
+    }
+
     private void setupInputListeners() {
-        btnAttachment.setOnClickListener(v -> showAttachmentMenu());
+        btnAttachment.setOnClickListener(v -> toggleAttachmentMenu());
 
         messageInput.addTextChangedListener(new android.text.TextWatcher() {
             @Override
@@ -146,18 +190,24 @@ public class ChatActivity extends BaseActivity {
         });
     }
 
-    private void showAttachmentMenu() {
-        String[] options = {"Photo", "Video"};
-        new MaterialAlertDialogBuilder(this)
-                .setTitle("Select Attachment")
-                .setItems(options, (dialog, which) -> {
-                    if (which == 0) {
-                        pickImageLauncher.launch("image/*");
-                    } else {
-                        pickVideoLauncher.launch("video/*");
-                    }
-                })
-                .show();
+    private void toggleAttachmentMenu() {
+        if (attachmentMenu.getVisibility() == View.VISIBLE) {
+            attachmentMenu.animate()
+                    .alpha(0f)
+                    .translationY(attachmentMenu.getHeight())
+                    .setDuration(200)
+                    .withEndAction(() -> attachmentMenu.setVisibility(View.GONE))
+                    .start();
+        } else {
+            attachmentMenu.setVisibility(View.VISIBLE);
+            attachmentMenu.setAlpha(0f);
+            attachmentMenu.setTranslationY(100f);
+            attachmentMenu.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(200)
+                    .start();
+        }
     }
 
     private void uploadMedia(android.net.Uri uri, String type) {
@@ -370,6 +420,20 @@ public class ChatActivity extends BaseActivity {
         startActivity(intent);
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 200) {
+            if (grantResults.length > 0 && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                android.widget.Toast.makeText(this, "Permission granted. Hold the button to record.", android.widget.Toast.LENGTH_SHORT).show();
+            }
+        } else if (requestCode == 201) {
+            if (grantResults.length > 0 && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                openCamera();
+            }
+        }
+    }
+
     private void setupPresenceListener() {
         TextView toolbarStatus = findViewById(R.id.toolbar_status);
         FirebaseDatabase.getInstance().getReference("users").child(receiverId)
@@ -446,6 +510,37 @@ public class ChatActivity extends BaseActivity {
         layoutManager.setStackFromEnd(true);
         chatRecycler.setLayoutManager(layoutManager);
         chatRecycler.setAdapter(adapter);
+
+        chatRecycler.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
+                if (newState == RecyclerView.SCROLL_STATE_DRAGGING) {
+                    hideAttachmentMenu();
+                }
+            }
+        });
+
+        chatRecycler.setOnTouchListener((v, event) -> {
+            if (event.getAction() == android.view.MotionEvent.ACTION_DOWN) {
+                if (attachmentMenu != null && attachmentMenu.getVisibility() == View.VISIBLE) {
+                    v.performClick();
+                    hideAttachmentMenu();
+                }
+            }
+            return false;
+        });
+    }
+
+    private void hideAttachmentMenu() {
+        if (attachmentMenu != null && attachmentMenu.getVisibility() == View.VISIBLE) {
+            attachmentMenu.animate()
+                    .alpha(0f)
+                    .translationY(attachmentMenu.getHeight())
+                    .setDuration(200)
+                    .withEndAction(() -> attachmentMenu.setVisibility(View.GONE))
+                    .start();
+        }
     }
 
     private void setupFirebase() {

@@ -150,7 +150,34 @@ public class TransformFragment extends Fragment {
         public void onBindViewHolder(@NonNull TransformViewHolder holder, int position) {
             ChatItem chatItem = getItem(position);
             holder.textViewName.setText(chatItem.getName());
+            
+            // Set last message with icon if needed
             holder.textViewLastMessage.setText(chatItem.getLastMessage());
+            String type = chatItem.getLastMessageType();
+            int iconRes = 0;
+            if ("image".equals(type)) {
+                iconRes = R.drawable.ic_camera_black_24dp;
+            } else if ("video".equals(type)) {
+                iconRes = android.R.drawable.ic_media_play;
+            } else if ("voice".equals(type)) {
+                iconRes = android.R.drawable.ic_btn_speak_now;
+            }
+
+            if (iconRes != 0) {
+                android.graphics.drawable.Drawable drawable = androidx.core.content.ContextCompat.getDrawable(holder.itemView.getContext(), iconRes);
+                if (drawable != null) {
+                    drawable = drawable.mutate();
+                    drawable.setTint(holder.textViewLastMessage.getCurrentTextColor());
+                    // Scale it to roughly match text size
+                    int size = (int) (holder.textViewLastMessage.getTextSize() * 1.1f);
+                    drawable.setBounds(0, 0, size, size);
+                    holder.textViewLastMessage.setCompoundDrawables(drawable, null, null, null);
+                    holder.textViewLastMessage.setCompoundDrawablePadding(8);
+                }
+            } else {
+                holder.textViewLastMessage.setCompoundDrawables(null, null, null, null);
+            }
+
             holder.textViewTime.setText(chatItem.getTime());
             
             holder.onlineIndicator.setVisibility(chatItem.isOnline() ? View.VISIBLE : View.GONE);
