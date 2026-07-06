@@ -175,8 +175,19 @@ public class TransformViewModel extends AndroidViewModel {
         String photoUrl = user != null ? user.getPhotoUrl() : (existing != null ? existing.getPhotoUrl() : null);
         boolean online = user != null ? user.isOnline() : (existing != null && existing.isOnline());
         
-        String rawMsgText = lastMsg != null ? lastMsg.getText() : (existing != null ? getRawMessage(existing.getLastMessage()) : "No messages yet");
-        String type = lastMsg != null ? lastMsg.getType() : (existing != null ? existing.getLastMessageType() : "text");
+        String rawMsgText;
+        String type;
+        
+        if (lastMsg != null) {
+            type = lastMsg.getType();
+            if (type == null) type = "text";
+            
+            boolean isSender = myUid != null && myUid.equals(lastMsg.getSenderId());
+            rawMsgText = com.samechat37.utils.EncryptionManager.decrypt(lastMsg.getText(), getApplication(), isSender);
+        } else {
+            rawMsgText = existing != null ? getRawMessage(existing.getLastMessage()) : "No messages yet";
+            type = existing != null ? existing.getLastMessageType() : "text";
+        }
         
         String displayMsgText = rawMsgText;
         
