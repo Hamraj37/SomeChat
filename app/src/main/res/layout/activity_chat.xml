@@ -118,7 +118,7 @@
                             android:layout_height="48dp"
                             android:background="?attr/selectableItemBackgroundBorderless"
                             android:padding="12dp"
-                            android:src="@android:drawable/ic_menu_camera"
+                            android:src="@drawable/ic_video_call"
                             android:contentDescription="Video Call"
                             app:tint="?attr/colorPrimary" />
 
@@ -128,7 +128,7 @@
                             android:layout_height="48dp"
                             android:background="?attr/selectableItemBackgroundBorderless"
                             android:padding="12dp"
-                            android:src="@android:drawable/ic_menu_call"
+                            android:src="@drawable/ic_audio_call"
                             android:contentDescription="Audio Call"
                             app:tint="?attr/colorPrimary" />
 
