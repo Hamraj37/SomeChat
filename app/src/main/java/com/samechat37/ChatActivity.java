@@ -52,6 +52,7 @@ public class ChatActivity extends BaseActivity {
     private ValueEventListener messageListener;
     public static String openedChatId = null;
     private String receiverPublicKey = null;
+    private int messageLimit = 50;
 
     private View replyLayout;
     private TextView replyName;
@@ -631,6 +632,17 @@ public class ChatActivity extends BaseActivity {
                     hideAttachmentMenu();
                 }
             }
+
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                if (dy < 0) { // Scrolling up
+                    LinearLayoutManager lm = (LinearLayoutManager) recyclerView.getLayoutManager();
+                    if (lm != null && lm.findFirstVisibleItemPosition() <= 5) {
+                        loadMoreMessages();
+                    }
+                }
+            }
         });
 
         chatRecycler.setOnTouchListener((v, event) -> {
@@ -670,6 +682,14 @@ public class ChatActivity extends BaseActivity {
     private void cancelReply() {
         replyingToMessage = null;
         replyLayout.setVisibility(View.GONE);
+    }
+
+    private void loadMoreMessages() {
+        messageLimit += 50;
+        if (chatRef != null && messageListener != null) {
+            chatRef.removeEventListener(messageListener);
+            chatRef.limitToLast(messageLimit).addValueEventListener(messageListener);
+        }
     }
 
     private void hideAttachmentMenu() {
@@ -729,14 +749,14 @@ public class ChatActivity extends BaseActivity {
 
                 adapter.notifyDataSetChanged();
                 if (!messageList.isEmpty()) {
-                    chatRecycler.smoothScrollToPosition(messageList.size() - 1);
+                    chatRecycler.scrollToPosition(messageList.size());
                 }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {}
         };
-        chatRef.addValueEventListener(messageListener);
+        chatRef.limitToLast(messageLimit).addValueEventListener(messageListener);
     }
 
     private void checkFriendStatus() {
