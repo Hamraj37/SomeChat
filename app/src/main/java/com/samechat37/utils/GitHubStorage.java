@@ -96,6 +96,55 @@ public class GitHubStorage {
         }
     }
 
+    public interface DownloadCallback {
+        void onSuccess(byte[] data);
+        void onProgress(int progress);
+        void onFailure(Exception e);
+    }
+
+    public static void downloadFile(String url, DownloadCallback callback) {
+        Request request = new Request.Builder()
+                .url(url)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                callback.onFailure(e);
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    callback.onFailure(new IOException("Download failed: " + response.code()));
+                    response.close();
+                    return;
+                }
+
+                try (Response res = response) {
+                    long totalBytes = res.body().contentLength();
+                    byte[] data = new byte[(int) totalBytes];
+                    
+                    try (java.io.InputStream is = res.body().byteStream()) {
+                        byte[] buffer = new byte[8192];
+                        int bytesRead;
+                        long totalRead = 0;
+                        while ((bytesRead = is.read(buffer)) != -1) {
+                            System.arraycopy(buffer, 0, data, (int) totalRead, bytesRead);
+                            totalRead += bytesRead;
+                            if (totalBytes > 0) {
+                                callback.onProgress((int) ((totalRead * 100) / totalBytes));
+                            }
+                        }
+                        callback.onSuccess(data);
+                    }
+                } catch (Exception e) {
+                    callback.onFailure(e);
+                }
+            }
+        });
+    }
+
     public static void downloadFile(String url, Callback callback) {
         Request request = new Request.Builder()
                 .url(url)

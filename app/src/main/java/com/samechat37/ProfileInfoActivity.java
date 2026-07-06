@@ -6,7 +6,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
@@ -26,6 +25,8 @@ import java.util.Map;
 public class ProfileInfoActivity extends BaseActivity {
 
     private ActivityProfileInfoBinding binding;
+    private String targetUid;
+    private boolean isOwnProfile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,19 +38,77 @@ public class ProfileInfoActivity extends BaseActivity {
         binding = ActivityProfileInfoBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        String myUid = FirebaseAuth.getInstance().getUid();
+        targetUid = getIntent().getStringExtra("uid");
+        if (targetUid == null) targetUid = myUid;
+        
+        isOwnProfile = targetUid != null && targetUid.equals(myUid);
+
+        if (!isOwnProfile) {
+            binding.editNameButton.setVisibility(android.view.View.GONE);
+            binding.editHandleButton.setVisibility(android.view.View.GONE);
+            checkFriendStatus();
+        }
+
         loadUserProfile();
         setupClickListeners();
     }
 
+    private void checkFriendStatus() {
+        String myUid = FirebaseAuth.getInstance().getUid();
+        if (myUid == null || targetUid == null) return;
+
+        FirebaseDatabase.getInstance().getReference("friends")
+                .child(myUid)
+                .child(targetUid)
+                .addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        if (binding == null || isFinishing() || isDestroyed()) return;
+                        if (snapshot.exists()) {
+                            binding.unfriendButton.setVisibility(android.view.View.VISIBLE);
+                        } else {
+                            binding.unfriendButton.setVisibility(android.view.View.GONE);
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {}
+                });
+    }
+
     private void setupClickListeners() {
-        binding.editNameButton.setOnClickListener(v -> showEditNameDialog());
-        binding.editHandleButton.setOnClickListener(v -> showEditHandleDialog());
+        if (isOwnProfile) {
+            binding.editNameButton.setOnClickListener(v -> showEditNameDialog());
+            binding.editHandleButton.setOnClickListener(v -> showEditHandleDialog());
+        } else {
+            binding.unfriendButton.setOnClickListener(v -> showUnfriendConfirmDialog());
+        }
+    }
+
+    private void showUnfriendConfirmDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Unfriend User")
+                .setMessage("Are you sure you want to remove this user from your friends list?")
+                .setPositiveButton("Unfriend", (dialog, which) -> unfriendUser())
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void unfriendUser() {
+        String myUid = FirebaseAuth.getInstance().getUid();
+        if (myUid == null || targetUid == null) return;
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("/friends/" + myUid + "/" + targetUid, null);
+        updates.put("/friends/" + targetUid + "/" + myUid, null);
+
+        FirebaseDatabase.getInstance().getReference().updateChildren(updates)
+                .addOnSuccessListener(aVoid -> Toast.makeText(this, "User removed from friends", Toast.LENGTH_SHORT).show())
+                .addOnFailureListener(e -> Toast.makeText(this, "Failed to unfriend", Toast.LENGTH_SHORT).show());
     }
 
     private void showEditNameDialog() {
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user == null) return;
-
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Change Display Name");
 
@@ -70,13 +129,9 @@ public class ProfileInfoActivity extends BaseActivity {
     }
 
     private void showEditHandleDialog() {
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user == null) return;
-
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Change Username");
 
-        // Use a container for padding the EditText
         android.widget.FrameLayout container = new android.widget.FrameLayout(this);
         final EditText input = new EditText(this);
         int padding = (int) (16 * getResources().getDisplayMetrics().density);
@@ -93,7 +148,6 @@ public class ProfileInfoActivity extends BaseActivity {
 
         builder.setPositiveButton("Save", (dialog, which) -> {
             String rawInput = input.getText().toString().trim();
-            // Sanitize: remove illegal RTDB characters (. $ # [ ] /)
             String newHandle = rawInput.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
             
             if (newHandle.isEmpty()) {
@@ -111,35 +165,25 @@ public class ProfileInfoActivity extends BaseActivity {
     }
 
     private void checkAndUpdateHandle(String newHandle, String oldHandle) {
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user == null) return;
-
         FirebaseDatabase.getInstance().getReference("usernames").child(newHandle).get().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 DataSnapshot snapshot = task.getResult();
-                // If it exists and belongs to someone else, it's taken
-                if (snapshot != null && snapshot.exists() && !user.getUid().equals(snapshot.getValue(String.class))) {
+                if (snapshot != null && snapshot.exists() && !targetUid.equals(snapshot.getValue(String.class))) {
                     Toast.makeText(this, "Username already taken", Toast.LENGTH_SHORT).show();
                 } else {
                     updateHandle(newHandle, oldHandle);
                 }
             } else {
-                String error = task.getException() != null ? task.getException().getMessage() : "Unknown error";
-                Toast.makeText(this, "Error: " + error, Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Error checking username uniqueness", Toast.LENGTH_SHORT).show();
             }
         });
     }
 
     private void updateHandle(String newHandle, String oldHandle) {
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user == null) return;
-
-        String uid = user.getUid();
         Map<String, Object> childUpdates = new HashMap<>();
-        childUpdates.put("/users/" + uid + "/username", newHandle);
-        childUpdates.put("/usernames/" + newHandle, uid);
+        childUpdates.put("/users/" + targetUid + "/username", newHandle);
+        childUpdates.put("/usernames/" + newHandle, targetUid);
         
-        // Only remove the old handle if it was actually set and is different
         if (oldHandle != null && !oldHandle.isEmpty() && !oldHandle.equals(newHandle)) {
             childUpdates.put("/usernames/" + oldHandle, null);
         }
@@ -148,8 +192,7 @@ public class ProfileInfoActivity extends BaseActivity {
             if (task.isSuccessful()) {
                 Toast.makeText(this, "Username updated", Toast.LENGTH_SHORT).show();
             } else {
-                String error = task.getException() != null ? task.getException().getMessage() : "Update failed";
-                Toast.makeText(this, "Update failed: " + error, Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Update failed", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -164,43 +207,35 @@ public class ProfileInfoActivity extends BaseActivity {
 
         user.updateProfile(profileUpdates).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
-                FirebaseDatabase.getInstance().getReference("users").child(user.getUid()).child("displayName").setValue(newName)
-                        .addOnSuccessListener(aVoid -> Toast.makeText(ProfileInfoActivity.this, "Name updated successfully", Toast.LENGTH_SHORT).show())
-                        .addOnFailureListener(e -> Toast.makeText(ProfileInfoActivity.this, "Failed to update database", Toast.LENGTH_SHORT).show());
-            } else {
-                Toast.makeText(this, "Failed to update profile", Toast.LENGTH_SHORT).show();
+                FirebaseDatabase.getInstance().getReference("users").child(targetUid).child("displayName").setValue(newName)
+                        .addOnSuccessListener(aVoid -> Toast.makeText(ProfileInfoActivity.this, "Name updated successfully", Toast.LENGTH_SHORT).show());
             }
         });
     }
 
     private void loadUserProfile() {
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user != null) {
-            String uid = user.getUid();
-            
-            binding.profileEmail.setText(user.getEmail());
-            binding.profileUid.setText(uid);
-            if (user.getDisplayName() != null) binding.profileName.setText(user.getDisplayName());
-            if (user.getPhotoUrl() != null) {
-                Glide.with(this).load(user.getPhotoUrl()).centerCrop().into(binding.profileImage);
-            }
-
-            FirebaseDatabase.getInstance().getReference("users").child(uid)
+        if (targetUid != null) {
+            FirebaseDatabase.getInstance().getReference("users").child(targetUid)
                     .addValueEventListener(new ValueEventListener() {
                         @Override
                         public void onDataChange(@NonNull DataSnapshot snapshot) {
-                            if (binding == null) return;
+                            if (binding == null || isFinishing() || isDestroyed()) return;
                             if (snapshot.exists()) {
                                 String name = snapshot.child("displayName").getValue(String.class);
                                 String handle = snapshot.child("username").getValue(String.class);
                                 String photoUrl = snapshot.child("photoUrl").getValue(String.class);
+                                String email = snapshot.child("email").getValue(String.class);
 
                                 if (name != null) binding.profileName.setText(name);
                                 if (handle != null) binding.profileHandle.setText("@" + handle);
-                                if (photoUrl != null) {
+                                if (email != null) {
+                                    binding.profileEmailHeader.setText(email);
+                                }
+                                if (photoUrl != null && !photoUrl.isEmpty()) {
                                     Glide.with(ProfileInfoActivity.this)
                                             .load(photoUrl)
                                             .centerCrop()
+                                            .placeholder(R.mipmap.ic_launcher_round)
                                             .into(binding.profileImage);
                                 }
                             }

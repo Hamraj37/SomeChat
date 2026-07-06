@@ -25,17 +25,34 @@ public class FullMediaActivity extends AppCompatActivity {
         String type = getIntent().getStringExtra("type");
         String mediaUrl = getIntent().getStringExtra("url");
         String encryptedInfo = getIntent().getStringExtra("encrypted_info");
+        String messageId = getIntent().getStringExtra("message_id");
 
         btnBack.setOnClickListener(v -> finish());
 
         if (encryptedInfo != null) {
-            downloadAndDecrypt(encryptedInfo, type, fullImage, fullVideo, loading);
+            // Check if already downloaded locally
+            String id = messageId;
+            if (id == null) {
+                try {
+                    org.json.JSONObject json = new org.json.JSONObject(encryptedInfo);
+                    String url = json.getString("u");
+                    id = url.substring(url.lastIndexOf('/') + 1);
+                    if (id.contains(".")) id = id.substring(0, id.lastIndexOf('.'));
+                } catch (Exception ignored) {}
+            }
+
+            java.io.File localFile = com.samechat37.utils.MediaUtils.getLocalFileForMedia(this, type, id);
+            if (localFile.exists()) {
+                displayMedia(localFile.getAbsolutePath(), type, fullImage, fullVideo, loading);
+            } else {
+                downloadAndDecrypt(encryptedInfo, type, fullImage, fullVideo, loading, id);
+            }
         } else if (mediaUrl != null) {
             displayMedia(mediaUrl, type, fullImage, fullVideo, loading);
         }
     }
 
-    private void downloadAndDecrypt(String encryptedInfo, String type, ShapeableImageView fullImage, VideoView fullVideo, CircularProgressIndicator loading) {
+    private void downloadAndDecrypt(String encryptedInfo, String type, ShapeableImageView fullImage, VideoView fullVideo, CircularProgressIndicator loading, String mediaId) {
         try {
             org.json.JSONObject json = new org.json.JSONObject(encryptedInfo);
             String url = json.getString("u");
@@ -55,32 +72,62 @@ public class FullMediaActivity extends AppCompatActivity {
                             javax.crypto.SecretKey secretKey = com.samechat37.utils.EncryptionManager.decodeKey(key);
                             byte[] decryptedBytes = com.samechat37.utils.EncryptionManager.decryptRaw(encryptedBytes, secretKey);
 
+                            // Save locally
+                            com.samechat37.utils.MediaUtils.saveMediaLocally(FullMediaActivity.this, decryptedBytes, type, mediaId);
+                            java.io.File savedFile = com.samechat37.utils.MediaUtils.getLocalFileForMedia(FullMediaActivity.this, type, mediaId);
+
                             runOnUiThread(() -> {
+                                if (isFinishing() || isDestroyed()) return;
                                 if ("image".equals(type)) {
                                     fullImage.setVisibility(View.VISIBLE);
-                                    com.bumptech.glide.Glide.with(FullMediaActivity.this).load(decryptedBytes).into(fullImage);
+                                    com.bumptech.glide.Glide.with(FullMediaActivity.this).load(savedFile).into(fullImage);
                                     loading.setVisibility(View.GONE);
                                 } else {
-                                    try {
-                                        java.io.File tempFile = java.io.File.createTempFile("decrypted", ".mp4", getCacheDir());
-                                        java.io.FileOutputStream fos = new java.io.FileOutputStream(tempFile);
-                                        fos.write(decryptedBytes);
-                                        fos.close();
-                                        displayMedia(tempFile.getAbsolutePath(), type, fullImage, fullVideo, loading);
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                    }
+                                    // Show video thumbnail while preparing
+                                    showVideoThumbnail(decryptedBytes, fullImage);
+                                    fullImage.setVisibility(View.VISIBLE);
+                                    displayMedia(savedFile.getAbsolutePath(), type, fullImage, fullVideo, loading);
                                 }
                             });
                         } catch (Exception e) {
                             e.printStackTrace();
+                            runOnUiThread(() -> loading.setVisibility(View.GONE));
                         }
+                    } else {
+                        runOnUiThread(() -> loading.setVisibility(View.GONE));
                     }
                 }
             });
         } catch (Exception e) {
             e.printStackTrace();
+            loading.setVisibility(View.GONE);
         }
+    }
+
+    private void showVideoThumbnail(byte[] videoBytes, ShapeableImageView imageView) {
+        new Thread(() -> {
+            try {
+                android.media.MediaMetadataRetriever retriever = new android.media.MediaMetadataRetriever();
+                retriever.setDataSource(new android.media.MediaDataSource() {
+                    @Override
+                    public int readAt(long position, byte[] buffer, int offset, int size) {
+                        if (position >= videoBytes.length) return -1;
+                        int length = Math.min(size, (int) (videoBytes.length - position));
+                        System.arraycopy(videoBytes, (int) position, buffer, offset, length);
+                        return length;
+                    }
+                    @Override public long getSize() { return videoBytes.length; }
+                    @Override public void close() {}
+                });
+                android.graphics.Bitmap bitmap = retriever.getFrameAtTime(0);
+                retriever.release();
+                if (bitmap != null) {
+                    runOnUiThread(() -> imageView.setImageBitmap(bitmap));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 
     private void displayMedia(String path, String type, ShapeableImageView fullImage, VideoView fullVideo, CircularProgressIndicator loading) {
@@ -92,13 +139,19 @@ public class FullMediaActivity extends AppCompatActivity {
             loading.setVisibility(View.GONE);
         } else if ("video".equals(type)) {
             fullVideo.setVisibility(View.VISIBLE);
-            fullVideo.setVideoPath(path);
+            if (path.startsWith("content://") || path.startsWith("file://")) {
+                fullVideo.setVideoURI(Uri.parse(path));
+            } else {
+                fullVideo.setVideoPath(path);
+            }
             fullVideo.setOnPreparedListener(mp -> {
                 loading.setVisibility(View.GONE);
+                fullImage.setVisibility(View.GONE);
                 fullVideo.start();
             });
             fullVideo.setOnErrorListener((mp, what, extra) -> {
                 loading.setVisibility(View.GONE);
+                fullImage.setVisibility(View.GONE);
                 return false;
             });
             

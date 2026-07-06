@@ -53,6 +53,11 @@ public class ChatActivity extends BaseActivity {
     public static String openedChatId = null;
     private String receiverPublicKey = null;
 
+    private View replyLayout;
+    private TextView replyName;
+    private TextView replyText;
+    private Message replyingToMessage = null;
+
     private android.media.MediaRecorder mediaRecorder;
     private String audioPath = null;
     private long recordStartTime = 0;
@@ -108,6 +113,24 @@ public class ChatActivity extends BaseActivity {
         btnAttachment = findViewById(R.id.btn_attachment);
         attachmentMenu = findViewById(R.id.attachment_menu);
         
+        replyLayout = findViewById(R.id.reply_layout);
+        replyName = findViewById(R.id.reply_name);
+        replyText = findViewById(R.id.reply_text);
+        findViewById(R.id.btn_cancel_reply).setOnClickListener(v -> cancelReply());
+        
+        replyLayout.setOnClickListener(v -> {
+            if (replyingToMessage != null) {
+                String targetId = replyingToMessage.getMessageId();
+                for (int i = 0; i < messageList.size(); i++) {
+                    if (messageList.get(i).getMessageId().equals(targetId)) {
+                        chatRecycler.smoothScrollToPosition(i + 1);
+                        adapter.highlightMessage(targetId);
+                        break;
+                    }
+                }
+            }
+        });
+
         setupInputListeners();
         setupAttachmentMenuListeners();
 
@@ -140,7 +163,7 @@ public class ChatActivity extends BaseActivity {
 
         try {
             File photoFile = File.createTempFile("IMG_", ".jpg", getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES));
-            photoUri = androidx.core.content.FileProvider.getUriForFile(this, "com.samechat37.provider", photoFile);
+            photoUri = androidx.core.content.FileProvider.getUriForFile(this, getPackageName() + ".provider", photoFile);
             takePhotoLauncher.launch(photoUri);
         } catch (IOException e) {
             android.util.Log.e("ChatActivity", "Error creating photo file", e);
@@ -228,9 +251,18 @@ public class ChatActivity extends BaseActivity {
             // 1. Read file to bytes
             java.io.InputStream inputStream = getContentResolver().openInputStream(uri);
             if (inputStream == null) return;
-            byte[] bytes = new byte[inputStream.available()];
-            int actualRead = inputStream.read(bytes);
+            
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[8192];
+            int len;
+            while ((len = inputStream.read(buffer)) != -1) {
+                baos.write(buffer, 0, len);
+            }
+            byte[] bytes = baos.toByteArray();
             inputStream.close();
+
+            // Save a copy locally like WhatsApp
+            com.samechat37.utils.MediaUtils.saveMediaLocally(this, bytes, type, messageId);
 
             // 2. Encrypt bytes
             javax.crypto.SecretKey fileKey = com.samechat37.utils.EncryptionManager.generateAESKey();
@@ -349,10 +381,18 @@ public class ChatActivity extends BaseActivity {
         try {
             // 1. Read file to bytes
             File file = new File(path);
-            byte[] bytes = new byte[(int) file.length()];
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
             java.io.FileInputStream fis = new java.io.FileInputStream(file);
-            fis.read(bytes);
+            byte[] buffer = new byte[8192];
+            int len;
+            while ((len = fis.read(buffer)) != -1) {
+                baos.write(buffer, 0, len);
+            }
+            byte[] bytes = baos.toByteArray();
             fis.close();
+
+            // Save copy locally
+            com.samechat37.utils.MediaUtils.saveMediaLocally(this, bytes, "voice", messageId);
 
             // 2. Encrypt bytes
             javax.crypto.SecretKey fileKey = com.samechat37.utils.EncryptionManager.generateAESKey();
@@ -501,15 +541,55 @@ public class ChatActivity extends BaseActivity {
         if (receiverAvatar != null && !receiverAvatar.isEmpty()) {
             Glide.with(this).load(receiverAvatar).circleCrop().into(toolbarAvatar);
         }
+
+        findViewById(R.id.user_info_container).setOnClickListener(v -> {
+            Intent intent = new Intent(this, ProfileInfoActivity.class);
+            intent.putExtra("uid", receiverId);
+            startActivity(intent);
+        });
     }
 
     private void setupRecyclerView() {
         chatRecycler = findViewById(R.id.chat_recycler);
-        adapter = new MessageAdapter(messageList);
+        adapter = new MessageAdapter(messageList, messageId -> {
+            for (int i = 0; i < messageList.size(); i++) {
+                if (messageList.get(i).getMessageId().equals(messageId)) {
+                    chatRecycler.smoothScrollToPosition(i + 1); // +1 for header
+                    adapter.highlightMessage(messageId);
+                    break;
+                }
+            }
+        });
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         layoutManager.setStackFromEnd(true);
         chatRecycler.setLayoutManager(layoutManager);
         chatRecycler.setAdapter(adapter);
+
+        androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback itemTouchHelperCallback = new androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback(0, androidx.recyclerview.widget.ItemTouchHelper.RIGHT) {
+            @Override
+            public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+                return false;
+            }
+
+            @Override
+            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                if (direction == androidx.recyclerview.widget.ItemTouchHelper.RIGHT) {
+                    int pos = viewHolder.getBindingAdapterPosition();
+                    if (pos > 0) {
+                        showReplyLayout(messageList.get(pos - 1));
+                    }
+                    adapter.notifyItemChanged(pos);
+                }
+            }
+
+            @Override
+            public void onChildDraw(@NonNull android.graphics.Canvas c, @NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, float dX, float dY, int actionState, boolean isCurrentlyActive) {
+                if (dX > 200) dX = 200;
+                super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
+            }
+        };
+
+        new androidx.recyclerview.widget.ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(chatRecycler);
 
         chatRecycler.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
@@ -530,6 +610,34 @@ public class ChatActivity extends BaseActivity {
             }
             return false;
         });
+    }
+
+    private void showReplyLayout(Message message) {
+        replyingToMessage = message;
+        replyLayout.setVisibility(View.VISIBLE);
+        
+        boolean isMe = message.getSenderId().equals(senderId);
+        replyName.setText(isMe ? "You" : receiverName);
+        
+        String displayText;
+        if (message.getType() == null || "text".equals(message.getType())) {
+            displayText = com.samechat37.utils.EncryptionManager.decrypt(message.getText(), this, isMe);
+        } else {
+            String type = message.getType();
+            displayText = type.substring(0, 1).toUpperCase() + type.substring(1);
+        }
+        replyText.setText(displayText);
+        
+        messageInput.requestFocus();
+        android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+        if (imm != null) {
+            imm.showSoftInput(messageInput, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
+        }
+    }
+
+    private void cancelReply() {
+        replyingToMessage = null;
+        replyLayout.setVisibility(View.GONE);
     }
 
     private void hideAttachmentMenu() {
@@ -683,6 +791,22 @@ public class ChatActivity extends BaseActivity {
         }
         
         Message message = new Message(messageId, senderId, receiverId, encryptedText, System.currentTimeMillis());
+        
+        if (replyingToMessage != null) {
+            message.setReplyToId(replyingToMessage.getMessageId());
+            boolean isMe = replyingToMessage.getSenderId().equals(senderId);
+            message.setReplyToName(isMe ? "You" : receiverName);
+            
+            String replyDisplayText;
+            if (replyingToMessage.getType() == null || "text".equals(replyingToMessage.getType())) {
+                replyDisplayText = com.samechat37.utils.EncryptionManager.decrypt(replyingToMessage.getText(), this, isMe);
+            } else {
+                String type = replyingToMessage.getType();
+                replyDisplayText = type.substring(0, 1).toUpperCase() + type.substring(1);
+            }
+            message.setReplyToText(replyDisplayText);
+            cancelReply();
+        }
 
         if (messageId != null) {
             chatRef.child(messageId).setValue(message);

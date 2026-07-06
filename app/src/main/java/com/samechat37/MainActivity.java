@@ -200,6 +200,7 @@ public class MainActivity extends BaseActivity {
                         .addValueEventListener(new ValueEventListener() {
                             @Override
                             public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                if (isFinishing() || isDestroyed()) return;
                                 if (snapshot.exists()) {
                                     String dbName = snapshot.child("displayName").getValue(String.class);
                                     String dbHandle = snapshot.child("username").getValue(String.class);
@@ -273,6 +274,7 @@ public class MainActivity extends BaseActivity {
         String email = firebaseUser.getEmail();
         String displayName = firebaseUser.getDisplayName() != null ? firebaseUser.getDisplayName() : handle;
         String photoUrl = firebaseUser.getPhotoUrl() != null ? firebaseUser.getPhotoUrl().toString() : null;
+        String publicKey = com.samechat37.utils.EncryptionManager.initKeys(this);
 
         FirebaseDatabase rtdb = FirebaseDatabase.getInstance();
         Map<String, Object> userData = new HashMap<>();
@@ -281,6 +283,7 @@ public class MainActivity extends BaseActivity {
         userData.put("username", handle);
         userData.put("displayName", displayName);
         userData.put("photoUrl", photoUrl);
+        userData.put("publicKey", publicKey);
 
         rtdb.getReference("users").child(uid).updateChildren(userData).addOnCompleteListener(task -> {
             isSyncing = false;

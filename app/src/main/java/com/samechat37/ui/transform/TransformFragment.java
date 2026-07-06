@@ -23,6 +23,7 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.samechat37.ChatActivity;
+import com.samechat37.ProfileInfoActivity;
 import com.samechat37.R;
 import com.samechat37.adapters.FriendRequestAdapter;
 import com.samechat37.databinding.FragmentTransformBinding;
@@ -198,6 +199,12 @@ public class TransformFragment extends Fragment {
             } else {
                 holder.imageView.setImageResource(R.mipmap.ic_launcher_round);
             }
+
+            holder.imageView.setOnClickListener(v -> {
+                Intent intent = new Intent(holder.itemView.getContext(), ProfileInfoActivity.class);
+                intent.putExtra("uid", chatItem.getUid());
+                holder.itemView.getContext().startActivity(intent);
+            });
 
             holder.itemView.setOnClickListener(v -> {
                 Intent intent = new Intent(holder.itemView.getContext(), ChatActivity.class);

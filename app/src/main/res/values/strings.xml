@@ -44,4 +44,5 @@
     <string name="e2ee_notice">🔒 Messages and calls are end-to-end encrypted. No one outside of this chat, not even SameChat, can read or listen to them.</string>
     <string name="back">Back</string>
     <string name="attach_file">Attach File</string>
+    <string name="unfriend">Unfriend</string>
 </resources>

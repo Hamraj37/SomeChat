@@ -12,20 +12,74 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="64dp"
+        android:minWidth="120dp"
         app:cardBackgroundColor="?attr/colorPrimary"
         app:cardCornerRadius="16dp"
         app:cardElevation="0dp"
         app:strokeWidth="0dp">
 
-        <TextView
-            android:id="@+id/text_message"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="8dp"
-            android:textColor="?attr/colorOnPrimary"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
-            tools:text="Hello, how are you?" />
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:id="@+id/reply_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="4dp"
+                android:orientation="horizontal"
+                android:background="@drawable/bg_reply_sent"
+                android:visibility="gone"
+                android:padding="6dp">
+
+                <View
+                    android:layout_width="3dp"
+                    android:layout_height="match_parent"
+                    android:background="?attr/colorOnPrimary" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/reply_name"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="?attr/colorOnPrimary"
+                        android:textStyle="bold"
+                        android:textSize="12sp"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        tools:text="User Name" />
+
+                    <TextView
+                        android:id="@+id/reply_text"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="?attr/colorOnPrimary"
+                        android:alpha="0.8"
+                        android:textSize="12sp"
+                        tools:text="Replied message text..." />
+                </LinearLayout>
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/text_message"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="8dp"
+                android:textColor="?attr/colorOnPrimary"
+                android:textAppearance="?attr/textAppearanceBodyLarge"
+                tools:text="Hello, how are you?" />
+
+        </LinearLayout>
 
     </com.google.android.material.card.MaterialCardView>
 

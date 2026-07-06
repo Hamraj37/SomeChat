@@ -1,5 +1,6 @@
 package com.samechat37.adapters;
 
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,6 +15,7 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.samechat37.ProfileInfoActivity;
 import com.samechat37.R;
 import com.samechat37.models.User;
 
@@ -85,6 +87,15 @@ public class FriendRequestAdapter extends RecyclerView.Adapter<FriendRequestAdap
                         @Override
                         public void onCancelled(@NonNull DatabaseError error) {}
                     });
+
+            View.OnClickListener openProfile = v -> {
+                android.content.Intent intent = new android.content.Intent(itemView.getContext(), ProfileInfoActivity.class);
+                intent.putExtra("uid", uid);
+                itemView.getContext().startActivity(intent);
+            };
+
+            avatar.setOnClickListener(openProfile);
+            name.setOnClickListener(openProfile);
 
             btnAccept.setOnClickListener(v -> listener.onAccept(uid));
             btnDecline.setOnClickListener(v -> listener.onDecline(uid));

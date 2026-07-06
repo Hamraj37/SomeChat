@@ -10,6 +10,11 @@ public class Message {
     private String type; // "text" or "voice"
     private String mediaUrl;
     private int duration;
+    
+    // Reply fields
+    private String replyToId;
+    private String replyToName;
+    private String replyToText;
 
     public Message() {
         // Required for Firebase
@@ -30,6 +35,16 @@ public class Message {
         this.mediaUrl = mediaUrl;
         this.duration = duration;
     }
+
+    // Getters and setters for reply fields
+    public String getReplyToId() { return replyToId; }
+    public void setReplyToId(String replyToId) { this.replyToId = replyToId; }
+
+    public String getReplyToName() { return replyToName; }
+    public void setReplyToName(String replyToName) { this.replyToName = replyToName; }
+
+    public String getReplyToText() { return replyToText; }
+    public void setReplyToText(String replyToText) { this.replyToText = replyToText; }
 
     public String getMessageId() { return messageId; }
     public void setMessageId(String messageId) { this.messageId = messageId; }

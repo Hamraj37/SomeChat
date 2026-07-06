@@ -88,12 +88,14 @@ public class RegisterActivity extends BaseActivity {
         if (sanitizedBase.isEmpty()) sanitizedBase = "user";
 
         checkUsernameUniqueness(sanitizedBase, 0, uid, uniqueHandle -> {
+            String publicKey = com.samechat37.utils.EncryptionManager.initKeys(this);
             Map<String, Object> user = new HashMap<>();
             user.put("uid", uid);
             user.put("email", email);
             user.put("username", uniqueHandle);
             user.put("displayName", baseHandle);
             user.put("searchName", baseHandle.toLowerCase());
+            user.put("publicKey", publicKey);
 
             FirebaseDatabase.getInstance().getReference("users").child(uid).setValue(user)
                 .addOnSuccessListener(aVoid -> {

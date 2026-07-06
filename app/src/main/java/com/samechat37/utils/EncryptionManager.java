@@ -117,6 +117,10 @@ public class EncryptionManager {
 
     public static String decrypt(String encryptedData, Context context, boolean isSender) {
         if (encryptedData == null || !encryptedData.contains(":")) return encryptedData;
+        
+        // If it starts with { it's likely a JSON object (already decrypted or not encrypted)
+        // If it starts with local: it's a local file URI placeholder
+        if (encryptedData.startsWith("{") || encryptedData.startsWith("local:")) return encryptedData;
 
         try {
             String[] parts = encryptedData.split(":");
