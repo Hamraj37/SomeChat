@@ -11,6 +11,8 @@ public class Message {
     private String mediaUrl;
     private int duration;
     private boolean forwarded;
+    private boolean deletedBySender;
+    private boolean deletedByReceiver;
     
     // Reply fields
     private String replyToId;
@@ -76,4 +78,10 @@ public class Message {
 
     public boolean isForwarded() { return forwarded; }
     public void setForwarded(boolean forwarded) { this.forwarded = forwarded; }
+
+    public boolean isDeletedBySender() { return deletedBySender; }
+    public void setDeletedBySender(boolean deletedBySender) { this.deletedBySender = deletedBySender; }
+
+    public boolean isDeletedByReceiver() { return deletedByReceiver; }
+    public void setDeletedByReceiver(boolean deletedByReceiver) { this.deletedByReceiver = deletedByReceiver; }
 }

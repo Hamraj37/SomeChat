@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    app:cardCornerRadius="28dp"
+    app:cardElevation="0dp"
+    app:strokeWidth="0dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:id="@+id/dialog_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Delete message?"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="18sp"
+            android:layout_marginBottom="16dp"/>
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/cb_delete_media"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Also delete media received in this chat from the device gallery"
+            android:checked="true"
+            android:visibility="gone"
+            app:buttonTint="?attr/colorPrimary"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="14sp"
+            android:layout_marginBottom="16dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="end">
+
+            <TextView
+                android:id="@+id/btn_delete_for_everyone"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Delete for everyone"
+                android:textColor="?attr/colorPrimary"
+                android:paddingVertical="12dp"
+                android:paddingHorizontal="16dp"
+                android:textSize="16sp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:visibility="gone"/>
+
+            <TextView
+                android:id="@+id/btn_delete_for_me"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Delete for me"
+                android:textColor="?attr/colorPrimary"
+                android:paddingVertical="12dp"
+                android:paddingHorizontal="16dp"
+                android:textSize="16sp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"/>
+
+            <TextView
+                android:id="@+id/btn_cancel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Cancel"
+                android:textColor="?attr/colorPrimary"
+                android:paddingVertical="12dp"
+                android:paddingHorizontal="16dp"
+                android:textSize="16sp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

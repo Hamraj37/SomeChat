@@ -826,17 +826,79 @@ public class ChatActivity extends BaseActivity {
     }
 
     private void deleteMessage(Message message) {
-        if (message.getSenderId().equals(senderId)) {
-            new MaterialAlertDialogBuilder(this)
-                    .setTitle("Delete Message")
-                    .setMessage("Are you sure you want to delete this message?")
-                    .setPositiveButton("Delete", (dialog, which) -> {
-                        chatRef.child(message.getMessageId()).removeValue();
-                    })
-                    .setNegativeButton("Cancel", null)
-                    .show();
-        } else {
-            Toast.makeText(this, "You can only delete your own messages", Toast.LENGTH_SHORT).show();
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_delete_message, null);
+        androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+                .setView(dialogView)
+                .create();
+        
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+        }
+
+        TextView btnDeleteForEveryone = dialogView.findViewById(R.id.btn_delete_for_everyone);
+        TextView btnDeleteForMe = dialogView.findViewById(R.id.btn_delete_for_me);
+        TextView btnCancel = dialogView.findViewById(R.id.btn_cancel);
+        com.google.android.material.checkbox.MaterialCheckBox cbDeleteMedia = dialogView.findViewById(R.id.cb_delete_media);
+
+        boolean isMe = message.getSenderId().equals(senderId);
+        boolean hasMedia = message.getType() != null && !message.getType().equals("text");
+
+        if (isMe) {
+            btnDeleteForEveryone.setVisibility(View.VISIBLE);
+        }
+
+        if (hasMedia) {
+            cbDeleteMedia.setVisibility(View.VISIBLE);
+        }
+
+        btnDeleteForEveryone.setOnClickListener(v -> {
+            if (cbDeleteMedia.isChecked() && hasMedia) {
+                deleteLocalMedia(message);
+            }
+            chatRef.child(message.getMessageId()).removeValue();
+            dialog.dismiss();
+        });
+
+        btnDeleteForMe.setOnClickListener(v -> {
+            if (cbDeleteMedia.isChecked() && hasMedia) {
+                deleteLocalMedia(message);
+            }
+            
+            boolean isMeSender = message.getSenderId().equals(senderId);
+            if (isMeSender) {
+                chatRef.child(message.getMessageId()).child("deletedBySender").setValue(true);
+            } else {
+                chatRef.child(message.getMessageId()).child("deletedByReceiver").setValue(true);
+            }
+            
+            // Clean up if both deleted
+            chatRef.child(message.getMessageId()).addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot snapshot) {
+                    Message m = snapshot.getValue(Message.class);
+                    if (m != null && m.isDeletedBySender() && m.isDeletedByReceiver()) {
+                        chatRef.child(m.getMessageId()).removeValue();
+                    }
+                }
+                @Override public void onCancelled(@NonNull DatabaseError error) {}
+            });
+
+            dialog.dismiss();
+        });
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
+    }
+
+    private void deleteLocalMedia(Message message) {
+        try {
+            java.io.File file = com.samechat37.utils.MediaUtils.getLocalFileForMedia(this, message.getType(), message.getMessageId());
+            if (file.exists()) {
+                file.delete();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -909,6 +971,11 @@ public class ChatActivity extends BaseActivity {
                 for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
                     Message message = dataSnapshot.getValue(Message.class);
                     if (message != null) {
+                        boolean isMeSender = message.getSenderId().equals(senderId);
+                        if ((isMeSender && message.isDeletedBySender()) || (!isMeSender && message.isDeletedByReceiver())) {
+                            continue;
+                        }
+
                         messageList.add(message);
                         // Mark as seen if we are the receiver
                         if (message.getReceiverId().equals(senderId) && !message.isSeen()) {

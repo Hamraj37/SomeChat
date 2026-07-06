@@ -103,8 +103,10 @@ public class MainActivity extends BaseActivity {
             if (totalUnread > 0) {
                 badge.setVisible(true);
                 badge.setNumber(totalUnread);
-                badge.setBackgroundColor(androidx.core.content.ContextCompat.getColor(this, R.color.whatsapp_light_green));
-                badge.setBadgeTextColor(android.graphics.Color.WHITE);
+                int badgeColor = com.google.android.material.color.MaterialColors.getColor(this, androidx.appcompat.R.attr.colorPrimary, android.graphics.Color.BLACK);
+                int textColor = com.google.android.material.color.MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnPrimary, android.graphics.Color.WHITE);
+                badge.setBackgroundColor(badgeColor);
+                badge.setBadgeTextColor(textColor);
             } else {
                 badge.setVisible(false);
             }

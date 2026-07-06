@@ -287,7 +287,8 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             }
 
             if (message.isSeen()) {
-                imageStatus.setColorFilter(androidx.core.content.ContextCompat.getColor(itemView.getContext(), R.color.whatsapp_blue));
+                int color = com.google.android.material.color.MaterialColors.getColor(itemView, androidx.appcompat.R.attr.colorPrimary);
+                imageStatus.setColorFilter(color);
             } else {
                 imageStatus.setColorFilter(androidx.core.content.ContextCompat.getColor(itemView.getContext(), android.R.color.darker_gray));
             }
@@ -361,7 +362,8 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             }
             
             if (message.isSeen()) {
-                imageStatus.setColorFilter(androidx.core.content.ContextCompat.getColor(itemView.getContext(), R.color.whatsapp_blue));
+                int color = com.google.android.material.color.MaterialColors.getColor(itemView, androidx.appcompat.R.attr.colorPrimary);
+                imageStatus.setColorFilter(color);
             } else {
                 imageStatus.setColorFilter(androidx.core.content.ContextCompat.getColor(itemView.getContext(), android.R.color.darker_gray));
             }
@@ -473,7 +475,8 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             }
 
             if (message.isSeen()) {
-                imageStatus.setColorFilter(androidx.core.content.ContextCompat.getColor(itemView.getContext(), R.color.whatsapp_blue));
+                int color = com.google.android.material.color.MaterialColors.getColor(itemView, androidx.appcompat.R.attr.colorPrimary);
+                imageStatus.setColorFilter(color);
             } else {
                 imageStatus.setColorFilter(androidx.core.content.ContextCompat.getColor(itemView.getContext(), android.R.color.darker_gray));
             }
@@ -573,7 +576,8 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             }
 
             if (message.isSeen()) {
-                imageStatus.setColorFilter(androidx.core.content.ContextCompat.getColor(itemView.getContext(), R.color.whatsapp_blue));
+                int color = com.google.android.material.color.MaterialColors.getColor(itemView, androidx.appcompat.R.attr.colorPrimary);
+                imageStatus.setColorFilter(color);
             } else {
                 imageStatus.setColorFilter(androidx.core.content.ContextCompat.getColor(itemView.getContext(), android.R.color.darker_gray));
             }
