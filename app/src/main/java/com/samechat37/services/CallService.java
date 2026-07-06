@@ -208,7 +208,18 @@ public class CallService extends Service {
                     if (message != null && message.getReceiverId().equals(myUid) && !message.isSeen()) {
                         // Only notify if this chat is not currently open
                         if (!friendUid.equals(ChatActivity.openedChatId)) {
-                            showMessageNotification(friendUid, userNames.get(friendUid), message.getText());
+                            String type = message.getType();
+                            String notificationText;
+                            
+                            if (type == null || "text".equals(type)) {
+                                notificationText = com.samechat37.utils.EncryptionManager.decrypt(message.getText(), CallService.this, false);
+                            } else {
+                                // Capitalize first letter (e.g. "image" -> "Image")
+                                notificationText = type.substring(0, 1).toUpperCase() + type.substring(1);
+                                if ("voice".equals(type)) notificationText = "Voice Message";
+                            }
+                            
+                            showMessageNotification(friendUid, userNames.get(friendUid), notificationText);
                         }
                     }
                 }

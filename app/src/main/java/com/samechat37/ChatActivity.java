@@ -290,6 +290,22 @@ public class ChatActivity extends BaseActivity {
                             }
 
                             Message message = new Message(messageId, senderId, receiverId, type.substring(0,1).toUpperCase() + type.substring(1), System.currentTimeMillis(), type, finalContent, 0);
+                            
+                            if (replyingToMessage != null) {
+                                message.setReplyToId(replyingToMessage.getMessageId());
+                                boolean isMe = replyingToMessage.getSenderId().equals(senderId);
+                                message.setReplyToName(isMe ? "You" : receiverName);
+                                String replyDisplayText;
+                                if (replyingToMessage.getType() == null || "text".equals(replyingToMessage.getType())) {
+                                    replyDisplayText = com.samechat37.utils.EncryptionManager.decrypt(replyingToMessage.getText(), ChatActivity.this, isMe);
+                                } else {
+                                    String rType = replyingToMessage.getType();
+                                    replyDisplayText = rType.substring(0, 1).toUpperCase() + rType.substring(1);
+                                }
+                                message.setReplyToText(replyDisplayText);
+                                cancelReply();
+                            }
+
                             chatRef.child(messageId).setValue(message);
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -419,6 +435,22 @@ public class ChatActivity extends BaseActivity {
                             }
 
                             Message message = new Message(messageId, senderId, receiverId, "Voice message", System.currentTimeMillis(), "voice", finalContent, duration);
+                            
+                            if (replyingToMessage != null) {
+                                message.setReplyToId(replyingToMessage.getMessageId());
+                                boolean isMe = replyingToMessage.getSenderId().equals(senderId);
+                                message.setReplyToName(isMe ? "You" : receiverName);
+                                String replyDisplayText;
+                                if (replyingToMessage.getType() == null || "text".equals(replyingToMessage.getType())) {
+                                    replyDisplayText = com.samechat37.utils.EncryptionManager.decrypt(replyingToMessage.getText(), ChatActivity.this, isMe);
+                                } else {
+                                    String rType = replyingToMessage.getType();
+                                    replyDisplayText = rType.substring(0, 1).toUpperCase() + rType.substring(1);
+                                }
+                                message.setReplyToText(replyDisplayText);
+                                cancelReply();
+                            }
+
                             chatRef.child(messageId).setValue(message);
 
                             File tempFile = new File(path);
