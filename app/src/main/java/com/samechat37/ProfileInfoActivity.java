@@ -1,5 +1,6 @@
 package com.samechat37;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -17,9 +18,9 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.samechat37.databinding.ActivityProfileInfoBinding;
-
 import com.samechat37.adapters.MediaAdapter;
+import com.samechat37.adapters.PinnedMessagesAdapter;
+import com.samechat37.databinding.ActivityProfileInfoBinding;
 import com.samechat37.models.Message;
 
 import java.util.ArrayList;
@@ -34,6 +35,9 @@ public class ProfileInfoActivity extends BaseActivity {
     private boolean isOwnProfile;
     private List<Message> mediaList = new ArrayList<>();
     private MediaAdapter mediaAdapter;
+    private List<Message> pinnedMessagesList = new ArrayList<>();
+    private PinnedMessagesAdapter pinnedAdapter;
+    private String otherUserName;
 
     private final androidx.activity.result.ActivityResultLauncher<String> pickImageLauncher =
             registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.GetContent(),
@@ -71,7 +75,7 @@ public class ProfileInfoActivity extends BaseActivity {
             binding.settingsButton.setVisibility(android.view.View.GONE);
             binding.editProfileImageFab.setVisibility(android.view.View.GONE);
             binding.editCoverImageFab.setVisibility(android.view.View.GONE);
-            checkFriendStatus();
+            checkFriendshipStatus();
         } else {
             binding.editProfileImageFab.setVisibility(android.view.View.VISIBLE);
             binding.editCoverImageFab.setVisibility(android.view.View.VISIBLE);
@@ -83,17 +87,42 @@ public class ProfileInfoActivity extends BaseActivity {
 
         if (!isOwnProfile) {
             setupMediaRecyclerView();
+            setupPinnedMessagesRecyclerView();
             loadSharedMedia();
         } else {
             binding.mediaCard.setVisibility(android.view.View.GONE);
+            binding.pinnedMessagesCard.setVisibility(android.view.View.GONE);
         }
+    }
+
+    private void setupPinnedMessagesRecyclerView() {
+        String myUid = FirebaseAuth.getInstance().getUid();
+        pinnedAdapter = new PinnedMessagesAdapter(this, pinnedMessagesList, myUid, otherUserName, message -> {
+            Intent intent = new Intent(this, ChatActivity.class);
+            intent.putExtra("uid", targetUid);
+            intent.putExtra("displayName", otherUserName);
+            intent.putExtra("scroll_to_message_id", message.getMessageId());
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+            finish();
+        });
+        binding.pinnedMessagesRecycler.setAdapter(pinnedAdapter);
     }
 
     private void setupMediaRecyclerView() {
         mediaAdapter = new MediaAdapter(this, mediaList, message -> {
-            // Handle media click (e.g., open full screen)
-            // For now, just toast the type
-            Toast.makeText(this, "Opening " + message.getType(), Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(this, FullMediaActivity.class);
+            intent.putExtra("type", message.getType());
+            intent.putExtra("message_id", message.getMessageId());
+            
+            String mediaUrl = message.getMediaUrl();
+            if (mediaUrl != null && mediaUrl.startsWith("{")) {
+                intent.putExtra("encrypted_info", mediaUrl);
+            } else {
+                intent.putExtra("url", mediaUrl);
+            }
+            
+            startActivity(intent);
         });
         binding.mediaRecycler.setAdapter(mediaAdapter);
     }
@@ -107,20 +136,31 @@ public class ProfileInfoActivity extends BaseActivity {
                 : targetUid + "_" + myUid;
 
         FirebaseDatabase.getInstance().getReference("chats").child(chatId)
+                .limitToLast(50)
                 .addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         if (binding == null) return;
-                        mediaList.clear();
+                        List<Message> newMediaList = new ArrayList<>();
+                        List<Message> newPinnedList = new ArrayList<>();
+                        
                         for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
                             Message message = dataSnapshot.getValue(Message.class);
-                            if (message != null && ("image".equalsIgnoreCase(message.getType()) || "video".equalsIgnoreCase(message.getType()))) {
-                                // Decrypt mediaUrl if it's encrypted
-                                decryptMessageMedia(message);
-                                mediaList.add(message);
+                            if (message != null && message.getType() != null) {
+                                String type = message.getType();
+                                if ("image".equalsIgnoreCase(type) || "video".equalsIgnoreCase(type)) {
+                                    decryptMessageMedia(message);
+                                    newMediaList.add(0, message);
+                                }
+                                if (message.isPinned()) {
+                                    decryptPinnedMessage(message);
+                                    newPinnedList.add(0, message);
+                                }
                             }
                         }
                         
+                        mediaList.clear();
+                        mediaList.addAll(newMediaList);
                         mediaAdapter.notifyDataSetChanged();
                         binding.mediaCount.setText(String.valueOf(mediaList.size()));
                         
@@ -131,11 +171,37 @@ public class ProfileInfoActivity extends BaseActivity {
                             binding.noMediaText.setVisibility(android.view.View.GONE);
                             binding.mediaRecycler.setVisibility(android.view.View.VISIBLE);
                         }
+
+                        pinnedMessagesList.clear();
+                        pinnedMessagesList.addAll(newPinnedList);
+                        pinnedAdapter.notifyDataSetChanged();
+                        if (pinnedMessagesList.isEmpty()) {
+                            binding.noPinnedMessagesText.setVisibility(android.view.View.VISIBLE);
+                            binding.pinnedMessagesRecycler.setVisibility(android.view.View.GONE);
+                        } else {
+                            binding.noPinnedMessagesText.setVisibility(android.view.View.GONE);
+                            binding.pinnedMessagesRecycler.setVisibility(android.view.View.VISIBLE);
+                        }
                     }
 
                     @Override
                     public void onCancelled(@NonNull DatabaseError error) {}
                 });
+    }
+
+    private void decryptPinnedMessage(Message message) {
+        String text = message.getText();
+        if (text == null) return;
+
+        try {
+            boolean isMe = message.getSenderId().equals(FirebaseAuth.getInstance().getUid());
+            String decrypted = com.samechat37.utils.EncryptionManager.decrypt(text, this, isMe);
+            if (decrypted != null) {
+                message.setText(decrypted);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void decryptMessageMedia(Message message) {
@@ -167,7 +233,7 @@ public class ProfileInfoActivity extends BaseActivity {
         });
     }
 
-    private void checkFriendStatus() {
+    private void checkFriendshipStatus() {
         String myUid = FirebaseAuth.getInstance().getUid();
         if (myUid == null || targetUid == null) return;
 
@@ -177,17 +243,138 @@ public class ProfileInfoActivity extends BaseActivity {
                 .addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        if (binding == null || isFinishing() || isDestroyed()) return;
+                        if (binding == null) return;
                         if (snapshot.exists()) {
-                            binding.unfriendButton.setVisibility(android.view.View.VISIBLE);
+                            showUnfriendUI();
                         } else {
-                            binding.unfriendButton.setVisibility(android.view.View.GONE);
+                            checkPendingRequest();
                         }
                     }
-
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {}
+                    @Override public void onCancelled(@NonNull DatabaseError error) {}
                 });
+    }
+
+    private void checkPendingRequest() {
+        String myUid = FirebaseAuth.getInstance().getUid();
+        if (myUid == null || targetUid == null) return;
+
+        FirebaseDatabase.getInstance().getReference("friendRequests")
+                .child(targetUid)
+                .child(myUid)
+                .addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        if (binding == null) return;
+                        if (snapshot.exists()) {
+                            showPendingUI();
+                        } else {
+                            FirebaseDatabase.getInstance().getReference("friendRequests")
+                                    .child(myUid)
+                                    .child(targetUid)
+                                    .addListenerForSingleValueEvent(new ValueEventListener() {
+                                        @Override
+                                        public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                            if (binding == null) return;
+                                            if (snapshot.exists()) {
+                                                showAcceptUI();
+                                            } else {
+                                                showAddFriendUI();
+                                            }
+                                        }
+                                        @Override public void onCancelled(@NonNull DatabaseError error) {}
+                                    });
+                        }
+                    }
+                    @Override public void onCancelled(@NonNull DatabaseError error) {}
+                });
+    }
+
+    private void showUnfriendUI() {
+        binding.friendActionButton.setVisibility(android.view.View.VISIBLE);
+        binding.friendActionButton.setText(R.string.unfriend);
+        binding.friendActionButton.setIconResource(android.R.drawable.ic_menu_delete);
+        
+        int colorError = com.google.android.material.color.MaterialColors.getColor(this, androidx.appcompat.R.attr.colorError, android.graphics.Color.RED);
+        int colorErrorContainer = com.google.android.material.color.MaterialColors.getColor(this, com.google.android.material.R.attr.colorErrorContainer, android.graphics.Color.RED);
+        
+        binding.friendActionButton.setBackgroundTintList(android.content.res.ColorStateList.valueOf(colorErrorContainer));
+        binding.friendActionButton.setTextColor(colorError);
+        binding.friendActionButton.setIconTint(android.content.res.ColorStateList.valueOf(colorError));
+        binding.friendActionButton.setOnClickListener(v -> showUnfriendConfirmDialog());
+    }
+
+    private void showPendingUI() {
+        binding.friendActionButton.setVisibility(android.view.View.VISIBLE);
+        binding.friendActionButton.setText(R.string.cancel_request);
+        binding.friendActionButton.setIconResource(android.R.drawable.ic_menu_close_clear_cancel);
+        
+        int colorOnSurface = com.google.android.material.color.MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurfaceVariant, android.graphics.Color.GRAY);
+        int colorSurface = com.google.android.material.color.MaterialColors.getColor(this, com.google.android.material.R.attr.colorSurfaceVariant, android.graphics.Color.LTGRAY);
+        
+        binding.friendActionButton.setBackgroundTintList(android.content.res.ColorStateList.valueOf(colorSurface));
+        binding.friendActionButton.setTextColor(colorOnSurface);
+        binding.friendActionButton.setIconTint(android.content.res.ColorStateList.valueOf(colorOnSurface));
+        binding.friendActionButton.setOnClickListener(v -> cancelFriendRequest());
+    }
+
+    private void cancelFriendRequest() {
+        String myUid = FirebaseAuth.getInstance().getUid();
+        if (myUid == null || targetUid == null) return;
+
+        FirebaseDatabase.getInstance().getReference("friendRequests")
+                .child(targetUid)
+                .child(myUid)
+                .removeValue()
+                .addOnSuccessListener(aVoid -> Toast.makeText(this, "Friend request cancelled", Toast.LENGTH_SHORT).show());
+    }
+
+    private void showAddFriendUI() {
+        binding.friendActionButton.setVisibility(android.view.View.VISIBLE);
+        binding.friendActionButton.setText(R.string.add_friend);
+        binding.friendActionButton.setIconResource(android.R.drawable.ic_input_add);
+        
+        int colorPrimary = com.google.android.material.color.MaterialColors.getColor(this, androidx.appcompat.R.attr.colorPrimary, android.graphics.Color.BLUE);
+        int colorOnPrimary = com.google.android.material.color.MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnPrimary, android.graphics.Color.WHITE);
+        
+        binding.friendActionButton.setBackgroundTintList(android.content.res.ColorStateList.valueOf(colorPrimary));
+        binding.friendActionButton.setTextColor(colorOnPrimary);
+        binding.friendActionButton.setIconTint(android.content.res.ColorStateList.valueOf(colorOnPrimary));
+        binding.friendActionButton.setOnClickListener(v -> sendFriendRequest());
+    }
+
+    private void showAcceptUI() {
+        binding.friendActionButton.setVisibility(android.view.View.VISIBLE);
+        binding.friendActionButton.setText("Accept Request");
+        binding.friendActionButton.setIconResource(android.R.drawable.checkbox_on_background);
+        
+        int colorPrimary = com.google.android.material.color.MaterialColors.getColor(this, androidx.appcompat.R.attr.colorPrimary, android.graphics.Color.BLUE);
+        int colorOnPrimary = com.google.android.material.color.MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnPrimary, android.graphics.Color.WHITE);
+        
+        binding.friendActionButton.setBackgroundTintList(android.content.res.ColorStateList.valueOf(colorPrimary));
+        binding.friendActionButton.setTextColor(colorOnPrimary);
+        binding.friendActionButton.setIconTint(android.content.res.ColorStateList.valueOf(colorOnPrimary));
+        binding.friendActionButton.setOnClickListener(v -> acceptFriendRequest());
+    }
+
+    private void sendFriendRequest() {
+        String myUid = FirebaseAuth.getInstance().getUid();
+        if (myUid == null || targetUid == null) return;
+        FirebaseDatabase.getInstance().getReference("friendRequests")
+                .child(targetUid)
+                .child(myUid)
+                .setValue("pending")
+                .addOnSuccessListener(aVoid -> Toast.makeText(this, "Friend request sent", Toast.LENGTH_SHORT).show());
+    }
+
+    private void acceptFriendRequest() {
+        String myUid = FirebaseAuth.getInstance().getUid();
+        if (myUid == null || targetUid == null) return;
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("/friends/" + myUid + "/" + targetUid, true);
+        updates.put("/friends/" + targetUid + "/" + myUid, true);
+        updates.put("/friendRequests/" + myUid + "/" + targetUid, null);
+        FirebaseDatabase.getInstance().getReference().updateChildren(updates)
+                .addOnSuccessListener(aVoid -> Toast.makeText(this, "Friend request accepted", Toast.LENGTH_SHORT).show());
     }
 
     private void setupClickListeners() {
@@ -196,8 +383,6 @@ public class ProfileInfoActivity extends BaseActivity {
             binding.profileImage.setOnClickListener(v -> pickImageLauncher.launch("image/*"));
             binding.editProfileImageFab.setOnClickListener(v -> pickImageLauncher.launch("image/*"));
             binding.editCoverImageFab.setOnClickListener(v -> pickCoverLauncher.launch("image/*"));
-        } else {
-            binding.unfriendButton.setOnClickListener(v -> showUnfriendConfirmDialog());
         }
     }
 
@@ -431,15 +616,18 @@ public class ProfileInfoActivity extends BaseActivity {
                                 String photoUrl = snapshot.child("photoUrl").getValue(String.class);
                                 String coverUrl = snapshot.child("coverUrl").getValue(String.class);
                                 String email = snapshot.child("email").getValue(String.class);
+                                otherUserName = name;
 
                                 if (name != null) binding.profileName.setText(name);
                                 if (handle != null) binding.profileHandle.setText("@" + handle);
+                                
                                 if (isOwnProfile && email != null) {
                                     binding.profileEmailHeader.setVisibility(android.view.View.VISIBLE);
                                     binding.profileEmailHeader.setText(email);
                                 } else {
                                     binding.profileEmailHeader.setVisibility(android.view.View.GONE);
                                 }
+
                                 if (photoUrl != null && !photoUrl.isEmpty()) {
                                     Glide.with(ProfileInfoActivity.this)
                                             .load(photoUrl)

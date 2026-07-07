@@ -1,6 +1,8 @@
 package com.samechat37.adapters;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.media.MediaMetadataRetriever;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,16 +12,25 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.samechat37.R;
 import com.samechat37.models.Message;
+import com.samechat37.utils.EncryptionManager;
+import com.samechat37.utils.GitHubStorage;
+import com.samechat37.utils.MediaUtils;
 
+import org.json.JSONObject;
+
+import java.io.File;
 import java.util.List;
+
+import javax.crypto.SecretKey;
 
 public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHolder> {
 
-    private Context context;
-    private List<Message> mediaMessages;
-    private OnMediaClickListener listener;
+    private final Context context;
+    private final List<Message> mediaMessages;
+    private final OnMediaClickListener listener;
 
     public interface OnMediaClickListener {
         void onMediaClick(Message message);
@@ -41,40 +52,108 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
     @Override
     public void onBindViewHolder(@NonNull MediaViewHolder holder, int position) {
         Message message = mediaMessages.get(position);
-        
-        // mediaUrl is already decrypted when passed to this list or we decrypt it here
-        // For simplicity, let's assume we pass decrypted info or the adapter handles it.
-        // Actually, it's better to pass decrypted URL to the adapter or have a method to get it.
-        
         String type = message.getType();
         holder.videoIcon.setVisibility("video".equalsIgnoreCase(type) ? View.VISIBLE : View.GONE);
 
-        // We need the raw URL from the mediaInfo JSON
-        String mediaInfo = message.getMediaUrl(); 
-        String url = null;
-        try {
-            // Check if it's already a direct URL (shouldn't be if E2EE is on) or a JSON
-            if (mediaInfo != null && mediaInfo.startsWith("{")) {
-                org.json.JSONObject json = new org.json.JSONObject(mediaInfo);
-                url = json.optString("u");
-            } else {
-                url = mediaInfo;
-            }
-        } catch (Exception e) {
-            url = mediaInfo;
-        }
-
-        if (url != null) {
-            Glide.with(context)
-                    .load(url)
-                    .centerCrop()
-                    .placeholder(R.drawable.unread_badge_bg) // fallback
-                    .into(holder.thumbnail);
-        }
+        loadThumbnail(holder.thumbnail, message);
 
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) listener.onMediaClick(message);
         });
+    }
+
+    private void loadThumbnail(ImageView imageView, Message message) {
+        String mediaInfo = message.getMediaUrl();
+        if (mediaInfo == null || mediaInfo.isEmpty()) {
+            imageView.setImageResource(R.color.whatsapp_green_dark); // Placeholder
+            return;
+        }
+
+        String type = message.getType();
+        String messageId = message.getMessageId();
+        File localFile = MediaUtils.getLocalFileForMedia(context, type, messageId);
+
+        if (localFile.exists()) {
+            displayLocalMedia(imageView, localFile, "video".equalsIgnoreCase(type));
+            return;
+        }
+
+        // Not local, try to download if it's a JSON info
+        if (mediaInfo.startsWith("{")) {
+            imageView.setImageResource(R.color.whatsapp_green_dark);
+            imageView.setTag(messageId);
+            
+            try {
+                JSONObject json = new JSONObject(mediaInfo);
+                String url = json.getString("u");
+                String key = json.getString("k");
+
+                GitHubStorage.downloadFile(url, new GitHubStorage.DownloadCallback() {
+                    @Override
+                    public void onProgress(int progress) {}
+
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        imageView.post(() -> {
+                            if (messageId.equals(imageView.getTag())) {
+                                imageView.setImageResource(android.R.drawable.ic_menu_report_image);
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onSuccess(byte[] data) {
+                        try {
+                            SecretKey secretKey = EncryptionManager.decodeKey(key);
+                            byte[] decryptedBytes = EncryptionManager.decryptRaw(data, secretKey);
+                            MediaUtils.saveMediaLocally(context, decryptedBytes, type, messageId);
+
+                            imageView.post(() -> {
+                                if (messageId.equals(imageView.getTag())) {
+                                    displayLocalMedia(imageView, localFile, "video".equalsIgnoreCase(type));
+                                }
+                            });
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+            // Direct URL (fallback)
+            Glide.with(context)
+                    .load(mediaInfo)
+                    .centerCrop()
+                    .placeholder(R.color.whatsapp_green_dark)
+                    .into(imageView);
+        }
+    }
+
+    private void displayLocalMedia(ImageView imageView, File file, boolean isVideo) {
+        if (isVideo) {
+            new Thread(() -> {
+                try {
+                    MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+                    retriever.setDataSource(file.getAbsolutePath());
+                    Bitmap bitmap = retriever.getFrameAtTime(0);
+                    retriever.release();
+                    if (bitmap != null) {
+                        imageView.post(() -> imageView.setImageBitmap(bitmap));
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        } else {
+            Glide.with(context)
+                    .load(file)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .centerCrop()
+                    .placeholder(R.color.whatsapp_green_dark)
+                    .into(imageView);
+        }
     }
 
     @Override

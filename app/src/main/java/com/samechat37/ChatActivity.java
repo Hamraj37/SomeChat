@@ -71,6 +71,12 @@ public class ChatActivity extends BaseActivity {
     private View selectionActionsContainer;
     private TextView selectionCountText;
 
+    private View pinnedMessageLayout;
+    private TextView pinnedMessageTitle;
+    private TextView pinnedMessageText;
+    private List<Message> pinnedMessages = new ArrayList<>();
+    private int currentPinnedIndex = 0;
+
     private android.media.MediaRecorder mediaRecorder;
     private String audioPath = null;
     private long recordStartTime = 0;
@@ -126,11 +132,19 @@ public class ChatActivity extends BaseActivity {
         selectionActionsContainer = findViewById(R.id.selection_actions_container);
         selectionCountText = findViewById(R.id.selection_count);
 
+        pinnedMessageLayout = findViewById(R.id.pinned_message_layout);
+        pinnedMessageTitle = findViewById(R.id.pinned_message_title);
+        pinnedMessageText = findViewById(R.id.pinned_message_text);
+        findViewById(R.id.btn_unpin).setOnClickListener(v -> unpinCurrentMessage());
+
         findViewById(R.id.btn_copy_selected).setOnClickListener(v -> copySelectedMessages());
         findViewById(R.id.btn_reply_selected).setOnClickListener(v -> replyToSelectedMessage());
         findViewById(R.id.btn_forward_selected).setOnClickListener(v -> forwardSelectedMessages());
         findViewById(R.id.btn_delete_selected).setOnClickListener(v -> deleteSelectedMessages());
+        findViewById(R.id.btn_pin_selected).setOnClickListener(v -> pinSelectedMessages());
         
+        checkPinnedScroll();
+
         replyLayout.setOnClickListener(v -> {
             if (replyingToMessage != null) {
                 String targetId = replyingToMessage.getMessageId();
@@ -208,6 +222,25 @@ public class ChatActivity extends BaseActivity {
             } else {
                 sendForwardedMessage(content, type);
             }
+        }
+    }
+
+    private void checkPinnedScroll() {
+        if (getIntent().hasExtra("scroll_to_message_id")) {
+            String targetId = getIntent().getStringExtra("scroll_to_message_id");
+            if (targetId != null) {
+                // We need to wait for messages to load
+                chatRecycler.postDelayed(() -> {
+                    for (int i = 0; i < messageList.size(); i++) {
+                        if (messageList.get(i).getMessageId().equals(targetId)) {
+                            chatRecycler.smoothScrollToPosition(i + 1);
+                            adapter.highlightMessage(targetId);
+                            break;
+                        }
+                    }
+                }, 500);
+            }
+            getIntent().removeExtra("scroll_to_message_id");
         }
     }
 
@@ -798,6 +831,43 @@ public class ChatActivity extends BaseActivity {
         }
     }
 
+    private void pinSelectedMessages() {
+        List<Message> selected = adapter.getSelectedMessages();
+        if (selected.isEmpty()) return;
+
+        for (Message m : selected) {
+            chatRef.child(m.getMessageId()).child("pinned").setValue(true);
+        }
+        adapter.clearSelection();
+        Toast.makeText(this, selected.size() > 1 ? "Messages pinned" : "Message pinned", Toast.LENGTH_SHORT).show();
+    }
+
+    private void unpinCurrentMessage() {
+        if (pinnedMessages.isEmpty() || currentPinnedIndex >= pinnedMessages.size()) return;
+        
+        Message current = pinnedMessages.get(currentPinnedIndex);
+        chatRef.child(current.getMessageId()).child("pinned").setValue(false);
+        Toast.makeText(this, "Message unpinned", Toast.LENGTH_SHORT).show();
+    }
+
+    private void unpinAllMessages() {
+        chatRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                for (DataSnapshot ds : snapshot.getChildren()) {
+                    Message m = ds.getValue(Message.class);
+                    if (m != null && m.isPinned()) {
+                        ds.getRef().child("pinned").setValue(false);
+                    }
+                }
+                Toast.makeText(ChatActivity.this, "Messages unpinned", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
+    }
+
     private void forwardSelectedMessages() {
         List<Message> selected = adapter.getSelectedMessages();
         if (selected.isEmpty()) return;
@@ -1098,6 +1168,44 @@ public class ChatActivity extends BaseActivity {
         replyLayout.setVisibility(View.GONE);
     }
 
+    private void showPinnedMessage(Message message) {
+        pinnedMessageLayout.setVisibility(View.VISIBLE);
+        
+        if (pinnedMessages.size() > 1) {
+            pinnedMessageTitle.setText(getString(R.string.pinned_message_count, currentPinnedIndex + 1, pinnedMessages.size()));
+        } else {
+            pinnedMessageTitle.setText(R.string.pinned_message);
+        }
+
+        boolean isMe = message.getSenderId().equals(senderId);
+        
+        String displayText;
+        if (message.getType() == null || "text".equals(message.getType())) {
+            displayText = com.samechat37.utils.EncryptionManager.decrypt(message.getText(), this, isMe);
+        } else {
+            String type = message.getType();
+            displayText = type.substring(0, 1).toUpperCase() + type.substring(1);
+        }
+        pinnedMessageText.setText(displayText);
+        
+        pinnedMessageLayout.setOnClickListener(v -> {
+            // Scroll to current pinned message
+            for (int i = 0; i < messageList.size(); i++) {
+                if (messageList.get(i).getMessageId().equals(message.getMessageId())) {
+                    chatRecycler.smoothScrollToPosition(i + 1);
+                    adapter.highlightMessage(message.getMessageId());
+                    break;
+                }
+            }
+            
+            // Cycle to next one for the next view
+            if (pinnedMessages.size() > 1) {
+                currentPinnedIndex = (currentPinnedIndex + 1) % pinnedMessages.size();
+                showPinnedMessage(pinnedMessages.get(currentPinnedIndex));
+            }
+        });
+    }
+
     private void loadMoreMessages() {
         messageLimit += 50;
         if (chatRef != null && messageListener != null) {
@@ -1136,6 +1244,7 @@ public class ChatActivity extends BaseActivity {
                 }
 
                 messageList.clear();
+                pinnedMessages.clear();
                 for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
                     Message message = dataSnapshot.getValue(Message.class);
                     if (message != null) {
@@ -1144,12 +1253,25 @@ public class ChatActivity extends BaseActivity {
                             continue;
                         }
 
+                        if (message.isPinned()) {
+                            pinnedMessages.add(message);
+                        }
+
                         messageList.add(message);
                         // Mark as seen if we are the receiver
                         if (message.getReceiverId().equals(senderId) && !message.isSeen()) {
                             dataSnapshot.getRef().child("seen").setValue(true);
                         }
                     }
+                }
+
+                if (!pinnedMessages.isEmpty()) {
+                    if (currentPinnedIndex >= pinnedMessages.size()) {
+                        currentPinnedIndex = 0;
+                    }
+                    showPinnedMessage(pinnedMessages.get(currentPinnedIndex));
+                } else {
+                    pinnedMessageLayout.setVisibility(View.GONE);
                 }
                 
                 // Re-add pending uploads only if they are not already in the list (e.g. upload just finished)

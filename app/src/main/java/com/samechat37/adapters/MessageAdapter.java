@@ -267,6 +267,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         displayMessage.setReplyToId(message.getReplyToId());
         displayMessage.setReplyToName(message.getReplyToName());
         displayMessage.setReplyToText(message.getReplyToText());
+        displayMessage.setPinned(message.isPinned());
 
         boolean isHighlighted = message.getMessageId() != null && message.getMessageId().equals(highlightMessageId);
         boolean isSelected = selectedMessageIds.contains(message.getMessageId());
@@ -329,6 +330,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         TextView textMessage;
         TextView textTimestamp;
         android.widget.ImageView imageStatus;
+        android.widget.ImageView imagePin;
         View forwardIndicator;
 
         public SentMessageViewHolder(@NonNull View itemView) {
@@ -336,6 +338,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             textMessage = itemView.findViewById(R.id.text_message);
             textTimestamp = itemView.findViewById(R.id.text_timestamp);
             imageStatus = itemView.findViewById(R.id.image_status);
+            imagePin = itemView.findViewById(R.id.image_pin);
             forwardIndicator = itemView.findViewById(R.id.forward_indicator);
         }
 
@@ -344,6 +347,10 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             textTimestamp.setText(formatDate(message.getTimestamp()));
             bindReply(itemView, message);
             
+            if (imagePin != null) {
+                imagePin.setVisibility(message.isPinned() ? View.VISIBLE : View.GONE);
+            }
+
             if (forwardIndicator != null) {
                 forwardIndicator.setVisibility(message.isForwarded() ? View.VISIBLE : View.GONE);
             }
@@ -377,12 +384,14 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     class ReceivedMessageViewHolder extends RecyclerView.ViewHolder {
         TextView textMessage;
         TextView textTimestamp;
+        android.widget.ImageView imagePin;
         View forwardIndicator;
 
         public ReceivedMessageViewHolder(@NonNull View itemView) {
             super(itemView);
             textMessage = itemView.findViewById(R.id.text_message);
             textTimestamp = itemView.findViewById(R.id.text_timestamp);
+            imagePin = itemView.findViewById(R.id.image_pin);
             forwardIndicator = itemView.findViewById(R.id.forward_indicator);
         }
 
@@ -390,6 +399,10 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             textMessage.setText(message.getText());
             textTimestamp.setText(formatDate(message.getTimestamp()));
             bindReply(itemView, message);
+
+            if (imagePin != null) {
+                imagePin.setVisibility(message.isPinned() ? View.VISIBLE : View.GONE);
+            }
 
             if (forwardIndicator != null) {
                 forwardIndicator.setVisibility(message.isForwarded() ? View.VISIBLE : View.GONE);
@@ -421,6 +434,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         TextView textDuration;
         TextView textTimestamp;
         android.widget.ImageView imageStatus;
+        android.widget.ImageView imagePin;
         View forwardIndicator;
 
         public VoiceSentViewHolder(@NonNull View itemView) {
@@ -431,6 +445,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             textDuration = itemView.findViewById(R.id.text_duration);
             textTimestamp = itemView.findViewById(R.id.text_timestamp);
             imageStatus = itemView.findViewById(R.id.image_status);
+            imagePin = itemView.findViewById(R.id.image_pin);
             forwardIndicator = itemView.findViewById(R.id.forward_indicator);
         }
 
@@ -439,6 +454,10 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             textDuration.setText(formatDuration(message.getDuration()));
             bindReply(itemView, message);
             
+            if (imagePin != null) {
+                imagePin.setVisibility(message.isPinned() ? View.VISIBLE : View.GONE);
+            }
+
             if (forwardIndicator != null) {
                 forwardIndicator.setVisibility(message.isForwarded() ? View.VISIBLE : View.GONE);
             }
@@ -495,6 +514,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         com.google.android.material.progressindicator.CircularProgressIndicator downloadProgress;
         TextView textDuration;
         TextView textTimestamp;
+        android.widget.ImageView imagePin;
         View forwardIndicator;
 
         public VoiceReceivedViewHolder(@NonNull View itemView) {
@@ -504,6 +524,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             downloadProgress = itemView.findViewById(R.id.download_progress);
             textDuration = itemView.findViewById(R.id.text_duration);
             textTimestamp = itemView.findViewById(R.id.text_timestamp);
+            imagePin = itemView.findViewById(R.id.image_pin);
             forwardIndicator = itemView.findViewById(R.id.forward_indicator);
         }
 
@@ -511,6 +532,10 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             textTimestamp.setText(formatDate(message.getTimestamp()));
             textDuration.setText(formatDuration(message.getDuration()));
             bindReply(itemView, message);
+
+            if (imagePin != null) {
+                imagePin.setVisibility(message.isPinned() ? View.VISIBLE : View.GONE);
+            }
 
             if (forwardIndicator != null) {
                 forwardIndicator.setVisibility(message.isForwarded() ? View.VISIBLE : View.GONE);
@@ -559,6 +584,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         android.widget.ImageView imageMessage;
         TextView textTimestamp;
         android.widget.ImageView imageStatus;
+        android.widget.ImageView imagePin;
         com.google.android.material.progressindicator.CircularProgressIndicator uploadProgress;
         View forwardIndicator;
 
@@ -567,6 +593,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             imageMessage = itemView.findViewById(R.id.image_message);
             textTimestamp = itemView.findViewById(R.id.text_timestamp);
             imageStatus = itemView.findViewById(R.id.image_status);
+            imagePin = itemView.findViewById(R.id.image_pin);
             uploadProgress = itemView.findViewById(R.id.upload_progress);
             forwardIndicator = itemView.findViewById(R.id.forward_indicator);
         }
@@ -574,6 +601,10 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         void bind(Message message) {
             textTimestamp.setText(formatDate(message.getTimestamp()));
             bindReply(itemView, message);
+
+            if (imagePin != null) {
+                imagePin.setVisibility(message.isPinned() ? View.VISIBLE : View.GONE);
+            }
 
             if (forwardIndicator != null) {
                 forwardIndicator.setVisibility(message.isForwarded() ? View.VISIBLE : View.GONE);
@@ -625,6 +656,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     class ImageReceivedViewHolder extends RecyclerView.ViewHolder {
         android.widget.ImageView imageMessage;
         TextView textTimestamp;
+        android.widget.ImageView imagePin;
         com.google.android.material.progressindicator.CircularProgressIndicator downloadProgress;
         View forwardIndicator;
 
@@ -632,6 +664,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             super(itemView);
             imageMessage = itemView.findViewById(R.id.image_message);
             textTimestamp = itemView.findViewById(R.id.text_timestamp);
+            imagePin = itemView.findViewById(R.id.image_pin);
             downloadProgress = itemView.findViewById(R.id.download_progress);
             forwardIndicator = itemView.findViewById(R.id.forward_indicator);
         }
@@ -639,6 +672,10 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         void bind(Message message) {
             textTimestamp.setText(formatDate(message.getTimestamp()));
             bindReply(itemView, message);
+
+            if (imagePin != null) {
+                imagePin.setVisibility(message.isPinned() ? View.VISIBLE : View.GONE);
+            }
 
             if (forwardIndicator != null) {
                 forwardIndicator.setVisibility(message.isForwarded() ? View.VISIBLE : View.GONE);
@@ -677,6 +714,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         android.widget.ImageView videoThumbnail;
         TextView textTimestamp;
         android.widget.ImageView imageStatus;
+        android.widget.ImageView imagePin;
         com.google.android.material.progressindicator.CircularProgressIndicator uploadProgress;
         View forwardIndicator;
 
@@ -685,6 +723,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             videoThumbnail = itemView.findViewById(R.id.video_thumbnail);
             textTimestamp = itemView.findViewById(R.id.text_timestamp);
             imageStatus = itemView.findViewById(R.id.image_status);
+            imagePin = itemView.findViewById(R.id.image_pin);
             uploadProgress = itemView.findViewById(R.id.upload_progress);
             forwardIndicator = itemView.findViewById(R.id.forward_indicator);
         }
@@ -692,6 +731,10 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         void bind(Message message) {
             textTimestamp.setText(formatDate(message.getTimestamp()));
             bindReply(itemView, message);
+
+            if (imagePin != null) {
+                imagePin.setVisibility(message.isPinned() ? View.VISIBLE : View.GONE);
+            }
 
             if (forwardIndicator != null) {
                 forwardIndicator.setVisibility(message.isForwarded() ? View.VISIBLE : View.GONE);
@@ -744,6 +787,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     class VideoReceivedViewHolder extends RecyclerView.ViewHolder {
         android.widget.ImageView videoThumbnail;
         TextView textTimestamp;
+        android.widget.ImageView imagePin;
         com.google.android.material.progressindicator.CircularProgressIndicator downloadProgress;
         View forwardIndicator;
 
@@ -751,6 +795,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             super(itemView);
             videoThumbnail = itemView.findViewById(R.id.video_thumbnail);
             textTimestamp = itemView.findViewById(R.id.text_timestamp);
+            imagePin = itemView.findViewById(R.id.image_pin);
             downloadProgress = itemView.findViewById(R.id.download_progress);
             forwardIndicator = itemView.findViewById(R.id.forward_indicator);
         }
@@ -758,6 +803,10 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         void bind(Message message) {
             textTimestamp.setText(formatDate(message.getTimestamp()));
             bindReply(itemView, message);
+
+            if (imagePin != null) {
+                imagePin.setVisibility(message.isPinned() ? View.VISIBLE : View.GONE);
+            }
 
             if (forwardIndicator != null) {
                 forwardIndicator.setVisibility(message.isForwarded() ? View.VISIBLE : View.GONE);

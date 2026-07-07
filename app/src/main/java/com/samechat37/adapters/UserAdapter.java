@@ -40,7 +40,14 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserViewHolder
     public void onBindViewHolder(@NonNull UserViewHolder holder, int position) {
         User user = userList.get(position);
         holder.displayName.setText(user.getDisplayName());
-        holder.email.setText(user.getEmail());
+        
+        String myUid = com.google.firebase.auth.FirebaseAuth.getInstance().getUid();
+        if (user.getUid() != null && user.getUid().equals(myUid)) {
+            holder.email.setText(user.getEmail());
+            holder.email.setVisibility(View.VISIBLE);
+        } else {
+            holder.email.setVisibility(View.GONE);
+        }
         
         if (user.getUsername() != null && !user.getUsername().isEmpty()) {
             holder.username.setText("@" + user.getUsername());

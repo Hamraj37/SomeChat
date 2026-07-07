@@ -41,6 +41,9 @@ public class SearchUserActivity extends BaseActivity {
     private boolean isForwardMode = false;
     private List<String> friendIds = new ArrayList<>();
 
+    private final java.util.Set<String> friendIdsSet = new java.util.HashSet<>();
+    private boolean friendsLoaded = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -59,8 +62,8 @@ public class SearchUserActivity extends BaseActivity {
         setupRecyclerView();
         setupSearchListener();
 
+        loadFriendsData();
         if (isForwardMode) {
-            loadFriends();
             searchInput.setHint("Search friends...");
         }
 
@@ -69,26 +72,38 @@ public class SearchUserActivity extends BaseActivity {
         toolbar.setNavigationOnClickListener(v -> finish());
     }
 
-    private void loadFriends() {
+    private void loadFriendsData() {
         String myUid = com.google.firebase.auth.FirebaseAuth.getInstance().getUid();
         if (myUid == null) return;
 
-        emptyView.setText("Loading friends...");
-        emptyStateContainer.setVisibility(View.VISIBLE);
+        if (isForwardMode) {
+            emptyView.setText("Loading friends...");
+            emptyStateContainer.setVisibility(View.VISIBLE);
+        }
 
         FirebaseDatabase.getInstance().getReference("friends").child(myUid)
-                .addListenerForSingleValueEvent(new ValueEventListener() {
+                .addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        friendIdsSet.clear();
                         friendIds.clear();
                         for (DataSnapshot ds : snapshot.getChildren()) {
-                            friendIds.add(ds.getKey());
+                            String friendId = ds.getKey();
+                            if (friendId != null) {
+                                friendIdsSet.add(friendId);
+                                friendIds.add(friendId);
+                            }
                         }
                         
-                        if (friendIds.isEmpty()) {
-                            emptyView.setText("No friends found. Search for users to add them.");
-                        } else {
-                            fetchFriendDetails();
+                        boolean wasLoaded = friendsLoaded;
+                        friendsLoaded = true;
+
+                        if (isForwardMode && !wasLoaded) {
+                            if (friendIds.isEmpty()) {
+                                emptyView.setText("No friends found. Search for users to add them.");
+                            } else {
+                                fetchFriendDetails();
+                            }
                         }
                     }
 
@@ -130,12 +145,21 @@ public class SearchUserActivity extends BaseActivity {
 
     private void setupRecyclerView() {
         adapter = new UserAdapter(userList, user -> {
+            String myUid = com.google.firebase.auth.FirebaseAuth.getInstance().getUid();
+            
+            if (user.getUid().equals(myUid) || !friendIdsSet.contains(user.getUid())) {
+                Intent intent = new Intent(this, ProfileInfoActivity.class);
+                intent.putExtra("uid", user.getUid());
+                startActivity(intent);
+                return;
+            }
+
             Intent intent = new Intent(this, ChatActivity.class);
             intent.putExtra("uid", user.getUid());
             intent.putExtra("displayName", user.getDisplayName());
             intent.putExtra("photoUrl", user.getPhotoUrl());
             
-            if (getIntent().getBooleanExtra("forward_message", false)) {
+            if (isForwardMode) {
                 if (getIntent().hasExtra("forward_list")) {
                     intent.putExtra("forward_list", getIntent().getSerializableExtra("forward_list"));
                 } else {
@@ -147,7 +171,7 @@ public class SearchUserActivity extends BaseActivity {
             }
             
             startActivity(intent);
-            if (getIntent().getBooleanExtra("forward_message", false)) {
+            if (isForwardMode) {
                 finish();
             }
         });
@@ -220,7 +244,7 @@ public class SearchUserActivity extends BaseActivity {
                     User user = dataSnapshot.getValue(User.class);
                     if (user != null && user.getUid() != null) {
                         if (isForwardMode) {
-                            if (friendIds.contains(user.getUid())) {
+                            if (friendIdsSet.contains(user.getUid())) {
                                 userMap.put(user.getUid(), user);
                             }
                         } else {

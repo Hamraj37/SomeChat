@@ -19,6 +19,8 @@ public class Message implements java.io.Serializable {
     private String replyToName;
     private String replyToText;
 
+    private boolean pinned;
+
     public Message() {
         // Required for Firebase
     }
@@ -84,4 +86,7 @@ public class Message implements java.io.Serializable {
 
     public boolean isDeletedByReceiver() { return deletedByReceiver; }
     public void setDeletedByReceiver(boolean deletedByReceiver) { this.deletedByReceiver = deletedByReceiver; }
+
+    public boolean isPinned() { return pinned; }
+    public void setPinned(boolean pinned) { this.pinned = pinned; }
 }

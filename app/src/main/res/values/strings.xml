@@ -45,10 +45,16 @@
     <string name="back">Back</string>
     <string name="attach_file">Attach File</string>
     <string name="unfriend">Unfriend</string>
+    <string name="cancel_request">Cancel Request</string>
+    <string name="add_friend">Add Friend</string>
     <string name="reply">Reply</string>
     <string name="copy">Copy</string>
     <string name="forward">Forward</string>
     <string name="delete">Delete</string>
+    <string name="pin">Pin</string>
+    <string name="unpin">Unpin</string>
+    <string name="pinned_message">Pinned Message</string>
+    <string name="pinned_message_count">Pinned Message (%1$d/%2$d)</string>
     <string name="update_available">New version available!</string>
     <string name="whats_new">What\'s New:</string>
     <string name="update_now">Update Now</string>
