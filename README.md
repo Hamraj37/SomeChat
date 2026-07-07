@@ -1,4 +1,4 @@
-# ![SameChat Logo](docs/img/logo.png) SameChat
+# ![SameChat Logo](docs/img/logo.png){width=100 height=100} SameChat
 
 A Java-based chat application for real-time messaging and communication.
 
