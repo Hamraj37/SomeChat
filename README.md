@@ -1,10 +1,13 @@
 <p align="center">
 <img src="docs/img/logo.png" alt="Same Chat Logo" width="120" height="120" />
 </p>
+
 <h1 align="center">Same Chat</h1>
+
 <p align="center">
 <strong>A high-performance, lightweight, multi-threaded Java desktop chat application for real-time secure communication.</strong>
 </p>
+
 <p align="center">
 <img src="https://img.shields.io/badge/Java-JDK_8%2B-007396?style=flat-for-the-badge&logo=openjdk&logoColor=white" alt="Java Version" />
 <img src="https://img.shields.io/badge/Platform-Cross--Platform-emerald?style=flat-for-the-badge" alt="Platform Compatibility" />
@@ -85,7 +88,7 @@ SameChat/
 
 ## ⚙️ Core Architecture Blueprint
 
-Same Chat operates on a standard **Client-Server Architecture** utilizing custom thread allocations for maximum socket efficiency. Every incoming connection maps to an isolated ClientHandler thread, ensuring efficient resource management and scalability.
+Same Chat operates on a standard **Client-Server Architecture** utilizing custom thread allocations for maximum socket efficiency. Every incoming connection maps to an isolated ClientHandler thread, enabling concurrent message processing without blocking the main server loop.
 
 ## 🤝 Contributing
 
