@@ -79,7 +79,7 @@ cd SameChat
 2. Create a new project named SameChat (or choose your preferred name).
 3. Enable **Authentication** (Google & Email Sign-In).
 4. Enable **Firestore Database** and **Realtime Database** under secure production rules.
-5. Register your Android App using your package name (e.g., com.hamraj.samechat).
+5. Register your Android App using your package name (e.g., com.samechat37).
 6. Download the google-services.json file and place it in the app/ directory of the cloned project:
 
 ```text
@@ -101,7 +101,7 @@ Open the project in Android Studio, allow Gradle sync to complete, and deploy th
 ```text
 ├── app/
 │   ├── src/main/
-│   │   ├── java/com/hamraj/samechat/
+│   │   ├── java/com/samechat37/
 │   │   │   ├── data/          # Databases (Room), API Call Clients, Repository Implementations
 │   │   │   ├── domain/        # Domain entities, Repository Interfaces, Use Cases
 │   │   │   ├── ui/            # UI screens, Compose components, ViewModels, Themes
