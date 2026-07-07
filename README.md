@@ -1,4 +1,4 @@
-# SomeChat 💬
+# SameChat 💬
 
 License: MIT
 
@@ -8,10 +8,10 @@ Language: Java 100%
 
 Backend: Firebase
 
-**SomeChat** is a modern, feature-rich Android messaging application designed for fast, secure, and real-time communication. Built entirely in **Java** leveraging Android Jetpack, Room, WebRTC, and Firebase services, it features a beautiful, dynamic user interface inspired by Material 3 specifications.
+**SameChat** is a modern, feature-rich Android messaging application designed for fast, secure, and real-time communication. Built entirely in **Java** leveraging Android Jetpack, Room, WebRTC, and Firebase services, it features a beautiful, dynamic user interface inspired by Material 3 specifications.
 
 <p align="center">
-<img src="docs/img/logo.png" alt="SomeChat Logo" width="120" height="120">
+<img src="docs/img/logo.png" alt="SameChat Logo" width="120" height="120">
 </p>
 
 ## 🚀 Key Features
@@ -36,7 +36,7 @@ Backend: Firebase
 
 ## 🏗️ Architecture Design
 
-SomeChat adheres closely to **Clean Architecture** principles and the **MVVM (Model-View-ViewModel)** design pattern. This ensures clear boundaries of concerns, high testability, and painless maintainability:
+SameChat adheres closely to **Clean Architecture** principles and the **MVVM (Model-View-ViewModel)** design pattern. This ensures clear boundaries of concerns, high testability, and painless maintainability:
 
 ```text
  ┌────────────────────────────────────────────────────────┐
@@ -76,14 +76,14 @@ cd SameChat
 ### 2. Configure Firebase Backend
 
 1. Go to the Firebase Console.
-2. Create a new project named SomeChat (or choose your preferred name).
+2. Create a new project named SameChat (or choose your preferred name).
 3. Enable **Authentication** (Google & Email Sign-In).
 4. Enable **Firestore Database** and **Realtime Database** under secure production rules.
-5. Register your Android App using your package name (e.g., com.hamraj.somechat).
+5. Register your Android App using your package name (e.g., com.hamraj.samechat).
 6. Download the google-services.json file and place it in the app/ directory of the cloned project:
 
 ```text
-SomeChat/
+SameChat/
 ├── app/
 │   ├── google-services.json  <-- Place here
 │   └── src/
@@ -101,7 +101,7 @@ Open the project in Android Studio, allow Gradle sync to complete, and deploy th
 ```text
 ├── app/
 │   ├── src/main/
-│   │   ├── java/com/hamraj/somechat/
+│   │   ├── java/com/hamraj/samechat/
 │   │   │   ├── data/          # Databases (Room), API Call Clients, Repository Implementations
 │   │   │   ├── domain/        # Domain entities, Repository Interfaces, Use Cases
 │   │   │   ├── ui/            # UI screens, Compose components, ViewModels, Themes
