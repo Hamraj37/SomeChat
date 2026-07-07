@@ -11,7 +11,7 @@
 <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-for-the-badge" alt="License" />
 </p>
 
-Same Chat is a robust, lightweight Java-based messaging application architected around raw TCP/IP network sockets. Built entirely with core Java libraries, it runs cross-platform with zero external dependencies. This high-performance chat server handles concurrent client connections with minimal latency and memory overhead.
+Same Chat is a robust, lightweight Java-based messaging application architected around raw TCP/IP network sockets. Built entirely with core Java libraries, it runs cross-platform with zero external dependencies.
 
 ## ✨ Features
 
@@ -85,7 +85,7 @@ SameChat/
 
 ## ⚙️ Core Architecture Blueprint
 
-Same Chat operates on a standard **Client-Server Architecture** utilizing custom thread allocations for maximum socket efficiency. Every incoming connection maps to an isolated ClientHandler thread implementing Runnable. When a broadcast is made, the master server dynamically synchronizes the client map to iterate and push raw message bytes to all connected clients in parallel, ensuring no single client blocks others from receiving updates.
+Same Chat operates on a standard **Client-Server Architecture** utilizing custom thread allocations for maximum socket efficiency. Every incoming connection maps to an isolated ClientHandler thread, ensuring efficient resource management and scalability.
 
 ## 🤝 Contributing
 
