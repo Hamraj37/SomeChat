@@ -61,9 +61,9 @@
             android:insetTop="0dp"
             android:insetRight="0dp"
             android:insetBottom="0dp"
-            app:icon="@android:drawable/ic_menu_add"
+            app:icon="@drawable/ic_add_user"
             app:backgroundTint="?attr/colorPrimary"
-            app:iconTint="?attr/colorOnPrimary" />
+            app:iconTint="@null" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_decline"
