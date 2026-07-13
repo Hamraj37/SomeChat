@@ -7,25 +7,25 @@
 
     <fragment
         android:id="@+id/nav_chats"
-        android:name="com.samechat37.ui.transform.TransformFragment"
+        android:name="com.hamraj37.somechat.ui.transform.TransformFragment"
         android:label="@string/menu_chats"
         tools:layout="@layout/fragment_transform" />
 
     <fragment
         android:id="@+id/nav_status"
-        android:name="com.samechat37.ui.reflow.ReflowFragment"
+        android:name="com.hamraj37.somechat.ui.reflow.ReflowFragment"
         android:label="@string/menu_status"
         tools:layout="@layout/fragment_reflow" />
 
     <fragment
         android:id="@+id/nav_calls"
-        android:name="com.samechat37.ui.slideshow.SlideshowFragment"
+        android:name="com.hamraj37.somechat.ui.slideshow.SlideshowFragment"
         android:label="@string/menu_calls"
         tools:layout="@layout/fragment_slideshow" />
 
     <fragment
         android:id="@+id/nav_settings"
-        android:name="com.samechat37.ui.settings.SettingsFragment"
+        android:name="com.hamraj37.somechat.ui.settings.SettingsFragment"
         android:label="@string/menu_settings"
         tools:layout="@layout/fragment_settings" />
 </navigation>

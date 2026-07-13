@@ -11,7 +11,7 @@ if (localPropertiesFile.exists()) {
 }
 
 android {
-    namespace 'com.samechat37'
+    namespace 'com.hamraj37.somechat'
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -19,7 +19,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.samechat37"
+        applicationId "com.hamraj37.somechat"
         minSdk 30
         targetSdk 36
         versionCode 1

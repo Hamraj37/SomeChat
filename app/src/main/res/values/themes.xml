@@ -1,6 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Theme.SameChat" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.SomeChat" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Primary brand color. -->
         <item name="colorPrimary">@color/whatsapp_green</item>
         <item name="colorOnPrimary">@color/white</item>
@@ -14,14 +14,14 @@
         <!-- Customize your theme here. -->
     </style>
 
-    <style name="Theme.SameChat.NoActionBar" parent="Theme.SameChat">
+    <style name="Theme.SomeChat.NoActionBar" parent="Theme.SomeChat">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
     </style>
 
-    <style name="Theme.SameChat.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
+    <style name="Theme.SomeChat.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
 
-    <style name="Theme.SameChat.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
+    <style name="Theme.SomeChat.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
 
     <style name="CircleAppearance">
         <item name="cornerSize">50%</item>

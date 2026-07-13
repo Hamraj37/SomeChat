@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Same Chat</string>
+    <string name="app_name">SomeChat</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
     <string name="nav_header_title">Android Studio</string>
@@ -41,7 +41,7 @@
     <string name="msg_status">Message status</string>
     <string name="play_voice_msg">Play Voice Message</string>
     <string name="zero_time">0:00</string>
-    <string name="e2ee_notice">🔒 Messages and calls are end-to-end encrypted. No one outside of this chat, not even SameChat, can read or listen to them.</string>
+    <string name="e2ee_notice">🔒 Messages and calls are end-to-end encrypted. No one outside of this chat, not even SomeChat, can read or listen to them.</string>
     <string name="back">Back</string>
     <string name="attach_file">Attach File</string>
     <string name="unfriend">Unfriend</string>
