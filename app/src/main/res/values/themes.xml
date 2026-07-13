@@ -26,4 +26,12 @@
     <style name="CircleAppearance">
         <item name="cornerSize">50%</item>
     </style>
+
+    <style name="RoundedTopRightBottomRight">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopRight">12dp</item>
+        <item name="cornerSizeBottomRight">12dp</item>
+        <item name="cornerSizeTopLeft">0dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+    </style>
 </resources>

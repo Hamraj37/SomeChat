@@ -65,4 +65,7 @@
     <string name="change_cover_photo">Change cover photo</string>
     <string name="media_links_docs">Media</string>
     <string name="no_media_shared">No media shared yet</string>
+    <string name="edited">edited</string>
+    <string name="edit_message">Edit Message</string>
+    <string name="cancel_edit">Cancel Edit</string>
 </resources>

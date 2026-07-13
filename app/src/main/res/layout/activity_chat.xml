@@ -183,6 +183,17 @@
                             app:tint="?attr/colorOnSurface" />
 
                         <ImageView
+                            android:id="@+id/btn_edit_selected"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:padding="12dp"
+                            android:src="@android:drawable/ic_menu_edit"
+                            android:contentDescription="@string/edit_message"
+                            android:visibility="gone"
+                            app:tint="?attr/colorOnSurface" />
+
+                        <ImageView
                             android:id="@+id/btn_delete_selected"
                             android:layout_width="48dp"
                             android:layout_height="48dp"
@@ -208,6 +219,8 @@
         android:layout_height="0dp"
         android:clipToPadding="false"
         android:padding="8dp"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        app:stackFromEnd="true"
         app:layout_constraintBottom_toTopOf="@+id/input_container"
         app:layout_constraintTop_toBottomOf="@+id/appBarLayout" />
 
@@ -299,6 +312,58 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
+
+            <LinearLayout
+                android:id="@+id/edit_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="8dp"
+                android:visibility="gone"
+                android:background="#10000000">
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginEnd="12dp"
+                    android:background="?attr/colorPrimary" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/edit_message"
+                        android:textColor="?attr/colorPrimary"
+                        android:textStyle="bold"
+                        android:textAppearance="?attr/textAppearanceLabelLarge" />
+
+                    <TextView
+                        android:id="@+id/edit_text_preview"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:alpha="0.8"
+                        tools:text="Original message content..." />
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/btn_cancel_edit"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="top"
+                    android:padding="4dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    app:tint="?attr/colorOnSurfaceVariant"
+                    android:contentDescription="@string/cancel_edit" />
+            </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/reply_layout"

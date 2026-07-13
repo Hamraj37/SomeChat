@@ -43,8 +43,9 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerview_transform"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:layoutManager="LinearLayoutManager"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         tools:context=".ui.transform.TransformFragment" />
 
 </LinearLayout>

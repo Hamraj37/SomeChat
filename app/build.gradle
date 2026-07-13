@@ -86,6 +86,7 @@ dependencies {
     implementation libs.recyclerview
     implementation libs.glide
     implementation libs.webrtc
+    implementation libs.jsoup
 
     // Room
     implementation libs.room.runtime
