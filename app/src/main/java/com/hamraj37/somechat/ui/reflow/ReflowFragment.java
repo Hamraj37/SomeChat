@@ -230,8 +230,26 @@ public class ReflowFragment extends Fragment {
 
     private void uploadStatus(Uri uri) {
         String mimeType = getContext().getContentResolver().getType(uri);
-        String type = (mimeType != null && mimeType.startsWith("video")) ? "video" : "image";
-        String extension = type.equals("video") ? ".mp4" : ".jpg";
+        boolean isVideo = mimeType != null && mimeType.startsWith("video");
+        
+        if (isVideo) {
+            try (android.media.MediaMetadataRetriever retriever = new android.media.MediaMetadataRetriever()) {
+                retriever.setDataSource(getContext(), uri);
+                String time = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION);
+                if (time != null) {
+                    long durationMs = Long.parseLong(time);
+                    if (durationMs > 30000) { // 30 seconds
+                        Toast.makeText(getContext(), "Video must be 30 seconds or shorter", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        String type = isVideo ? "video" : "image";
+        String extension = isVideo ? ".mp4" : ".jpg";
 
         com.google.android.material.progressindicator.LinearProgressIndicator progressIndicator = new com.google.android.material.progressindicator.LinearProgressIndicator(getContext());
         progressIndicator.setIndeterminate(false);

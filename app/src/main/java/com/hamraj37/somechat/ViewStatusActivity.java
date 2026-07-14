@@ -57,6 +57,7 @@ public class ViewStatusActivity extends BaseActivity {
     private TextView tvViewsCount;
     private ImageView btnLike;
     private TextView tvLikesCount;
+    private ImageView btnMore;
     
     private final Handler handler = new Handler();
     private Runnable nextStatusRunnable;
@@ -105,14 +106,19 @@ public class ViewStatusActivity extends BaseActivity {
         tvViewsCount = findViewById(R.id.tv_views_count);
         btnLike = findViewById(R.id.btn_like);
         tvLikesCount = findViewById(R.id.tv_likes_count);
+        btnMore = findViewById(R.id.btn_more);
 
         currentUserId = FirebaseAuth.getInstance().getUid();
         
         if (currentUserId != null && currentUserId.equals(status.getUserId())) {
             findViewById(R.id.reply_input_container).setVisibility(View.GONE);
             viewsCountContainer.setVisibility(View.VISIBLE);
+            btnMore.setVisibility(View.VISIBLE);
+            btnMore.setOnClickListener(this::showMoreOptions);
         } else {
             fetchStatusOwnerPublicKey();
+            viewsCountContainer.setVisibility(View.GONE);
+            btnMore.setVisibility(View.GONE);
         }
         setupStatusListener();
 
@@ -195,6 +201,75 @@ public class ViewStatusActivity extends BaseActivity {
         
         findViewById(R.id.reverse).setOnTouchListener(pauseListener);
         findViewById(R.id.skip).setOnTouchListener(pauseListener);
+    }
+
+    private void showMoreOptions(View v) {
+        pauseStatus();
+        android.widget.PopupMenu popupMenu = new android.widget.PopupMenu(this, v);
+        
+        if (currentUserId != null && currentUserId.equals(status.getUserId())) {
+            popupMenu.getMenu().add("Delete");
+        } else {
+            popupMenu.getMenu().add("Report");
+        }
+        
+        popupMenu.setOnMenuItemClickListener(item -> {
+            if (item.getTitle() == null) return false;
+            String title = item.getTitle().toString();
+            if ("Delete".equals(title)) {
+                deleteCurrentStatus();
+            } else if ("Report".equals(title)) {
+                android.widget.Toast.makeText(this, "Status reported", android.widget.Toast.LENGTH_SHORT).show();
+            }
+            return true;
+        });
+        popupMenu.setOnDismissListener(menu -> resumeStatus());
+        popupMenu.show();
+    }
+
+    private void deleteCurrentStatus() {
+        if (statusItems.isEmpty() || currentIndex >= statusItems.size()) return;
+        
+        Status.StatusItem itemToDelete = statusItems.get(currentIndex);
+        
+        // Find the index in the original status.items list
+        int originalIndex = -1;
+        if (status.getItems() != null) {
+            for (int i = 0; i < status.getItems().size(); i++) {
+                if (status.getItems().get(i).getId().equals(itemToDelete.getId())) {
+                    originalIndex = i;
+                    break;
+                }
+            }
+        }
+        
+        if (originalIndex != -1) {
+            // Remove the item from the list and update the entire items list to maintain indexing
+            List<Status.StatusItem> updatedItems = new ArrayList<>(status.getItems());
+            updatedItems.remove(originalIndex);
+            
+            DatabaseReference itemsRef = FirebaseDatabase.getInstance().getReference("statuses")
+                    .child(status.getUserId())
+                    .child("items");
+            
+            itemsRef.setValue(updatedItems).addOnSuccessListener(aVoid -> {
+                Toast.makeText(this, "Status deleted", Toast.LENGTH_SHORT).show();
+                if (updatedItems.isEmpty()) {
+                    finish();
+                } else {
+                    // The value listener will trigger updateUI
+                    // We might need to adjust currentIndex if we deleted the last item
+                    if (currentIndex >= updatedItems.size()) {
+                        currentIndex = updatedItems.size() - 1;
+                    }
+                    // updateUI() will be called by listener, but we can call it here for immediate feedback if needed
+                    // though listener is usually fast.
+                }
+            }).addOnFailureListener(e -> {
+                Toast.makeText(this, "Failed to delete status", Toast.LENGTH_SHORT).show();
+                resumeStatus();
+            });
+        }
     }
 
     private void showInsights() {
