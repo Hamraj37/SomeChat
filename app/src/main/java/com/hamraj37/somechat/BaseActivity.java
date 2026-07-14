@@ -66,6 +66,7 @@ public class BaseActivity extends AppCompatActivity {
 
                 String callerName = intent.getStringExtra("callerName");
                 String callerId = intent.getStringExtra("callerId");
+                String callerAvatar = intent.getStringExtra("callerAvatar");
                 boolean isVideo = intent.getBooleanExtra("isVideo", false);
 
                 // If already in a call activity, don't start another one
@@ -76,6 +77,7 @@ public class BaseActivity extends AppCompatActivity {
                 Intent callIntent = new Intent(BaseActivity.this, isVideo ? VideoCallActivity.class : AudioCallActivity.class);
                 callIntent.putExtra("uid", callerId);
                 callIntent.putExtra("displayName", callerName);
+                callIntent.putExtra("photoUrl", callerAvatar);
                 callIntent.putExtra("isIncoming", true);
                 callIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 startActivity(callIntent);

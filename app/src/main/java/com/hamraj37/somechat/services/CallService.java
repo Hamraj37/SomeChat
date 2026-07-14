@@ -119,6 +119,7 @@ public class CallService extends Service {
                         activeCall = true;
                         String callerId = callerSnapshot.getKey();
                         String callerName = callerSnapshot.child("callerName").getValue(String.class);
+                        String callerAvatar = callerSnapshot.child("callerAvatar").getValue(String.class);
                         Boolean isVideo = callerSnapshot.child("isVideo").getValue(Boolean.class);
 
                         // Mark as "ringing" so we don't trigger multiple notifications
@@ -129,10 +130,11 @@ public class CallService extends Service {
                         broadcastIntent.setPackage(getPackageName());
                         broadcastIntent.putExtra("callerId", callerId);
                         broadcastIntent.putExtra("callerName", callerName);
+                        broadcastIntent.putExtra("callerAvatar", callerAvatar);
                         broadcastIntent.putExtra("isVideo", isVideo != null && isVideo);
                         sendBroadcast(broadcastIntent);
 
-                        showCallNotification(callerId, callerName, isVideo != null && isVideo);
+                        showCallNotification(callerId, callerName, callerAvatar, isVideo != null && isVideo);
                     } else if ("ringing".equals(status) || "accepted".equals(status)) {
                         activeCall = true;
                     }
@@ -161,10 +163,11 @@ public class CallService extends Service {
                 .addValueEventListener(callListener);
     }
 
-    private void showCallNotification(String callerId, String callerName, boolean isVideo) {
+    private void showCallNotification(String callerId, String callerName, String callerAvatar, boolean isVideo) {
         Intent intent = new Intent(this, isVideo ? VideoCallActivity.class : AudioCallActivity.class);
         intent.putExtra("uid", callerId);
         intent.putExtra("displayName", callerName != null ? callerName : "Unknown");
+        intent.putExtra("photoUrl", callerAvatar);
         intent.putExtra("isIncoming", true);
         intent.putExtra("isVideo", isVideo);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);

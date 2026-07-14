@@ -86,6 +86,7 @@ public class VideoCallActivity extends BaseActivity {
     private boolean isUiVisible = true;
     private int statusBarHeight = 0;
     private Ringtone ringtone;
+    private boolean isLogged = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -445,7 +446,10 @@ public class VideoCallActivity extends BaseActivity {
             callRef.child("status").setValue("calling");
             String name = FirebaseAuth.getInstance().getCurrentUser() != null ? 
                          FirebaseAuth.getInstance().getCurrentUser().getDisplayName() : "User";
+            String avatar = FirebaseAuth.getInstance().getCurrentUser() != null && FirebaseAuth.getInstance().getCurrentUser().getPhotoUrl() != null ?
+                           FirebaseAuth.getInstance().getCurrentUser().getPhotoUrl().toString() : "";
             callRef.child("callerName").setValue(name != null ? name : "User");
+            callRef.child("callerAvatar").setValue(avatar);
             callRef.child("isVideo").setValue(true);
 
             webRTCClient.createOffer(new SimpleSdpObserver() {
@@ -486,7 +490,19 @@ public class VideoCallActivity extends BaseActivity {
                             webRTCClient.setRemoteDescription(remoteSdp, new SimpleSdpObserver());
                         }
                     }
-                } else if ("rejected".equals(status) || "ended".equals(status)) {
+                } else if ("rejected".equals(status)) {
+                    if (!isLogged) {
+                        isLogged = true;
+                        com.hamraj37.somechat.utils.CallLogManager.logCall(senderId, receiverId, receiverName, receiverAvatar, true, isIncoming, "rejected", 0);
+                    }
+                    Toast.makeText(VideoCallActivity.this, "Call Rejected", Toast.LENGTH_SHORT).show();
+                    finish();
+                } else if ("ended".equals(status)) {
+                    if (!isLogged) {
+                        isLogged = true;
+                        long duration = startTime == 0 ? 0 : (System.currentTimeMillis() - startTime) / 1000;
+                        com.hamraj37.somechat.utils.CallLogManager.logCall(senderId, receiverId, receiverName, receiverAvatar, true, isIncoming, "ended", duration);
+                    }
                     Toast.makeText(VideoCallActivity.this, "Call Ended", Toast.LENGTH_SHORT).show();
                     finish();
                 }
@@ -579,6 +595,18 @@ public class VideoCallActivity extends BaseActivity {
             audioManager.setMode(AudioManager.MODE_NORMAL);
         }
         if (callRef != null) {
+            if (!isLogged) {
+                isLogged = true;
+                long duration = startTime == 0 ? 0 : (System.currentTimeMillis() - startTime) / 1000;
+                String status;
+                if (isConnected) {
+                    status = "ended";
+                } else {
+                    status = isIncoming ? "rejected" : "cancelled";
+                }
+                com.hamraj37.somechat.utils.CallLogManager.logCall(senderId, receiverId, receiverName, receiverAvatar, true, isIncoming, status, duration);
+            }
+
             callRef.child("status").setValue("ended");
             new Handler(Looper.getMainLooper()).postDelayed(() -> callRef.removeValue(), 1000);
         }
