@@ -131,8 +131,14 @@ public class StatusPreviewActivity extends BaseActivity {
                 progressDialog.dismiss();
                 return;
             }
-            byte[] bytes = new byte[is.available()];
-            int read = is.read(bytes);
+            
+            java.io.ByteArrayOutputStream byteBuffer = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            int len;
+            while ((len = is.read(buffer)) != -1) {
+                byteBuffer.write(buffer, 0, len);
+            }
+            byte[] bytes = byteBuffer.toByteArray();
             is.close();
 
             String fileName = currentUserId + "_" + System.currentTimeMillis() + extension;

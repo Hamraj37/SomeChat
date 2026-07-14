@@ -162,27 +162,27 @@ public class GitHubStorage {
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                if (!response.isSuccessful()) {
+                if (!response.isSuccessful() || response.body() == null) {
                     callback.onFailure(new IOException("Download failed: " + response.code()));
+                    if (response.body() != null) response.close();
                     return;
                 }
 
-                try (Response res = response) {
+                try (Response res = response;
+                     java.io.InputStream is = res.body().byteStream();
+                     java.io.FileOutputStream fos = new java.io.FileOutputStream(destination)) {
                     long totalBytes = res.body().contentLength();
-                    try (java.io.InputStream is = res.body().byteStream();
-                         java.io.FileOutputStream fos = new java.io.FileOutputStream(destination)) {
-                        byte[] buffer = new byte[8192];
-                        int bytesRead;
-                        long totalRead = 0;
-                        while ((bytesRead = is.read(buffer)) != -1) {
-                            fos.write(buffer, 0, bytesRead);
-                            totalRead += bytesRead;
-                            if (totalBytes > 0) {
-                                callback.onProgress((int) ((totalRead * 100) / totalBytes));
-                            }
+                    byte[] buffer = new byte[8192];
+                    int bytesRead;
+                    long totalRead = 0;
+                    while ((bytesRead = is.read(buffer)) != -1) {
+                        fos.write(buffer, 0, bytesRead);
+                        totalRead += bytesRead;
+                        if (totalBytes > 0) {
+                            callback.onProgress((int) ((totalRead * 100) / totalBytes));
                         }
-                        callback.onSuccess(destination.getAbsolutePath());
                     }
+                    callback.onSuccess(destination.getAbsolutePath());
                 } catch (Exception e) {
                     callback.onFailure(e);
                 }

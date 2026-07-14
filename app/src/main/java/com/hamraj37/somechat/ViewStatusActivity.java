@@ -68,6 +68,7 @@ public class ViewStatusActivity extends BaseActivity {
     private TextView tvCaption;
     private boolean isStatusLoadedFromDb = false;
     
+    private String currentlyShowingId = null;
     private final Handler handler = new Handler();
     private Runnable nextStatusRunnable;
     private final List<ProgressBar> progressBars = new ArrayList<>();
@@ -663,22 +664,32 @@ public class ViewStatusActivity extends BaseActivity {
             Glide.with(this).load(status.getProfilePic()).circleCrop().into(profileImage);
         }
 
-        statusVideoView.stopPlayback();
-        statusVideoView.setVisibility(View.GONE);
-        videoLoadingProgress.setVisibility(View.GONE);
-
-        if ("text".equals(item.getType())) {
-            statusImageView.setVisibility(View.GONE);
-            statusTextView.setVisibility(View.VISIBLE);
-            statusTextView.setText(item.getCaption());
+        // Only reload media if it's a different item
+        if (currentlyShowingId == null || !currentlyShowingId.equals(item.getId())) {
+            currentlyShowingId = item.getId();
             
-            // Generate a background color based on status id
-            int color = BG_COLORS[Math.abs(item.getId().hashCode()) % BG_COLORS.length];
-            statusTextView.setBackgroundColor(color);
-            duration = 5000;
-            showContent();
-        } else {
-            loadMedia(item);
+            statusVideoView.stopPlayback();
+            statusVideoView.setVisibility(View.GONE);
+            statusImageView.setVisibility(View.GONE);
+            statusTextView.setVisibility(View.GONE);
+            videoLoadingProgress.setVisibility(View.GONE);
+
+            if ("text".equals(item.getType())) {
+                statusTextView.setVisibility(View.VISIBLE);
+                statusTextView.setText(item.getCaption());
+                
+                // Generate a background color based on status id
+                int color = BG_COLORS[Math.abs(item.getId().hashCode()) % BG_COLORS.length];
+                statusTextView.setBackgroundColor(color);
+                duration = 5000;
+                showContent();
+            } else {
+                loadMedia(item);
+            }
+
+            if (currentUserId == null || !currentUserId.equals(status.getUserId())) {
+                recordView();
+            }
         }
 
         if (item.getCaption() != null && !item.getCaption().isEmpty() && !"text".equals(item.getType())) {
@@ -695,8 +706,6 @@ public class ViewStatusActivity extends BaseActivity {
             int likesCount = (item.getLikes() != null) ? item.getLikes().size() : 0;
             tvLikesCount.setText(String.valueOf(likesCount));
         } else {
-            recordView();
-            
             boolean isLiked = item.getLikes() != null && Boolean.TRUE.equals(item.getLikes().get(currentUserId));
             btnLike.setImageResource(isLiked ? R.drawable.ic_heart_filled : R.drawable.ic_heart_outline);
             btnLike.setColorFilter(isLiked ? 0xFFFF4444 : 0xFFFFFFFF); // Red if liked, white if not
@@ -735,8 +744,13 @@ public class ViewStatusActivity extends BaseActivity {
 
     private void loadMedia(Status.StatusItem item) {
         String url = item.getMediaUrl();
-        File localFile = getLocalFile(item);
+        
+        if ("image".equals(item.getType())) {
+            displayMedia(url, "image");
+            return;
+        }
 
+        File localFile = getLocalFile(item);
         if (localFile.exists()) {
             displayMedia(localFile.getAbsolutePath(), item.getType());
         } else {
@@ -745,7 +759,7 @@ public class ViewStatusActivity extends BaseActivity {
                 @Override
                 public void onSuccess(String path) {
                     runOnUiThread(() -> {
-                        if (!isFinishing() && !isDestroyed()) {
+                        if (!isFinishing() && !isDestroyed() && item.getId().equals(currentlyShowingId)) {
                             displayMedia(path, item.getType());
                         }
                     });
@@ -757,7 +771,7 @@ public class ViewStatusActivity extends BaseActivity {
                 @Override
                 public void onFailure(Exception e) {
                     runOnUiThread(() -> {
-                        if (!isFinishing() && !isDestroyed()) {
+                        if (!isFinishing() && !isDestroyed() && item.getId().equals(currentlyShowingId)) {
                             videoLoadingProgress.setVisibility(View.GONE);
                             Toast.makeText(ViewStatusActivity.this, "Failed to download media", Toast.LENGTH_SHORT).show();
                             nextStatus();
