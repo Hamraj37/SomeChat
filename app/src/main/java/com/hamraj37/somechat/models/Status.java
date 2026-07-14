@@ -46,6 +46,7 @@ public class Status implements Serializable {
         private String type; // "image" or "video"
         private long timestamp;
         private String caption;
+        private java.util.Map<String, Long> views; // userId -> timestamp
 
         public StatusItem() {}
 
@@ -71,5 +72,8 @@ public class Status implements Serializable {
 
         public String getCaption() { return caption; }
         public void setCaption(String caption) { this.caption = caption; }
+
+        public java.util.Map<String, Long> getViews() { return views; }
+        public void setViews(java.util.Map<String, Long> views) { this.views = views; }
     }
 }

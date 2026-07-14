@@ -2,16 +2,28 @@ package com.hamraj37.somechat;
 
 import android.os.Bundle;
 import android.os.Handler;
+import android.text.TextUtils;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.bumptech.glide.Glide;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import com.hamraj37.somechat.models.Message;
 import com.hamraj37.somechat.models.Status;
 
 import java.text.SimpleDateFormat;
@@ -32,10 +44,20 @@ public class ViewStatusActivity extends BaseActivity {
     private TextView userNameText;
     private TextView statusTimeText;
     private LinearLayout progressContainer;
-
+    private EditText replyInput;
+    private View btnSendReply;
+    private View replyContainer;
+    private View viewsCountContainer;
+    private TextView tvViewsCount;
+    
     private Handler handler = new Handler();
     private Runnable nextStatusRunnable;
     private List<ProgressBar> progressBars = new ArrayList<>();
+    private boolean isPaused = false;
+    private String currentUserId;
+    private String statusOwnerPublicKey = null;
+    private DatabaseReference myStatusListenerRef;
+    private ValueEventListener myStatusListener;
 
     private static final int[] BG_COLORS = {
         0xFFE91E63, 0xFF9C27B0, 0xFF673AB7, 0xFF3F51B5, 0xFF2196F3,
@@ -63,18 +85,51 @@ public class ViewStatusActivity extends BaseActivity {
         userNameText = findViewById(R.id.status_user_name);
         statusTimeText = findViewById(R.id.status_time);
         progressContainer = findViewById(R.id.progress_container);
+        replyInput = findViewById(R.id.reply_input);
+        btnSendReply = findViewById(R.id.btn_send_reply);
+        replyContainer = findViewById(R.id.reply_container);
+        viewsCountContainer = findViewById(R.id.views_count_container);
+        tvViewsCount = findViewById(R.id.tv_views_count);
 
-        // Adjust top UI elements to avoid status bar/notch
+        currentUserId = FirebaseAuth.getInstance().getUid();
+        
+        if (currentUserId != null && currentUserId.equals(status.getUserId())) {
+            findViewById(R.id.reply_input_container).setVisibility(View.GONE);
+            findViewById(R.id.tv_reply_label).setVisibility(View.GONE);
+            viewsCountContainer.setVisibility(View.VISIBLE);
+            setupMyStatusListener();
+        } else {
+            fetchStatusOwnerPublicKey();
+        }
+
+        // Adjust UI elements to avoid system bars
         View topUiContainer = findViewById(R.id.top_ui_container);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.root_layout), (v, insets) -> {
+        View rootLayout = findViewById(R.id.root_layout);
+        ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, insets) -> {
             androidx.core.graphics.Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             if (topUiContainer != null) {
                 topUiContainer.setPadding(0, systemBars.top, 0, 0);
             }
+            
+            // Adjust bottom reply UI for keyboard
+            boolean isKeyboardVisible = insets.isVisible(WindowInsetsCompat.Type.ime());
+            if (isKeyboardVisible) {
+                pauseStatus();
+                int keyboardHeight = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom;
+                replyContainer.setTranslationY(-keyboardHeight);
+            } else {
+                replyContainer.setTranslationY(0);
+                if (replyInput.hasFocus()) {
+                    replyInput.clearFocus();
+                }
+                resumeStatus();
+            }
+            
             return insets;
         });
 
         setupProgressBars();
+        setupReplyListeners();
         updateUI();
 
         findViewById(R.id.btn_close).setOnClickListener(v -> finish());
@@ -82,6 +137,108 @@ public class ViewStatusActivity extends BaseActivity {
         findViewById(R.id.reverse).setOnClickListener(v -> previousStatus());
         
         startTimer();
+    }
+
+    private void setupMyStatusListener() {
+        myStatusListenerRef = FirebaseDatabase.getInstance().getReference("statuses").child(currentUserId);
+        myStatusListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                Status updatedStatus = snapshot.getValue(Status.class);
+                if (updatedStatus != null) {
+                    status = updatedStatus;
+                    updateUI(); // Refresh UI with new counts
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        };
+        myStatusListenerRef.addValueEventListener(myStatusListener);
+    }
+
+    private void recordView() {
+        if (currentUserId == null || status == null || status.getItems() == null || currentIndex >= status.getItems().size()) return;
+        
+        Status.StatusItem item = status.getItems().get(currentIndex);
+        DatabaseReference viewsRef = FirebaseDatabase.getInstance().getReference("statuses")
+                .child(status.getUserId())
+                .child("items")
+                .child(String.valueOf(currentIndex)) // Using index as child if saved as list
+                .child("views");
+        
+        viewsRef.child(currentUserId).setValue(System.currentTimeMillis());
+    }
+
+    private void setupReplyListeners() {
+        replyInput.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) pauseStatus();
+            else resumeStatus();
+        });
+
+        replyInput.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                btnSendReply.setVisibility(s.toString().trim().isEmpty() ? View.GONE : View.VISIBLE);
+            }
+            @Override public void afterTextChanged(android.text.Editable s) {}
+        });
+
+        btnSendReply.setOnClickListener(v -> sendReply());
+    }
+
+    private void fetchStatusOwnerPublicKey() {
+        FirebaseDatabase.getInstance().getReference("users").child(status.getUserId()).child("publicKey")
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        statusOwnerPublicKey = snapshot.getValue(String.class);
+                    }
+                    @Override public void onCancelled(@NonNull DatabaseError error) {}
+                });
+    }
+
+    private void sendReply() {
+        String text = replyInput.getText().toString().trim();
+        if (TextUtils.isEmpty(text)) return;
+
+        Status.StatusItem currentItem = status.getItems().get(currentIndex);
+        
+        // Create unique chat ID
+        String receiverId = status.getUserId();
+        String chatId = currentUserId.compareTo(receiverId) < 0 
+                ? currentUserId + "_" + receiverId 
+                : receiverId + "_" + currentUserId;
+
+        DatabaseReference chatRef = FirebaseDatabase.getInstance().getReference("chats").child(chatId);
+        String messageId = chatRef.push().getKey();
+
+        // Prepare encrypted text
+        String encryptedText = text;
+        String myPubKey = com.hamraj37.somechat.utils.EncryptionManager.getMyPublicKey(this);
+        if (statusOwnerPublicKey != null && myPubKey != null) {
+            encryptedText = com.hamraj37.somechat.utils.EncryptionManager.encrypt(text, statusOwnerPublicKey, myPubKey);
+        }
+
+        Message message = new Message(messageId, currentUserId, receiverId, encryptedText, System.currentTimeMillis());
+        
+        // Add status reply context
+        message.setReplyToId(currentItem.getId());
+        message.setReplyToName(status.getUserName() + "'s status");
+        message.setReplyToText("Status update"); 
+
+        if (messageId != null) {
+            chatRef.child(messageId).setValue(message).addOnSuccessListener(aVoid -> {
+                replyInput.setText("");
+                replyInput.clearFocus();
+                // Hide keyboard
+                InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+                if (imm != null) imm.hideSoftInputFromWindow(replyInput.getWindowToken(), 0);
+                
+                Toast.makeText(this, "Reply sent", Toast.LENGTH_SHORT).show();
+                resumeStatus();
+            });
+        }
     }
 
     private void setupProgressBars() {
@@ -123,21 +280,33 @@ public class ViewStatusActivity extends BaseActivity {
             Glide.with(this).load(item.getMediaUrl()).into(statusImageView);
         }
 
+        if (currentUserId != null && currentUserId.equals(status.getUserId())) {
+            int viewsCount = (item.getViews() != null) ? item.getViews().size() : 0;
+            tvViewsCount.setText(String.valueOf(viewsCount));
+        } else {
+            recordView();
+        }
+
         for (int i = 0; i < progressBars.size(); i++) {
             if (i < currentIndex) progressBars.get(i).setProgress(100);
             else progressBars.get(i).setProgress(0);
         }
     }
 
+    private int progressValue = 0;
     private void startTimer() {
         handler.removeCallbacksAndMessages(null);
+        progressValue = 0;
         nextStatusRunnable = new Runnable() {
-            int progress = 0;
             @Override
             public void run() {
-                if (progress <= 100) {
-                    progressBars.get(currentIndex).setProgress(progress);
-                    progress += 2; // Increment progress
+                if (isPaused) {
+                    handler.postDelayed(this, 100);
+                    return;
+                }
+                if (progressValue <= 100) {
+                    progressBars.get(currentIndex).setProgress(progressValue);
+                    progressValue += 2; // Increment progress
                     handler.postDelayed(this, duration / 50);
                 } else {
                     nextStatus();
@@ -145,6 +314,14 @@ public class ViewStatusActivity extends BaseActivity {
             }
         };
         handler.post(nextStatusRunnable);
+    }
+
+    private void pauseStatus() {
+        isPaused = true;
+    }
+
+    private void resumeStatus() {
+        isPaused = false;
     }
 
     private void nextStatus() {
@@ -175,5 +352,8 @@ public class ViewStatusActivity extends BaseActivity {
     protected void onDestroy() {
         super.onDestroy();
         handler.removeCallbacksAndMessages(null);
+        if (myStatusListenerRef != null && myStatusListener != null) {
+            myStatusListenerRef.removeEventListener(myStatusListener);
+        }
     }
 }

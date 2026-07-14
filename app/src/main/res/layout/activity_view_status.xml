@@ -102,4 +102,91 @@
         android:layout_height="match_parent"
         android:layout_gravity="end" />
 
+    <!-- Bottom Reply Container -->
+    <LinearLayout
+        android:id="@+id/reply_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:background="@drawable/bg_status_reply_gradient">
+
+        <!-- Views Count for Owner -->
+        <LinearLayout
+            android:id="@+id/views_count_container"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="8dp"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@android:drawable/ic_menu_view"
+                app:tint="@android:color/white"
+                android:alpha="0.8" />
+
+            <TextView
+                android:id="@+id/tv_views_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:textColor="@android:color/white"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                tools:text="15" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/reply_input_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_status_reply_input"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="8dp">
+
+            <EditText
+                android:id="@+id/reply_input"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:hint="Reply..."
+                android:textColor="@android:color/white"
+                android:textColorHint="#CCFFFFFF"
+                android:textSize="16sp"
+                android:maxLines="4"
+                android:inputType="textCapSentences|textMultiLine" />
+
+            <ImageView
+                android:id="@+id/btn_send_reply"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="8dp"
+                android:src="@android:drawable/ic_menu_send"
+                app:tint="@android:color/white"
+                android:visibility="gone"
+                tools:visibility="visible" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_reply_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="8dp"
+            android:text="Reply"
+            android:textColor="@android:color/white"
+            android:textSize="12sp"
+            android:alpha="0.8" />
+
+    </LinearLayout>
+
 </FrameLayout>
