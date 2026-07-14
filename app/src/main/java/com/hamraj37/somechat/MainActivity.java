@@ -77,6 +77,21 @@ public class MainActivity extends BaseActivity {
                     R.id.nav_chats, R.id.nav_status, R.id.nav_calls)
                     .build();
             NavigationUI.setupWithNavController(bottomNavigationView, navController);
+            
+            navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
+                if (binding.appBarMain.contentMain.fab != null) {
+                    if (destination.getId() == R.id.nav_status) {
+                        binding.appBarMain.contentMain.fab.hide();
+                    } else {
+                        binding.appBarMain.contentMain.fab.show();
+                        if (destination.getId() == R.id.nav_chats) {
+                            binding.appBarMain.contentMain.fab.setImageResource(R.drawable.ic_add_user);
+                        } else if (destination.getId() == R.id.nav_calls) {
+                            binding.appBarMain.contentMain.fab.setImageResource(android.R.drawable.ic_menu_call);
+                        }
+                    }
+                }
+            });
         }
 
         setupNavHeader();

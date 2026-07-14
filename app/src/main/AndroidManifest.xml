@@ -102,6 +102,10 @@
             android:exported="false"
             android:theme="@style/Theme.SomeChat.NoActionBar"
             android:screenOrientation="sensor" />
+        <activity
+            android:name=".ViewStatusActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SomeChat.NoActionBar" />
         <service
             android:name=".services.CallService"
             android:enabled="true"
