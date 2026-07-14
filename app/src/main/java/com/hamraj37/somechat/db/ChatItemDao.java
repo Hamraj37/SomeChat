@@ -23,4 +23,7 @@ public interface ChatItemDao {
 
     @Query("DELETE FROM chat_items")
     void deleteAll();
+
+    @Query("DELETE FROM chat_items WHERE uid = :uid")
+    void deleteByUid(String uid);
 }

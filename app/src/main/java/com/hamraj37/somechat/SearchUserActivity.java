@@ -186,8 +186,7 @@ public class SearchUserActivity extends BaseActivity {
 
             @Override
             public void onNewGroupClick() {
-                // TODO: Handle new group creation
-                Toast.makeText(SearchUserActivity.this, "Create New Group", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(SearchUserActivity.this, CreateGroupActivity.class));
             }
         });
         searchResultsRecycler.setLayoutManager(new LinearLayoutManager(this));

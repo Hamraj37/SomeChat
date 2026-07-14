@@ -17,8 +17,9 @@ public class ChatItemEntity {
     private long timestamp;
     private int unreadCount;
     private String lastMessageType;
+    private boolean isGroup;
 
-    public ChatItemEntity(@NonNull String uid, String name, String lastMessage, String time, String photoUrl, boolean online, long timestamp, int unreadCount, String lastMessageType) {
+    public ChatItemEntity(@NonNull String uid, String name, String lastMessage, String time, String photoUrl, boolean online, long timestamp, int unreadCount, String lastMessageType, boolean isGroup) {
         this.uid = uid;
         this.name = name;
         this.lastMessage = lastMessage;
@@ -28,6 +29,7 @@ public class ChatItemEntity {
         this.timestamp = timestamp;
         this.unreadCount = unreadCount;
         this.lastMessageType = lastMessageType;
+        this.isGroup = isGroup;
     }
 
     @NonNull
@@ -57,4 +59,7 @@ public class ChatItemEntity {
 
     public String getLastMessageType() { return lastMessageType; }
     public void setLastMessageType(String lastMessageType) { this.lastMessageType = lastMessageType; }
+
+    public boolean isGroup() { return isGroup; }
+    public void setGroup(boolean group) { isGroup = group; }
 }

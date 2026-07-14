@@ -34,6 +34,7 @@ public class TransformViewModel extends AndroidViewModel {
     private final MutableLiveData<List<ChatItem>> mFilteredChats = new MutableLiveData<>();
     private final Map<String, ChatItem> chatsMap = new HashMap<>();
     private final java.util.Set<String> observedFriends = new java.util.HashSet<>();
+    private final java.util.Set<String> observedGroups = new java.util.HashSet<>();
     private final SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a", Locale.getDefault());
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd", Locale.getDefault());
     private final ChatItemDao chatItemDao;
@@ -49,6 +50,7 @@ public class TransformViewModel extends AndroidViewModel {
         chatItemDao.getAllChatItems().observeForever(roomObserver);
 
         loadFriends();
+        loadGroups();
     }
 
     private final Observer<List<ChatItemEntity>> roomObserver = entities -> {
@@ -64,7 +66,8 @@ public class TransformViewModel extends AndroidViewModel {
                     entity.isOnline(),
                     entity.getTimestamp(),
                     entity.getUnreadCount(),
-                    entity.getLastMessageType()
+                    entity.getLastMessageType(),
+                    entity.isGroup()
             );
             items.add(item);
             chatsMap.put(item.getUid(), item);
@@ -90,14 +93,29 @@ public class TransformViewModel extends AndroidViewModel {
                         if (!snapshot.exists()) {
                             mAllChats.setValue(new ArrayList<>());
                             mFilteredChats.setValue(new ArrayList<>());
-                            return;
+                            // Clear local database if no friends (and potentially no groups handled elsewhere)
+                            // But usually, we only want to remove specific ones
                         }
 
+                        java.util.Set<String> currentFriends = new java.util.HashSet<>();
                         for (DataSnapshot ds : snapshot.getChildren()) {
                             String friendUid = ds.getKey();
-                            if (friendUid != null && !observedFriends.contains(friendUid)) {
-                                observedFriends.add(friendUid);
-                                observeFriend(myUid, friendUid);
+                            if (friendUid != null) {
+                                currentFriends.add(friendUid);
+                                if (!observedFriends.contains(friendUid)) {
+                                    observedFriends.add(friendUid);
+                                    observeFriend(myUid, friendUid);
+                                }
+                            }
+                        }
+
+                        // Remove friends that are no longer in the friends list
+                        java.util.Iterator<String> iterator = observedFriends.iterator();
+                        while (iterator.hasNext()) {
+                            String observedId = iterator.next();
+                            if (!currentFriends.contains(observedId)) {
+                                iterator.remove();
+                                AppDatabase.databaseWriteExecutor.execute(() -> chatItemDao.deleteByUid(observedId));
                             }
                         }
                     }
@@ -115,7 +133,7 @@ public class TransformViewModel extends AndroidViewModel {
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         User user = snapshot.getValue(User.class);
                         if (user != null) {
-                            updateChatItem(friendUid, user, null, -1);
+                            updateChatItem(friendUid, user, null, -1, false);
                         }
                     }
 
@@ -137,7 +155,7 @@ public class TransformViewModel extends AndroidViewModel {
                             for (DataSnapshot ds : snapshot.getChildren()) {
                                 Message message = ds.getValue(Message.class);
                                 if (message != null) {
-                                    updateChatItem(friendUid, null, message, -1);
+                                    updateChatItem(friendUid, null, message, -1, false);
                                 }
                             }
                         }
@@ -159,7 +177,7 @@ public class TransformViewModel extends AndroidViewModel {
                                 count++;
                             }
                         }
-                        updateChatItem(friendUid, null, null, count);
+                        updateChatItem(friendUid, null, null, count, false);
                     }
 
                     @Override
@@ -167,7 +185,101 @@ public class TransformViewModel extends AndroidViewModel {
                 });
     }
 
-    private synchronized void updateChatItem(String friendUid, User user, Message lastMsg, int unreadCount) {
+    private void loadGroups() {
+        String myUid = FirebaseAuth.getInstance().getUid();
+        if (myUid == null) return;
+
+        FirebaseDatabase.getInstance().getReference("users").child(myUid).child("groups")
+                .addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        java.util.Set<String> currentGroups = new java.util.HashSet<>();
+                        for (DataSnapshot ds : snapshot.getChildren()) {
+                            String groupId = ds.getKey();
+                            if (groupId != null) {
+                                currentGroups.add(groupId);
+                                if (!observedGroups.contains(groupId)) {
+                                    observedGroups.add(groupId);
+                                    observeGroup(groupId);
+                                }
+                            }
+                        }
+
+                        // Remove groups that are no longer in the user's groups list
+                        java.util.Iterator<String> iterator = observedGroups.iterator();
+                        while (iterator.hasNext()) {
+                            String observedId = iterator.next();
+                            if (!currentGroups.contains(observedId)) {
+                                iterator.remove();
+                                // Note: In a real app we might want to stop specific listeners, 
+                                // but for now we'll just remove it from the local DB so it disappears from UI
+                                AppDatabase.databaseWriteExecutor.execute(() -> chatItemDao.deleteByUid(observedId));
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {}
+                });
+    }
+
+    private void observeGroup(String groupId) {
+        FirebaseDatabase.getInstance().getReference("groups").child(groupId)
+                .addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        com.hamraj37.somechat.models.Group group = snapshot.getValue(com.hamraj37.somechat.models.Group.class);
+                        if (group != null) {
+                            updateGroupChatItem(groupId, group, null);
+                        }
+                    }
+                    @Override public void onCancelled(@NonNull DatabaseError error) {}
+                });
+
+        FirebaseDatabase.getInstance().getReference("group_chats").child(groupId).child("messages")
+                .limitToLast(1)
+                .addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        if (snapshot.exists()) {
+                            for (DataSnapshot ds : snapshot.getChildren()) {
+                                Message message = ds.getValue(Message.class);
+                                if (message != null) {
+                                    updateGroupChatItem(groupId, null, message);
+                                }
+                            }
+                        }
+                    }
+                    @Override public void onCancelled(@NonNull DatabaseError error) {}
+                });
+    }
+
+    private synchronized void updateGroupChatItem(String groupId, com.hamraj37.somechat.models.Group group, Message lastMsg) {
+        ChatItem existing = chatsMap.get(groupId);
+        String name = group != null ? group.getGroupName() : (existing != null ? existing.getName() : "Loading group...");
+        String photoUrl = group != null ? group.getGroupAvatar() : (existing != null ? existing.getPhotoUrl() : null);
+        
+        String displayMsgText;
+        String type;
+        if (lastMsg != null) {
+            type = lastMsg.getType();
+            if (type == null) type = "text";
+            String sender = lastMsg.getSenderId().equals(FirebaseAuth.getInstance().getUid()) ? "You" : lastMsg.getSenderName();
+            String rawText = lastMsg.getText(); // Group messages might not be encrypted in the same way or at all yet
+            displayMsgText = sender + ": " + rawText;
+        } else {
+            displayMsgText = existing != null ? existing.getLastMessage() : "No messages yet";
+            type = existing != null ? existing.getLastMessageType() : "text";
+        }
+
+        String time = lastMsg != null ? formatTime(lastMsg.getTimestamp()) : (existing != null ? existing.getTime() : "");
+        long timestamp = lastMsg != null ? lastMsg.getTimestamp() : (existing != null ? existing.getTimestamp() : 0);
+
+        ChatItemEntity entity = new ChatItemEntity(groupId, name, displayMsgText, time, photoUrl, false, timestamp, 0, type, true);
+        AppDatabase.databaseWriteExecutor.execute(() -> chatItemDao.insert(entity));
+    }
+
+    private synchronized void updateChatItem(String friendUid, User user, Message lastMsg, int unreadCount, boolean isGroup) {
         ChatItem existing = chatsMap.get(friendUid);
         String myUid = FirebaseAuth.getInstance().getUid();
         
@@ -202,7 +314,7 @@ public class TransformViewModel extends AndroidViewModel {
         int finalUnreadCount = unreadCount != -1 ? unreadCount : (existing != null ? existing.getUnreadCount() : 0);
 
         // Save to local DB
-        ChatItemEntity entity = new ChatItemEntity(friendUid, name, displayMsgText, time, photoUrl, online, timestamp, finalUnreadCount, type);
+        ChatItemEntity entity = new ChatItemEntity(friendUid, name, displayMsgText, time, photoUrl, online, timestamp, finalUnreadCount, type, isGroup);
         AppDatabase.databaseWriteExecutor.execute(() -> chatItemDao.insert(entity));
     }
 

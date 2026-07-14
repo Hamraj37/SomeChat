@@ -201,16 +201,28 @@ public class TransformFragment extends Fragment {
             }
 
             holder.imageView.setOnClickListener(v -> {
+                if (chatItem.isGroup()) {
+                    // Maybe show group info?
+                    return;
+                }
                 Intent intent = new Intent(holder.itemView.getContext(), ProfileInfoActivity.class);
                 intent.putExtra("uid", chatItem.getUid());
                 holder.itemView.getContext().startActivity(intent);
             });
 
             holder.itemView.setOnClickListener(v -> {
-                Intent intent = new Intent(holder.itemView.getContext(), ChatActivity.class);
-                intent.putExtra("uid", chatItem.getUid());
-                intent.putExtra("displayName", chatItem.getName());
-                intent.putExtra("photoUrl", chatItem.getPhotoUrl());
+                Intent intent;
+                if (chatItem.isGroup()) {
+                    intent = new Intent(holder.itemView.getContext(), com.hamraj37.somechat.GroupChatActivity.class);
+                    intent.putExtra("groupId", chatItem.getUid());
+                    intent.putExtra("groupName", chatItem.getName());
+                    intent.putExtra("groupAvatar", chatItem.getPhotoUrl());
+                } else {
+                    intent = new Intent(holder.itemView.getContext(), ChatActivity.class);
+                    intent.putExtra("uid", chatItem.getUid());
+                    intent.putExtra("displayName", chatItem.getName());
+                    intent.putExtra("photoUrl", chatItem.getPhotoUrl());
+                }
                 holder.itemView.getContext().startActivity(intent);
             });
         }

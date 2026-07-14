@@ -47,6 +47,10 @@ public class BaseActivity extends AppCompatActivity {
                 if (ChatActivity.openedChatId != null && ChatActivity.openedChatId.equals(senderId)) {
                     return;
                 }
+                
+                if (GroupChatActivity.openedGroupId != null && GroupChatActivity.openedGroupId.equals(senderId)) {
+                    return;
+                }
 
                 showInAppNotification(senderName, text, senderId);
             }

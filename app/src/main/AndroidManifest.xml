@@ -64,6 +64,25 @@
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.SomeChat.NoActionBar" />
         <activity
+            android:name=".GroupChatActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.SomeChat.NoActionBar" />
+        <activity
+            android:name=".CreateGroupActivity"
+            android:exported="false"
+            android:label="New Group"
+            android:theme="@style/Theme.SomeChat.NoActionBar" />
+        <activity
+            android:name=".GroupInfoActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SomeChat.NoActionBar" />
+        <activity
+            android:name=".AddMembersActivity"
+            android:exported="false"
+            android:label="Add Members"
+            android:theme="@style/Theme.SomeChat.NoActionBar" />
+        <activity
             android:name=".AudioCallActivity"
             android:exported="false"
             android:showForAllUsers="true"

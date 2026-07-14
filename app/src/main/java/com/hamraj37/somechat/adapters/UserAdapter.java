@@ -22,6 +22,7 @@ public class UserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private List<User> userList;
     private final OnUserClickListener listener;
     private boolean showActions = false;
+    private java.util.Map<String, Boolean> adminsMap = null;
 
     public interface OnUserClickListener {
         void onUserClick(User user);
@@ -35,6 +36,11 @@ public class UserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     public void setShowActions(boolean show) {
         this.showActions = show;
+        notifyDataSetChanged();
+    }
+
+    public void setAdminsMap(java.util.Map<String, Boolean> adminsMap) {
+        this.adminsMap = adminsMap;
         notifyDataSetChanged();
     }
 
@@ -74,6 +80,14 @@ public class UserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         UserViewHolder userHolder = (UserViewHolder) holder;
         User user = userList.get(showActions ? position - 1 : position);
         userHolder.displayName.setText(user.getDisplayName());
+        
+        if (userHolder.adminBadge != null) {
+            if (adminsMap != null && Boolean.TRUE.equals(adminsMap.get(user.getUid()))) {
+                userHolder.adminBadge.setVisibility(View.VISIBLE);
+            } else {
+                userHolder.adminBadge.setVisibility(View.GONE);
+            }
+        }
         
         String myUid = com.google.firebase.auth.FirebaseAuth.getInstance().getUid();
         if (user.getUid() != null && user.getUid().equals(myUid)) {
@@ -137,6 +151,7 @@ public class UserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         TextView displayName;
         TextView username;
         TextView email;
+        TextView adminBadge;
 
         public UserViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -144,6 +159,7 @@ public class UserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             displayName = itemView.findViewById(R.id.user_display_name);
             username = itemView.findViewById(R.id.user_username);
             email = itemView.findViewById(R.id.user_email);
+            adminBadge = itemView.findViewById(R.id.admin_badge);
         }
     }
 }

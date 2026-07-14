@@ -3,6 +3,8 @@ package com.hamraj37.somechat.models;
 public class Message implements java.io.Serializable {
     private String messageId;
     private String senderId;
+    private String senderName;
+    private String senderUsername;
     private String receiverId;
     private String text;
     private long timestamp;
@@ -58,6 +60,12 @@ public class Message implements java.io.Serializable {
 
     public String getSenderId() { return senderId; }
     public void setSenderId(String senderId) { this.senderId = senderId; }
+
+    public String getSenderName() { return senderName; }
+    public void setSenderName(String senderName) { this.senderName = senderName; }
+
+    public String getSenderUsername() { return senderUsername; }
+    public void setSenderUsername(String senderUsername) { this.senderUsername = senderUsername; }
 
     public String getReceiverId() { return receiverId; }
     public void setReceiverId(String receiverId) { this.receiverId = receiverId; }

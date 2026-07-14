@@ -28,6 +28,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     private static final int VIEW_TYPE_IMAGE_RECEIVED = 6;
     private static final int VIEW_TYPE_VIDEO_SENT = 7;
     private static final int VIEW_TYPE_VIDEO_RECEIVED = 8;
+    private static final int VIEW_TYPE_SYSTEM = 9;
 
     private List<Message> messageList;
     private java.util.Set<String> selectedMessageIds = new java.util.HashSet<>();
@@ -41,6 +42,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     private final java.util.Map<String, com.hamraj37.somechat.models.LinkMetadata> linkMetadataCache = new java.util.HashMap<>();
     private android.content.Context context;
     private OnMessageClickListener listener;
+    private boolean isGroup = false;
     private String highlightMessageId = null;
 
     public interface OnMessageClickListener {
@@ -53,6 +55,13 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
     public MessageAdapter(List<Message> messageList, OnMessageClickListener listener) {
         this.messageList = messageList;
+        this.listener = listener;
+        updateCurrentUserId();
+    }
+
+    public MessageAdapter(List<Message> messageList, boolean isGroup, OnMessageClickListener listener) {
+        this.messageList = messageList;
+        this.isGroup = isGroup;
         this.listener = listener;
         updateCurrentUserId();
     }
@@ -196,6 +205,8 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         String type = message.getType();
         if (type == null) type = "text";
 
+        if ("system".equals(type)) return VIEW_TYPE_SYSTEM;
+
         if (isSent) {
             switch (type) {
                 case "voice": return VIEW_TYPE_VOICE_SENT;
@@ -236,6 +247,8 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 return new VideoSentViewHolder(inflater.inflate(R.layout.item_video_sent, parent, false));
             case VIEW_TYPE_VIDEO_RECEIVED:
                 return new VideoReceivedViewHolder(inflater.inflate(R.layout.item_video_received, parent, false));
+            case VIEW_TYPE_SYSTEM:
+                return new SystemMessageViewHolder(inflater.inflate(R.layout.item_message_system, parent, false));
             default:
                 return new SentMessageViewHolder(inflater.inflate(R.layout.item_message_sent, parent, false));
         }
@@ -264,6 +277,8 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 decryptedMediaUrl,
                 message.getDuration()
         );
+        displayMessage.setSenderName(message.getSenderName());
+        displayMessage.setSenderUsername(message.getSenderUsername());
         displayMessage.setSeen(message.isSeen());
         displayMessage.setForwarded(message.isForwarded());
         displayMessage.setReplyToId(message.getReplyToId());
@@ -310,6 +325,8 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             ((VideoSentViewHolder) holder).bind(displayMessage);
         } else if (holder instanceof VideoReceivedViewHolder) {
             ((VideoReceivedViewHolder) holder).bind(displayMessage);
+        } else if (holder instanceof SystemMessageViewHolder) {
+            ((SystemMessageViewHolder) holder).bind(displayMessage);
         }
 
         bindReactions(holder.itemView, displayMessage);
@@ -353,6 +370,19 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     public void onDetachedFromRecyclerView(@NonNull RecyclerView recyclerView) {
         super.onDetachedFromRecyclerView(recyclerView);
         stopPlayback();
+    }
+
+    class SystemMessageViewHolder extends RecyclerView.ViewHolder {
+        TextView textMessage;
+
+        public SystemMessageViewHolder(@NonNull View itemView) {
+            super(itemView);
+            textMessage = itemView.findViewById(R.id.text_message);
+        }
+
+        void bind(Message message) {
+            textMessage.setText(message.getText());
+        }
     }
 
     class HeaderViewHolder extends RecyclerView.ViewHolder {
@@ -432,6 +462,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     }
 
     class ReceivedMessageViewHolder extends RecyclerView.ViewHolder {
+        View senderInfoContainer;
+        TextView senderName;
+        TextView senderUsername;
         TextView textMessage;
         TextView textTimestamp;
         android.widget.ImageView imagePin;
@@ -445,6 +478,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
         public ReceivedMessageViewHolder(@NonNull View itemView) {
             super(itemView);
+            senderInfoContainer = itemView.findViewById(R.id.sender_info_container);
+            senderName = itemView.findViewById(R.id.sender_name);
+            senderUsername = itemView.findViewById(R.id.sender_username);
             textMessage = itemView.findViewById(R.id.text_message);
             textTimestamp = itemView.findViewById(R.id.text_timestamp);
             imagePin = itemView.findViewById(R.id.image_pin);
@@ -458,6 +494,20 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         }
 
         void bind(Message message) {
+            if (senderInfoContainer != null) {
+                if (isGroup && message.getSenderName() != null) {
+                    senderInfoContainer.setVisibility(View.VISIBLE);
+                    senderName.setText(message.getSenderName());
+                    if (senderUsername != null && message.getSenderUsername() != null) {
+                        senderUsername.setText("@" + message.getSenderUsername());
+                        senderUsername.setVisibility(View.VISIBLE);
+                    } else if (senderUsername != null) {
+                        senderUsername.setVisibility(View.GONE);
+                    }
+                } else {
+                    senderInfoContainer.setVisibility(View.GONE);
+                }
+            }
             textMessage.setText(message.getText());
             textTimestamp.setText(formatDate(message.getTimestamp()));
             bindReply(itemView, message);
@@ -568,6 +618,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     }
 
     class VoiceReceivedViewHolder extends RecyclerView.ViewHolder {
+        View senderInfoContainer;
+        TextView senderName;
+        TextView senderUsername;
         android.widget.ImageView btnPlayPause;
         com.google.android.material.progressindicator.LinearProgressIndicator voiceProgress;
         com.google.android.material.progressindicator.CircularProgressIndicator downloadProgress;
@@ -578,6 +631,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
         public VoiceReceivedViewHolder(@NonNull View itemView) {
             super(itemView);
+            senderInfoContainer = itemView.findViewById(R.id.sender_info_container);
+            senderName = itemView.findViewById(R.id.sender_name);
+            senderUsername = itemView.findViewById(R.id.sender_username);
             btnPlayPause = itemView.findViewById(R.id.btn_play_pause);
             voiceProgress = itemView.findViewById(R.id.voice_progress);
             downloadProgress = itemView.findViewById(R.id.download_progress);
@@ -588,6 +644,20 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         }
 
         void bind(Message message, int position) {
+            if (senderInfoContainer != null) {
+                if (isGroup && message.getSenderName() != null) {
+                    senderInfoContainer.setVisibility(View.VISIBLE);
+                    senderName.setText(message.getSenderName());
+                    if (senderUsername != null && message.getSenderUsername() != null) {
+                        senderUsername.setText("@" + message.getSenderUsername());
+                        senderUsername.setVisibility(View.VISIBLE);
+                    } else if (senderUsername != null) {
+                        senderUsername.setVisibility(View.GONE);
+                    }
+                } else {
+                    senderInfoContainer.setVisibility(View.GONE);
+                }
+            }
             textTimestamp.setText(formatDate(message.getTimestamp()));
             textDuration.setText(formatDuration(message.getDuration()));
             bindReply(itemView, message);
@@ -709,6 +779,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     }
 
     class ImageReceivedViewHolder extends RecyclerView.ViewHolder {
+        View senderInfoContainer;
+        TextView senderName;
+        TextView senderUsername;
         android.widget.ImageView imageMessage;
         TextView textTimestamp;
         android.widget.ImageView imagePin;
@@ -717,6 +790,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
         public ImageReceivedViewHolder(@NonNull View itemView) {
             super(itemView);
+            senderInfoContainer = itemView.findViewById(R.id.sender_info_container);
+            senderName = itemView.findViewById(R.id.sender_name);
+            senderUsername = itemView.findViewById(R.id.sender_username);
             imageMessage = itemView.findViewById(R.id.image_message);
             textTimestamp = itemView.findViewById(R.id.text_timestamp);
             imagePin = itemView.findViewById(R.id.image_pin);
@@ -725,6 +801,20 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         }
 
         void bind(Message message) {
+            if (senderInfoContainer != null) {
+                if (isGroup && message.getSenderName() != null) {
+                    senderInfoContainer.setVisibility(View.VISIBLE);
+                    senderName.setText(message.getSenderName());
+                    if (senderUsername != null && message.getSenderUsername() != null) {
+                        senderUsername.setText("@" + message.getSenderUsername());
+                        senderUsername.setVisibility(View.VISIBLE);
+                    } else if (senderUsername != null) {
+                        senderUsername.setVisibility(View.GONE);
+                    }
+                } else {
+                    senderInfoContainer.setVisibility(View.GONE);
+                }
+            }
             textTimestamp.setText(formatDate(message.getTimestamp()));
             bindReply(itemView, message);
 
@@ -836,6 +926,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     }
 
     class VideoReceivedViewHolder extends RecyclerView.ViewHolder {
+        View senderInfoContainer;
+        TextView senderName;
+        TextView senderUsername;
         android.widget.ImageView videoThumbnail;
         TextView textTimestamp;
         android.widget.ImageView imagePin;
@@ -844,6 +937,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
         public VideoReceivedViewHolder(@NonNull View itemView) {
             super(itemView);
+            senderInfoContainer = itemView.findViewById(R.id.sender_info_container);
+            senderName = itemView.findViewById(R.id.sender_name);
+            senderUsername = itemView.findViewById(R.id.sender_username);
             videoThumbnail = itemView.findViewById(R.id.video_thumbnail);
             textTimestamp = itemView.findViewById(R.id.text_timestamp);
             imagePin = itemView.findViewById(R.id.image_pin);
@@ -852,6 +948,20 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         }
 
         void bind(Message message) {
+            if (senderInfoContainer != null) {
+                if (isGroup && message.getSenderName() != null) {
+                    senderInfoContainer.setVisibility(View.VISIBLE);
+                    senderName.setText(message.getSenderName());
+                    if (senderUsername != null && message.getSenderUsername() != null) {
+                        senderUsername.setText("@" + message.getSenderUsername());
+                        senderUsername.setVisibility(View.VISIBLE);
+                    } else if (senderUsername != null) {
+                        senderUsername.setVisibility(View.GONE);
+                    }
+                } else {
+                    senderInfoContainer.setVisibility(View.GONE);
+                }
+            }
             textTimestamp.setText(formatDate(message.getTimestamp()));
             bindReply(itemView, message);
 
