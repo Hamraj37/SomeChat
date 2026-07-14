@@ -58,15 +58,8 @@
         android:id="@+id/top_ui_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
-
-        <!-- Progress Bars Container -->
-        <LinearLayout
-            android:id="@+id/progress_container"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="8dp" />
+        android:orientation="vertical"
+        android:background="@drawable/bg_status_header_gradient">
 
         <!-- Top Info -->
         <LinearLayout
@@ -135,6 +128,15 @@
                 android:src="@android:drawable/ic_menu_close_clear_cancel"
                 app:tint="@android:color/white" />
         </LinearLayout>
+
+        <!-- Progress Bars Container -->
+        <LinearLayout
+            android:id="@+id/progress_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingHorizontal="8dp"
+            android:paddingBottom="8dp" />
     </LinearLayout>
 
     <LinearLayout
