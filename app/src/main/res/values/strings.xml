@@ -72,4 +72,5 @@
     <string name="change_bio">Change Bio</string>
     <string name="tap_to_add_bio">Tap to add a bio...</string>
     <string name="no_bio_yet">No bio yet</string>
+    <string name="unknown_user">Unknown User</string>
 </resources>

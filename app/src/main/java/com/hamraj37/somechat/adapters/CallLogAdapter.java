@@ -42,7 +42,29 @@ public class CallLogAdapter extends RecyclerView.Adapter<CallLogAdapter.ViewHold
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         CallLog log = callLogs.get(position);
-        holder.name.setText(log.getOtherUserName());
+        
+        String name = log.getOtherUserName();
+        if (name == null || name.isEmpty()) {
+            holder.name.setText(R.string.unknown_user);
+            // Attempt to fetch name from Firebase
+            com.google.firebase.database.FirebaseDatabase.getInstance().getReference("users")
+                    .child(log.getOtherUserId()).child("displayName")
+                    .addListenerForSingleValueEvent(new com.google.firebase.database.ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull com.google.firebase.database.DataSnapshot snapshot) {
+                            if (snapshot.exists()) {
+                                String dbName = snapshot.getValue(String.class);
+                                if (dbName != null) {
+                                    log.setOtherUserName(dbName);
+                                    holder.name.setText(dbName);
+                                }
+                            }
+                        }
+                        @Override public void onCancelled(@NonNull com.google.firebase.database.DatabaseError error) {}
+                    });
+        } else {
+            holder.name.setText(name);
+        }
         
         SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, h:mm a", Locale.getDefault());
         holder.time.setText(sdf.format(new Date(log.getTimestamp())));
@@ -74,6 +96,26 @@ public class CallLogAdapter extends RecyclerView.Adapter<CallLogAdapter.ViewHold
                     .into(holder.avatar);
         } else {
             holder.avatar.setImageResource(R.mipmap.ic_launcher_round);
+            // Attempt to fetch avatar from Firebase
+            com.google.firebase.database.FirebaseDatabase.getInstance().getReference("users")
+                    .child(log.getOtherUserId()).child("photoUrl")
+                    .addListenerForSingleValueEvent(new com.google.firebase.database.ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull com.google.firebase.database.DataSnapshot snapshot) {
+                            if (snapshot.exists()) {
+                                String photoUrl = snapshot.getValue(String.class);
+                                if (photoUrl != null && !photoUrl.isEmpty()) {
+                                    log.setOtherUserAvatar(photoUrl);
+                                    Glide.with(holder.itemView.getContext())
+                                            .load(photoUrl)
+                                            .placeholder(R.mipmap.ic_launcher_round)
+                                            .circleCrop()
+                                            .into(holder.avatar);
+                                }
+                            }
+                        }
+                        @Override public void onCancelled(@NonNull com.google.firebase.database.DatabaseError error) {}
+                    });
         }
 
         holder.itemView.setOnClickListener(v -> {
