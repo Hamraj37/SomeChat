@@ -52,6 +52,7 @@ public class ProfileInfoActivity extends BaseActivity {
     private String otherUserName;
     private List<Highlight> highlightList = new ArrayList<>();
     private HighlightAdapter highlightAdapter;
+    private String currentPhotoUrl;
 
     private final androidx.activity.result.ActivityResultLauncher<String> pickImageLauncher =
             registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.GetContent(),
@@ -98,6 +99,8 @@ public class ProfileInfoActivity extends BaseActivity {
         setupClickListeners();
         setupLongClickListeners();
         setupHighlightsRecyclerView();
+        
+        binding.qrCodeButton.setOnClickListener(v -> showQRDialog());
 
         if (!isOwnProfile) {
             setupMediaRecyclerView();
@@ -455,6 +458,14 @@ public class ProfileInfoActivity extends BaseActivity {
             binding.editProfileImageFab.setOnClickListener(v -> pickImageLauncher.launch("image/*"));
             binding.editCoverImageFab.setOnClickListener(v -> pickCoverLauncher.launch("image/*"));
         }
+    }
+
+    private void showQRDialog() {
+        Intent intent = new Intent(this, QRCodeActivity.class);
+        intent.putExtra("name", binding.profileName.getText().toString());
+        intent.putExtra("uid", targetUid);
+        intent.putExtra("photoUrl", currentPhotoUrl);
+        startActivity(intent);
     }
 
     private void showProfileSettingsDialog() {
@@ -853,6 +864,7 @@ public class ProfileInfoActivity extends BaseActivity {
                                 String coverUrl = snapshot.child("coverUrl").getValue(String.class);
                                 String email = snapshot.child("email").getValue(String.class);
                                 String bio = snapshot.child("bio").getValue(String.class);
+                                currentPhotoUrl = photoUrl;
                                 otherUserName = name;
 
                                 if (name != null) binding.profileName.setText(name);

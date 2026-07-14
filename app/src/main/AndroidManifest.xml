@@ -111,6 +111,11 @@
             android:name=".ViewStatusActivity"
             android:exported="false"
             android:theme="@style/Theme.SomeChat.NoActionBar" />
+        <activity
+            android:name=".QRCodeActivity"
+            android:exported="false"
+            android:label="@string/qr_code"
+            android:theme="@style/Theme.SomeChat.NoActionBar" />
         <service
             android:name=".services.CallService"
             android:enabled="true"

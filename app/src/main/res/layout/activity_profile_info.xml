@@ -157,16 +157,32 @@
 
                     </LinearLayout>
 
-                    <ImageButton
-                        android:id="@+id/settings_button"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
                         android:layout_gravity="top|end"
                         android:layout_margin="12dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@drawable/ic_settings_black_24dp"
-                        app:tint="?attr/colorOnPrimaryContainer"
-                        android:contentDescription="@string/action_settings" />
+                        android:orientation="horizontal">
+
+                        <ImageButton
+                            android:id="@+id/qr_code_button"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:src="@drawable/ic_qr_code"
+                            app:tint="?attr/colorOnPrimaryContainer"
+                            android:contentDescription="@string/qr_code" />
+
+                        <ImageButton
+                            android:id="@+id/settings_button"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:src="@drawable/ic_settings_black_24dp"
+                            app:tint="?attr/colorOnPrimaryContainer"
+                            android:contentDescription="@string/action_settings" />
+
+                    </LinearLayout>
 
                 </FrameLayout>
 

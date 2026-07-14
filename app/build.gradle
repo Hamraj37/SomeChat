@@ -87,6 +87,8 @@ dependencies {
     implementation libs.glide
     implementation libs.webrtc
     implementation libs.jsoup
+    implementation libs.zxing.core
+    implementation libs.zxing.android
 
     // Room
     implementation libs.room.runtime

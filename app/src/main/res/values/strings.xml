@@ -43,6 +43,7 @@
     <string name="zero_time">0:00</string>
     <string name="e2ee_notice">🔒 Messages and calls are end-to-end encrypted. No one outside of this chat, not even SomeChat, can read or listen to them.</string>
     <string name="back">Back</string>
+    <string name="close">Close</string>
     <string name="attach_file">Attach File</string>
     <string name="unfriend">Unfriend</string>
     <string name="cancel_request">Cancel Request</string>
@@ -84,4 +85,16 @@
     <string name="add_a_caption">Add a caption...</string>
     <string name="post_status">Post Status</string>
     <string name="uploading_status">Uploading status</string>
+    <string name="qr_code">QR Code</string>
+    <string name="my_profile_qr">My Profile QR</string>
+    <string name="scan_profile_qr">Anyone can scan this to view your profile</string>
+    <string name="scan_qr">Scan QR</string>
+    <string name="invalid_qr">Invalid Profile QR</string>
+    <string name="my_code">MY CODE</string>
+    <string name="scan_code">SCAN CODE</string>
+    <string name="somechat_contact">SomeChat contact</string>
+    <string name="qr_private_notice">Your QR code is private. If you share it with someone, they can scan it with their SomeChat camera to add you as a contact.</string>
+    <string name="align_qr_notice">Align QR code within the frame to scan</string>
+    <string name="share">Share</string>
+    <string name="more">More</string>
 </resources>
