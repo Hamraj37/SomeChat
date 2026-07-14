@@ -450,7 +450,7 @@ public class ProfileInfoActivity extends BaseActivity {
     }
 
     private void showProfileSettingsDialog() {
-        String[] options = {"Change Name", "Change Username", "Change Profile Photo"};
+        String[] options = {getString(R.string.edit_name), getString(R.string.edit_handle), getString(R.string.change_bio), getString(R.string.change_profile_photo)};
         new AlertDialog.Builder(this)
                 .setTitle("Profile Settings")
                 .setItems(options, (dialog, which) -> {
@@ -462,6 +462,9 @@ public class ProfileInfoActivity extends BaseActivity {
                             showEditHandleDialog();
                             break;
                         case 2:
+                            showEditBioDialog();
+                            break;
+                        case 3:
                             pickImageLauncher.launch("image/*");
                             break;
                     }
@@ -581,6 +584,43 @@ public class ProfileInfoActivity extends BaseActivity {
         builder.show();
     }
 
+    private void showEditBioDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Edit Bio");
+
+        android.widget.FrameLayout container = new android.widget.FrameLayout(this);
+        final EditText input = new EditText(this);
+        int padding = (int) (16 * getResources().getDisplayMetrics().density);
+        container.setPadding(padding, padding / 2, padding, 0);
+        container.addView(input);
+        
+        String currentBio = binding.profileBio.getText().toString();
+        String tapToAdd = getString(R.string.tap_to_add_bio);
+        String noBioYet = getString(R.string.no_bio_yet);
+        if (currentBio.equals(tapToAdd) || currentBio.equals(noBioYet)) {
+            currentBio = "";
+        }
+        
+        input.setText(currentBio);
+        input.setSelection(input.getText().length());
+        input.setHint("What's on your mind?");
+        builder.setView(container);
+
+        builder.setPositiveButton("Save", (dialog, which) -> {
+            String newBio = input.getText().toString().trim();
+            updateBio(newBio);
+        });
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+
+        builder.show();
+    }
+
+    private void updateBio(String newBio) {
+        FirebaseDatabase.getInstance().getReference("users").child(targetUid).child("bio").setValue(newBio)
+                .addOnSuccessListener(aVoid -> Toast.makeText(ProfileInfoActivity.this, "Bio updated", Toast.LENGTH_SHORT).show())
+                .addOnFailureListener(e -> Toast.makeText(ProfileInfoActivity.this, "Failed to update bio", Toast.LENGTH_SHORT).show());
+    }
+
     private void showEditHandleDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Change Username");
@@ -679,11 +719,33 @@ public class ProfileInfoActivity extends BaseActivity {
                                 String photoUrl = snapshot.child("photoUrl").getValue(String.class);
                                 String coverUrl = snapshot.child("coverUrl").getValue(String.class);
                                 String email = snapshot.child("email").getValue(String.class);
+                                String bio = snapshot.child("bio").getValue(String.class);
                                 otherUserName = name;
 
                                 if (name != null) binding.profileName.setText(name);
                                 if (handle != null) binding.profileHandle.setText("@" + handle);
                                 
+                                if (bio != null && !bio.isEmpty()) {
+                                    binding.profileBio.setText(bio);
+                                    binding.profileBio.setAlpha(0.9f);
+                                } else {
+                                    if (isOwnProfile) {
+                                        binding.profileBio.setText(R.string.tap_to_add_bio);
+                                        binding.profileBio.setAlpha(0.5f);
+                                    } else {
+                                        binding.profileBio.setText(R.string.no_bio_yet);
+                                        binding.profileBio.setAlpha(0.5f);
+                                    }
+                                }
+
+                                if (isOwnProfile) {
+                                    binding.profileBio.setOnClickListener(v -> showEditBioDialog());
+                                    binding.editBioIcon.setVisibility(android.view.View.VISIBLE);
+                                    binding.editBioIcon.setOnClickListener(v -> showEditBioDialog());
+                                } else {
+                                    binding.editBioIcon.setVisibility(android.view.View.GONE);
+                                }
+
                                 if (isOwnProfile && email != null) {
                                     binding.profileEmailHeader.setVisibility(android.view.View.VISIBLE);
                                     binding.profileEmailHeader.setText(email);
