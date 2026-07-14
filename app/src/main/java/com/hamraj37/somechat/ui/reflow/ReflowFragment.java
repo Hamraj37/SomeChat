@@ -124,11 +124,22 @@ public class ReflowFragment extends Fragment {
                                             }
 
                                             if (!validItems.isEmpty()) {
-                                                status.setItems(validItems);
+                                                // Create a copy of the status object for display in the list
+                                                // so we don't modify the original one which might be needed in full
+                                                Status displayStatus = new Status(
+                                                        status.getUserId(),
+                                                        status.getUserId(),
+                                                        status.getUserName(),
+                                                        status.getProfilePic(),
+                                                        status.getLastUpdated(),
+                                                        validItems
+                                                );
+                                                displayStatus.setStatusId(status.getStatusId());
+
                                                 if (isMe) {
-                                                    myStatus = status;
+                                                    myStatus = displayStatus;
                                                 } else {
-                                                    statusList.add(status);
+                                                    statusList.add(displayStatus);
                                                 }
                                             }
                                         }

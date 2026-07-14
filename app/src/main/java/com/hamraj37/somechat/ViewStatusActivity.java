@@ -15,10 +15,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.request.RequestOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -61,6 +64,8 @@ public class ViewStatusActivity extends BaseActivity {
     private ImageView btnLike;
     private TextView tvLikesCount;
     private ImageView btnMore;
+    private ImageView ivHighlightedStar;
+    private boolean isStatusLoadedFromDb = false;
     
     private final Handler handler = new Handler();
     private Runnable nextStatusRunnable;
@@ -72,6 +77,7 @@ public class ViewStatusActivity extends BaseActivity {
     private ValueEventListener statusListener;
     private GestureDetector gestureDetector;
     private boolean isHighlight = false;
+    private final List<String> highlightedItemIds = new ArrayList<>();
 
     private static final int[] BG_COLORS = {
         0xFFE91E63, 0xFF9C27B0, 0xFF673AB7, 0xFF3F51B5, 0xFF2196F3,
@@ -82,8 +88,14 @@ public class ViewStatusActivity extends BaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        // Enable edge-to-edge
-        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        // Truly immersive full screen
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
+        getWindow().setNavigationBarColor(android.graphics.Color.TRANSPARENT);
+
+        WindowInsetsControllerCompat controller = new WindowInsetsControllerCompat(getWindow(), getWindow().getDecorView());
+        controller.hide(WindowInsetsCompat.Type.systemBars());
+        controller.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
         
         setContentView(R.layout.activity_view_status);
 
@@ -112,6 +124,7 @@ public class ViewStatusActivity extends BaseActivity {
         btnLike = findViewById(R.id.btn_like);
         tvLikesCount = findViewById(R.id.tv_likes_count);
         btnMore = findViewById(R.id.btn_more);
+        ivHighlightedStar = findViewById(R.id.iv_highlighted_star);
 
         currentUserId = FirebaseAuth.getInstance().getUid();
         
@@ -125,25 +138,35 @@ public class ViewStatusActivity extends BaseActivity {
             viewsCountContainer.setVisibility(View.GONE);
             btnMore.setVisibility(View.GONE);
         }
+        loadHighlightedIds();
         setupStatusListener();
 
-        // Adjust UI elements to avoid system bars
+        // Adjust UI elements to avoid system bars and notches
         View topUiContainer = findViewById(R.id.top_ui_container);
         View rootLayout = findViewById(R.id.root_layout);
-        ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, insets) -> {
-            androidx.core.graphics.Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, insets) -> {
+            androidx.core.graphics.Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.statusBars() | WindowInsetsCompat.Type.displayCutout());
+            
+            // Add extra padding to ensure progress bars are below status bar area/notch
+            int topPadding = systemBars.top;
+            if (topPadding == 0) {
+                // Fallback if insets are hidden: use a safe default like 32dp
+                topPadding = (int) (32 * getResources().getDisplayMetrics().density);
+            }
+            
             if (topUiContainer != null) {
-                topUiContainer.setPadding(0, systemBars.top, 0, 0);
+                topUiContainer.setPadding(0, topPadding, 0, 0);
             }
             
             // Adjust bottom reply UI for keyboard
             boolean isKeyboardVisible = insets.isVisible(WindowInsetsCompat.Type.ime());
+            int bottomInset = insets.getInsets(WindowInsetsCompat.Type.ime() | WindowInsetsCompat.Type.navigationBars()).bottom;
+            
             if (isKeyboardVisible) {
                 pauseStatus();
-                int keyboardHeight = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom;
-                replyContainer.setTranslationY(-keyboardHeight);
+                replyContainer.setTranslationY(-bottomInset);
             } else {
-                replyContainer.setTranslationY(0);
+                replyContainer.setTranslationY(-bottomInset); // Always account for nav bar if present
                 if (replyInput.hasFocus()) {
                     replyInput.clearFocus();
                 }
@@ -213,21 +236,26 @@ public class ViewStatusActivity extends BaseActivity {
         android.widget.PopupMenu popupMenu = new android.widget.PopupMenu(this, v);
         
         if (currentUserId != null && currentUserId.equals(status.getUserId())) {
-            popupMenu.getMenu().add("Add to Highlight");
-            popupMenu.getMenu().add("Delete");
+            if (isHighlight) {
+                popupMenu.getMenu().add(0, 1, 0, R.string.remove_from_highlight);
+            } else {
+                popupMenu.getMenu().add(0, 2, 0, R.string.add_to_highlight);
+                popupMenu.getMenu().add(0, 3, 0, R.string.delete);
+            }
         } else {
-            popupMenu.getMenu().add("Report");
+            popupMenu.getMenu().add(0, 4, 0, "Report");
         }
         
         popupMenu.setOnMenuItemClickListener(item -> {
-            if (item.getTitle() == null) return false;
-            String title = item.getTitle().toString();
-            if ("Delete".equals(title)) {
+            int id = item.getItemId();
+            if (id == 3) {
                 deleteCurrentStatus();
-            } else if ("Add to Highlight".equals(title)) {
+            } else if (id == 2) {
                 showAddToHighlightDialog();
-            } else if ("Report".equals(title)) {
-                android.widget.Toast.makeText(this, "Status reported", android.widget.Toast.LENGTH_SHORT).show();
+            } else if (id == 1) {
+                removeFromHighlight();
+            } else if (id == 4) {
+                android.widget.Toast.makeText(this, R.string.status_reported, android.widget.Toast.LENGTH_SHORT).show();
             }
             return true;
         });
@@ -242,7 +270,7 @@ public class ViewStatusActivity extends BaseActivity {
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         List<Highlight> existingHighlights = new ArrayList<>();
                         List<String> highlightNames = new ArrayList<>();
-                        highlightNames.add("+ New Highlight");
+                        highlightNames.add(getString(R.string.new_highlight));
 
                         for (DataSnapshot ds : snapshot.getChildren()) {
                             Highlight h = ds.getValue(Highlight.class);
@@ -253,7 +281,7 @@ public class ViewStatusActivity extends BaseActivity {
                         }
 
                         new MaterialAlertDialogBuilder(ViewStatusActivity.this)
-                                .setTitle("Add to Highlight")
+                                .setTitle(R.string.add_to_highlight)
                                 .setItems(highlightNames.toArray(new String[0]), (dialog, which) -> {
                                     if (which == 0) {
                                         showCreateHighlightDialog();
@@ -325,6 +353,44 @@ public class ViewStatusActivity extends BaseActivity {
                 .addOnSuccessListener(aVoid -> Toast.makeText(this, "Added to " + highlight.getTitle(), Toast.LENGTH_SHORT).show());
     }
 
+    private void removeFromHighlight() {
+        if (!isHighlight || statusItems.isEmpty() || currentIndex >= statusItems.size()) return;
+        
+        Status.StatusItem itemToRemove = statusItems.get(currentIndex);
+        
+        // Find the index in the current status.items list
+        int originalIndex = -1;
+        if (status.getItems() != null) {
+            for (int i = 0; i < status.getItems().size(); i++) {
+                if (status.getItems().get(i).getId().equals(itemToRemove.getId())) {
+                    originalIndex = i;
+                    break;
+                }
+            }
+        }
+        
+        if (originalIndex != -1) {
+            List<Status.StatusItem> updatedItems = new ArrayList<>(status.getItems());
+            updatedItems.remove(originalIndex);
+            
+            if (updatedItems.isEmpty()) {
+                // If last item removed, delete the whole highlight
+                getBaseRef().removeValue().addOnSuccessListener(aVoid -> {
+                    Toast.makeText(this, R.string.highlight_deleted, Toast.LENGTH_SHORT).show();
+                    finish();
+                });
+            } else {
+                getBaseRef().child("items").setValue(updatedItems).addOnSuccessListener(aVoid -> {
+                    Toast.makeText(this, R.string.removed_from_highlight, Toast.LENGTH_SHORT).show();
+                    // Listener will trigger updateUI
+                }).addOnFailureListener(e -> {
+                    Toast.makeText(this, R.string.failed_to_remove, Toast.LENGTH_SHORT).show();
+                    resumeStatus();
+                });
+            }
+        }
+    }
+
     private void deleteCurrentStatus() {
         if (statusItems.isEmpty() || currentIndex >= statusItems.size()) return;
         
@@ -349,8 +415,12 @@ public class ViewStatusActivity extends BaseActivity {
             DatabaseReference itemsRef = getBaseRef().child("items");
             
             itemsRef.setValue(updatedItems).addOnSuccessListener(aVoid -> {
-                Toast.makeText(this, "Status deleted", Toast.LENGTH_SHORT).show();
+                String message = isHighlight ? getString(R.string.removed_from_highlight) : getString(R.string.status_deleted);
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
                 if (updatedItems.isEmpty()) {
+                    if (isHighlight) {
+                        getBaseRef().removeValue();
+                    }
                     finish();
                 } else {
                     // The value listener will trigger updateUI
@@ -425,6 +495,7 @@ public class ViewStatusActivity extends BaseActivity {
                     Status updatedStatus = snapshot.getValue(Status.class);
                     if (updatedStatus != null && !isFinishing() && !isDestroyed()) {
                         status = updatedStatus;
+                        isStatusLoadedFromDb = true;
                         sortItems();
                         updateUI();
                     }
@@ -438,7 +509,7 @@ public class ViewStatusActivity extends BaseActivity {
     }
 
     private void recordView() {
-        if (currentUserId == null || status == null || statusItems.isEmpty() || currentIndex >= statusItems.size()) return;
+        if (currentUserId == null || status == null || statusItems.isEmpty() || currentIndex >= statusItems.size() || !isStatusLoadedFromDb) return;
         
         Status.StatusItem item = statusItems.get(currentIndex);
         int dbIndex = -1;
@@ -480,7 +551,7 @@ public class ViewStatusActivity extends BaseActivity {
     }
 
     private void toggleLike() {
-        if (currentUserId == null || status == null || statusItems.isEmpty()) return;
+        if (currentUserId == null || status == null || statusItems.isEmpty() || !isStatusLoadedFromDb) return;
         
         Status.StatusItem item = statusItems.get(currentIndex);
         int dbIndex = -1;
@@ -621,6 +692,36 @@ public class ViewStatusActivity extends BaseActivity {
             btnLike.setImageResource(isLiked ? R.drawable.ic_heart_filled : R.drawable.ic_heart_outline);
             btnLike.setColorFilter(isLiked ? 0xFFFF4444 : 0xFFFFFFFF); // Red if liked, white if not
         }
+
+        if (highlightedItemIds.contains(item.getId())) {
+            ivHighlightedStar.setVisibility(View.VISIBLE);
+        } else {
+            ivHighlightedStar.setVisibility(View.GONE);
+        }
+    }
+
+    private void loadHighlightedIds() {
+        FirebaseDatabase.getInstance().getReference("highlights").child(status.getUserId())
+                .addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        highlightedItemIds.clear();
+                        for (DataSnapshot ds : snapshot.getChildren()) {
+                            Highlight h = ds.getValue(Highlight.class);
+                            if (h != null && h.getItems() != null) {
+                                for (Status.StatusItem si : h.getItems()) {
+                                    highlightedItemIds.add(si.getId());
+                                }
+                            }
+                        }
+                        if (!isFinishing() && !isDestroyed()) {
+                            updateUI();
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {}
+                });
     }
 
     private void loadMedia(Status.StatusItem item) {
@@ -691,7 +792,13 @@ public class ViewStatusActivity extends BaseActivity {
         } else {
             statusImageView.setVisibility(View.VISIBLE);
             statusTextView.setVisibility(View.GONE);
-            Glide.with(this).load(path).into(statusImageView);
+            Glide.with(this)
+                    .load(path)
+                    .apply(new RequestOptions()
+                            .diskCacheStrategy(DiskCacheStrategy.ALL)
+                            .placeholder(android.R.color.black)
+                            .error(android.R.color.black))
+                    .into(statusImageView);
             duration = 5000;
             showContent();
         }
