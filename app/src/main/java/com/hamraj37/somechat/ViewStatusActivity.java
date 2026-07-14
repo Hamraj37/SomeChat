@@ -673,11 +673,18 @@ public class ViewStatusActivity extends BaseActivity {
         if (currentlyShowingId == null || !currentlyShowingId.equals(item.getId())) {
             currentlyShowingId = item.getId();
             
+            handler.removeCallbacksAndMessages(null);
+            
             statusVideoView.stopPlayback();
             statusVideoView.setVisibility(View.GONE);
             statusImageView.setVisibility(View.GONE);
             statusTextView.setVisibility(View.GONE);
             videoLoadingProgress.setVisibility(View.GONE);
+
+            // Reset current progress bar
+            if (currentIndex < progressBars.size()) {
+                progressBars.get(currentIndex).setProgress(0);
+            }
 
             if ("text".equals(item.getType())) {
                 statusTextView.setVisibility(View.VISIBLE);
@@ -860,7 +867,21 @@ public class ViewStatusActivity extends BaseActivity {
     private File getLocalFile(Status.StatusItem item) {
         String extension = item.getType().equals("video") ? ".mp4" : ".jpg";
         String fileName = "status_" + item.getId() + extension;
-        return new File(getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS), fileName);
+        
+        File mediaDir;
+        File[] mediaDirs = getExternalMediaDirs();
+        if (mediaDirs != null && mediaDirs.length > 0 && mediaDirs[0] != null) {
+            mediaDir = mediaDirs[0];
+        } else {
+            mediaDir = getExternalFilesDir(null);
+        }
+        
+        File statusDir = new File(mediaDir, ".status");
+        if (!statusDir.exists()) {
+            statusDir.mkdirs();
+        }
+        
+        return new File(statusDir, fileName);
     }
 
 
