@@ -11,6 +11,7 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.bumptech.glide.Glide;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserProfileChangeRequest;
@@ -18,10 +19,13 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.hamraj37.somechat.adapters.HighlightAdapter;
 import com.hamraj37.somechat.adapters.MediaAdapter;
 import com.hamraj37.somechat.adapters.PinnedMessagesAdapter;
 import com.hamraj37.somechat.databinding.ActivityProfileInfoBinding;
+import com.hamraj37.somechat.models.Highlight;
 import com.hamraj37.somechat.models.Message;
+import com.hamraj37.somechat.models.Status;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,6 +42,8 @@ public class ProfileInfoActivity extends BaseActivity {
     private List<Message> pinnedMessagesList = new ArrayList<>();
     private PinnedMessagesAdapter pinnedAdapter;
     private String otherUserName;
+    private List<Highlight> highlightList = new ArrayList<>();
+    private HighlightAdapter highlightAdapter;
 
     private final androidx.activity.result.ActivityResultLauncher<String> pickImageLauncher =
             registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.GetContent(),
@@ -83,6 +89,7 @@ public class ProfileInfoActivity extends BaseActivity {
         loadUserProfile();
         setupClickListeners();
         setupLongClickListeners();
+        setupHighlightsRecyclerView();
 
         if (!isOwnProfile) {
             setupMediaRecyclerView();
@@ -106,6 +113,63 @@ public class ProfileInfoActivity extends BaseActivity {
             finish();
         });
         binding.pinnedMessagesRecycler.setAdapter(pinnedAdapter);
+    }
+
+    private void setupHighlightsRecyclerView() {
+        highlightAdapter = new HighlightAdapter(highlightList, new HighlightAdapter.OnHighlightClickListener() {
+            @Override
+            public void onHighlightClick(Highlight highlight) {
+                // Create a temporary Status object to reuse ViewStatusActivity
+                Status status = new Status();
+                status.setUserId(highlight.getUserId());
+                status.setUserName(binding.profileName.getText().toString());
+                status.setItems(highlight.getItems());
+                status.setStatusId(highlight.getHighlightId());
+                
+                Intent intent = new Intent(ProfileInfoActivity.this, ViewStatusActivity.class);
+                intent.putExtra("status", status);
+                intent.putExtra("is_highlight", true);
+                startActivity(intent);
+            }
+
+            @Override
+            public void onHighlightLongClick(Highlight highlight) {
+                if (isOwnProfile) {
+                    new MaterialAlertDialogBuilder(ProfileInfoActivity.this)
+                            .setTitle("Delete Highlight")
+                            .setMessage("Are you sure you want to delete this highlight?")
+                            .setPositiveButton("Delete", (dialog, which) -> {
+                                FirebaseDatabase.getInstance().getReference("highlights")
+                                        .child(targetUid)
+                                        .child(highlight.getHighlightId())
+                                        .removeValue();
+                            })
+                            .setNegativeButton("Cancel", null)
+                            .show();
+                }
+            }
+        });
+        binding.highlightsRecycler.setAdapter(highlightAdapter);
+        loadHighlights();
+    }
+
+    private void loadHighlights() {
+        FirebaseDatabase.getInstance().getReference("highlights").child(targetUid)
+                .addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        highlightList.clear();
+                        for (DataSnapshot ds : snapshot.getChildren()) {
+                            Highlight h = ds.getValue(Highlight.class);
+                            if (h != null) highlightList.add(h);
+                        }
+                        highlightAdapter.notifyDataSetChanged();
+                        binding.highlightsRecycler.setVisibility(highlightList.isEmpty() ? android.view.View.GONE : android.view.View.VISIBLE);
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {}
+                });
     }
 
     private void setupMediaRecyclerView() {

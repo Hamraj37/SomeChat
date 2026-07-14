@@ -26,6 +26,9 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.hamraj37.somechat.models.Message;
+import com.hamraj37.somechat.models.Highlight;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import java.util.UUID;
 import com.hamraj37.somechat.models.Status;
 
 import java.io.File;
@@ -68,6 +71,7 @@ public class ViewStatusActivity extends BaseActivity {
     private DatabaseReference statusListenerRef;
     private ValueEventListener statusListener;
     private GestureDetector gestureDetector;
+    private boolean isHighlight = false;
 
     private static final int[] BG_COLORS = {
         0xFFE91E63, 0xFF9C27B0, 0xFF673AB7, 0xFF3F51B5, 0xFF2196F3,
@@ -88,6 +92,7 @@ public class ViewStatusActivity extends BaseActivity {
             finish();
             return;
         }
+        isHighlight = getIntent().getBooleanExtra("is_highlight", false);
 
         sortItems();
 
@@ -208,6 +213,7 @@ public class ViewStatusActivity extends BaseActivity {
         android.widget.PopupMenu popupMenu = new android.widget.PopupMenu(this, v);
         
         if (currentUserId != null && currentUserId.equals(status.getUserId())) {
+            popupMenu.getMenu().add("Add to Highlight");
             popupMenu.getMenu().add("Delete");
         } else {
             popupMenu.getMenu().add("Report");
@@ -218,6 +224,8 @@ public class ViewStatusActivity extends BaseActivity {
             String title = item.getTitle().toString();
             if ("Delete".equals(title)) {
                 deleteCurrentStatus();
+            } else if ("Add to Highlight".equals(title)) {
+                showAddToHighlightDialog();
             } else if ("Report".equals(title)) {
                 android.widget.Toast.makeText(this, "Status reported", android.widget.Toast.LENGTH_SHORT).show();
             }
@@ -225,6 +233,96 @@ public class ViewStatusActivity extends BaseActivity {
         });
         popupMenu.setOnDismissListener(menu -> resumeStatus());
         popupMenu.show();
+    }
+
+    private void showAddToHighlightDialog() {
+        FirebaseDatabase.getInstance().getReference("highlights").child(currentUserId)
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        List<Highlight> existingHighlights = new ArrayList<>();
+                        List<String> highlightNames = new ArrayList<>();
+                        highlightNames.add("+ New Highlight");
+
+                        for (DataSnapshot ds : snapshot.getChildren()) {
+                            Highlight h = ds.getValue(Highlight.class);
+                            if (h != null) {
+                                existingHighlights.add(h);
+                                highlightNames.add(h.getTitle());
+                            }
+                        }
+
+                        new MaterialAlertDialogBuilder(ViewStatusActivity.this)
+                                .setTitle("Add to Highlight")
+                                .setItems(highlightNames.toArray(new String[0]), (dialog, which) -> {
+                                    if (which == 0) {
+                                        showCreateHighlightDialog();
+                                    } else {
+                                        addToExistingHighlight(existingHighlights.get(which - 1));
+                                    }
+                                })
+                                .setOnDismissListener(d -> resumeStatus())
+                                .show();
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        resumeStatus();
+                    }
+                });
+    }
+
+    private void showCreateHighlightDialog() {
+        EditText input = new EditText(this);
+        input.setHint("Highlight Name");
+        int padding = (int) (16 * getResources().getDisplayMetrics().density);
+        android.widget.FrameLayout container = new android.widget.FrameLayout(this);
+        container.addView(input);
+        input.setPadding(padding, padding, padding, padding);
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("New Highlight")
+                .setView(container)
+                .setPositiveButton("Create", (dialog, which) -> {
+                    String name = input.getText().toString().trim();
+                    if (!name.isEmpty()) {
+                        createNewHighlight(name);
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void createNewHighlight(String title) {
+        String highlightId = UUID.randomUUID().toString();
+        Status.StatusItem currentItem = statusItems.get(currentIndex);
+        Highlight highlight = new Highlight(highlightId, currentUserId, title, currentItem.getMediaUrl());
+        highlight.getItems().add(currentItem);
+
+        FirebaseDatabase.getInstance().getReference("highlights")
+                .child(currentUserId)
+                .child(highlightId)
+                .setValue(highlight)
+                .addOnSuccessListener(aVoid -> Toast.makeText(this, "Added to " + title, Toast.LENGTH_SHORT).show());
+    }
+
+    private void addToExistingHighlight(Highlight highlight) {
+        Status.StatusItem currentItem = statusItems.get(currentIndex);
+        
+        // Check if item already exists in highlight
+        for (Status.StatusItem item : highlight.getItems()) {
+            if (item.getId().equals(currentItem.getId())) {
+                Toast.makeText(this, "Already in " + highlight.getTitle(), Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
+
+        highlight.getItems().add(currentItem);
+        FirebaseDatabase.getInstance().getReference("highlights")
+                .child(currentUserId)
+                .child(highlight.getHighlightId())
+                .setValue(highlight)
+                .addOnSuccessListener(aVoid -> Toast.makeText(this, "Added to " + highlight.getTitle(), Toast.LENGTH_SHORT).show());
     }
 
     private void deleteCurrentStatus() {
@@ -248,9 +346,7 @@ public class ViewStatusActivity extends BaseActivity {
             List<Status.StatusItem> updatedItems = new ArrayList<>(status.getItems());
             updatedItems.remove(originalIndex);
             
-            DatabaseReference itemsRef = FirebaseDatabase.getInstance().getReference("statuses")
-                    .child(status.getUserId())
-                    .child("items");
+            DatabaseReference itemsRef = getBaseRef().child("items");
             
             itemsRef.setValue(updatedItems).addOnSuccessListener(aVoid -> {
                 Toast.makeText(this, "Status deleted", Toast.LENGTH_SHORT).show();
@@ -302,16 +398,36 @@ public class ViewStatusActivity extends BaseActivity {
         }
     }
 
+    private DatabaseReference getBaseRef() {
+        if (isHighlight) {
+            return FirebaseDatabase.getInstance().getReference("highlights")
+                    .child(status.getUserId())
+                    .child(status.getStatusId());
+        } else {
+            return FirebaseDatabase.getInstance().getReference("statuses")
+                    .child(status.getUserId());
+        }
+    }
+
     private void setupStatusListener() {
-        statusListenerRef = FirebaseDatabase.getInstance().getReference("statuses").child(status.getUserId());
+        statusListenerRef = getBaseRef();
         statusListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                Status updatedStatus = snapshot.getValue(Status.class);
-                if (updatedStatus != null && !isFinishing() && !isDestroyed()) {
-                    status = updatedStatus;
-                    sortItems();
-                    updateUI(); // Refresh UI with new counts/likes
+                if (isHighlight) {
+                    Highlight updatedHighlight = snapshot.getValue(Highlight.class);
+                    if (updatedHighlight != null && !isFinishing() && !isDestroyed()) {
+                        status.setItems(updatedHighlight.getItems());
+                        sortItems();
+                        updateUI();
+                    }
+                } else {
+                    Status updatedStatus = snapshot.getValue(Status.class);
+                    if (updatedStatus != null && !isFinishing() && !isDestroyed()) {
+                        status = updatedStatus;
+                        sortItems();
+                        updateUI();
+                    }
                 }
             }
 
@@ -336,8 +452,7 @@ public class ViewStatusActivity extends BaseActivity {
         }
         
         if (dbIndex != -1) {
-            DatabaseReference viewsRef = FirebaseDatabase.getInstance().getReference("statuses")
-                    .child(status.getUserId())
+            DatabaseReference viewsRef = getBaseRef()
                     .child("items")
                     .child(String.valueOf(dbIndex)) 
                     .child("views");
@@ -380,8 +495,7 @@ public class ViewStatusActivity extends BaseActivity {
 
         if (dbIndex == -1) return;
 
-        DatabaseReference likeRef = FirebaseDatabase.getInstance().getReference("statuses")
-                .child(status.getUserId())
+        DatabaseReference likeRef = getBaseRef()
                 .child("items")
                 .child(String.valueOf(dbIndex))
                 .child("likes")

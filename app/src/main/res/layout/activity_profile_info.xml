@@ -161,6 +161,19 @@
 
             </com.google.android.material.card.MaterialCardView>
 
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/highlights_recycler"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal"
+                android:clipToPadding="false"
+                android:paddingHorizontal="4dp"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                tools:listitem="@layout/item_highlight"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
             <com.google.android.material.progressindicator.LinearProgressIndicator
                 android:id="@+id/upload_progress"
                 android:layout_width="match_parent"
