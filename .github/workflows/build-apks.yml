@@ -35,14 +35,15 @@ jobs:
         SAMECHAT_GH_TOKEN: ${{ secrets.SAMECHAT_GH_TOKEN }}
       run: ./gradlew assembleDebug assembleRelease
 
-    - name: Upload Debug APK
+    - name: Upload APKs
+      id: upload-apks
       uses: actions/upload-artifact@v4
       with:
-        name: debug-apk
-        path: app/build/outputs/apk/debug/*.apk
+        name: somechat-apks
+        path: app/build/outputs/apk/**/*.apk
 
-    - name: Upload Release APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: release-apk
-        path: app/build/outputs/apk/release/*.apk
+    - name: Display Artifact URL
+      run: |
+        echo "### Build Artifacts 📦" >> $GITHUB_STEP_SUMMARY
+        echo "The APKs have been successfully built and are available for download:" >> $GITHUB_STEP_SUMMARY
+        echo "* [Download SomeChat APKs](${{ steps.upload-apks.outputs.artifact-url }})" >> $GITHUB_STEP_SUMMARY
