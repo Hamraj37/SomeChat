@@ -740,10 +740,6 @@ public class ProfileInfoActivity extends BaseActivity {
 
                                 if (isOwnProfile) {
                                     binding.profileBio.setOnClickListener(v -> showEditBioDialog());
-                                    binding.editBioIcon.setVisibility(android.view.View.VISIBLE);
-                                    binding.editBioIcon.setOnClickListener(v -> showEditBioDialog());
-                                } else {
-                                    binding.editBioIcon.setVisibility(android.view.View.GONE);
                                 }
 
                                 if (isOwnProfile && email != null) {

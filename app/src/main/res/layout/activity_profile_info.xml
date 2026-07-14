@@ -35,9 +35,9 @@
                     <com.google.android.material.imageview.ShapeableImageView
                         android:id="@+id/cover_image"
                         android:layout_width="match_parent"
-                        android:layout_height="140dp"
-                        android:scaleType="centerCrop"
+                        android:layout_height="206dp"
                         android:background="?attr/colorPrimaryContainer"
+                        android:scaleType="centerCrop"
                         app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.MediumComponent" />
 
                     <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -144,37 +144,16 @@
                             android:alpha="0.7"
                             tools:text="user@example.com" />
 
-                        <LinearLayout
+                        <TextView
+                            android:id="@+id/profile_bio"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical">
-
-                            <TextView
-                                android:id="@+id/profile_bio"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:textAppearance="?attr/textAppearanceBodyLarge"
-                                android:textColor="?attr/colorOnPrimaryContainer"
-                                android:alpha="0.9"
-                                android:lineSpacingExtra="2dp"
-                                tools:text="This is my bio. I love chatting with friends on SomeChat!" />
-
-                            <ImageView
-                                android:id="@+id/edit_bio_icon"
-                                android:layout_width="20dp"
-                                android:layout_height="20dp"
-                                android:layout_marginStart="8dp"
-                                android:src="@drawable/ic_settings_black_24dp"
-                                app:tint="?attr/colorOnPrimaryContainer"
-                                android:alpha="0.5"
-                                android:visibility="gone"
-                                tools:visibility="visible"
-                                android:contentDescription="@string/edit_bio" />
-
-                        </LinearLayout>
+                            android:textAppearance="?attr/textAppearanceBodyLarge"
+                            android:textColor="?attr/colorOnPrimaryContainer"
+                            android:alpha="0.9"
+                            android:lineSpacingExtra="2dp"
+                            tools:text="This is my bio. I love chatting with friends on SomeChat!" />
 
                     </LinearLayout>
 
