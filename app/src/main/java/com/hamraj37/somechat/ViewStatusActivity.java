@@ -8,6 +8,9 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+
 import com.bumptech.glide.Glide;
 import com.hamraj37.somechat.models.Status;
 
@@ -42,6 +45,10 @@ public class ViewStatusActivity extends BaseActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // Enable edge-to-edge
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        
         setContentView(R.layout.activity_view_status);
 
         status = (Status) getIntent().getSerializableExtra("status");
@@ -56,6 +63,16 @@ public class ViewStatusActivity extends BaseActivity {
         userNameText = findViewById(R.id.status_user_name);
         statusTimeText = findViewById(R.id.status_time);
         progressContainer = findViewById(R.id.progress_container);
+
+        // Adjust top UI elements to avoid status bar/notch
+        View topUiContainer = findViewById(R.id.top_ui_container);
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.root_layout), (v, insets) -> {
+            androidx.core.graphics.Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            if (topUiContainer != null) {
+                topUiContainer.setPadding(0, systemBars.top, 0, 0);
+            }
+            return insets;
+        });
 
         setupProgressBars();
         updateUI();
