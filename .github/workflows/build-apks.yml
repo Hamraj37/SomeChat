@@ -46,4 +46,4 @@ jobs:
       run: |
         echo "### Build Artifacts 📦" >> $GITHUB_STEP_SUMMARY
         echo "The APKs have been successfully built and are available for download:" >> $GITHUB_STEP_SUMMARY
-        echo "* [Download SomeChat APKs](${{ steps.upload-apks.outputs.artifact-url }})" >> $GITHUB_STEP_SUMMARY
+        echo "* [Download SomeChat APKs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)" >> $GITHUB_STEP_SUMMARY
