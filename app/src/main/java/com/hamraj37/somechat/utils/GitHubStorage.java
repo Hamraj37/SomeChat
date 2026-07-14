@@ -152,6 +152,44 @@ public class GitHubStorage {
         client.newCall(request).enqueue(callback);
     }
 
+    public static void downloadToFile(String url, File destination, UploadCallback callback) {
+        Request request = new Request.Builder().url(url).build();
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                callback.onFailure(e);
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    callback.onFailure(new IOException("Download failed: " + response.code()));
+                    return;
+                }
+
+                try (Response res = response) {
+                    long totalBytes = res.body().contentLength();
+                    try (java.io.InputStream is = res.body().byteStream();
+                         java.io.FileOutputStream fos = new java.io.FileOutputStream(destination)) {
+                        byte[] buffer = new byte[8192];
+                        int bytesRead;
+                        long totalRead = 0;
+                        while ((bytesRead = is.read(buffer)) != -1) {
+                            fos.write(buffer, 0, bytesRead);
+                            totalRead += bytesRead;
+                            if (totalBytes > 0) {
+                                callback.onProgress((int) ((totalRead * 100) / totalBytes));
+                            }
+                        }
+                        callback.onSuccess(destination.getAbsolutePath());
+                    }
+                } catch (Exception e) {
+                    callback.onFailure(e);
+                }
+            }
+        });
+    }
+
     private static class ProgressRequestBody extends RequestBody {
         private final RequestBody delegate;
         private final UploadCallback callback;

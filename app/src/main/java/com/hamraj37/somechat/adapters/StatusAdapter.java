@@ -21,14 +21,16 @@ import java.util.Locale;
 public class StatusAdapter extends RecyclerView.Adapter<StatusAdapter.StatusViewHolder> {
 
     private List<Status> statusList;
+    private String currentUserId;
     private OnStatusClickListener listener;
 
     public interface OnStatusClickListener {
         void onStatusClick(Status status);
     }
 
-    public StatusAdapter(List<Status> statusList, OnStatusClickListener listener) {
+    public StatusAdapter(List<Status> statusList, String currentUserId, OnStatusClickListener listener) {
         this.statusList = statusList;
+        this.currentUserId = currentUserId;
         this.listener = listener;
     }
 
@@ -53,6 +55,25 @@ public class StatusAdapter extends RecyclerView.Adapter<StatusAdapter.StatusView
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) listener.onStatusClick(status);
         });
+
+        // Set ring color based on unseen status
+        boolean hasUnseen = false;
+        if (status.getItems() != null) {
+            for (Status.StatusItem item : status.getItems()) {
+                if (item.getViews() == null || !item.getViews().containsKey(currentUserId)) {
+                    hasUnseen = true;
+                    break;
+                }
+            }
+        }
+
+        if (hasUnseen) {
+            holder.userImage.setStrokeColorResource(R.color.whatsapp_green);
+            holder.userImage.setStrokeWidth(4);
+        } else {
+            holder.userImage.setStrokeColorResource(android.R.color.darker_gray);
+            holder.userImage.setStrokeWidth(1);
+        }
     }
 
     @Override

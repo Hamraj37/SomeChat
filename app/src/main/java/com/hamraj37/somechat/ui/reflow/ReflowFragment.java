@@ -65,11 +65,11 @@ public class ReflowFragment extends Fragment {
                 intent.putExtra("status", myStatus);
                 startActivity(intent);
             } else {
-                pickStatusLauncher.launch("image/*");
+                pickStatusLauncher.launch("*/*");
             }
         });
 
-        binding.fabAddStatus.setOnClickListener(v -> pickStatusLauncher.launch("image/*"));
+        binding.fabAddStatus.setOnClickListener(v -> pickStatusLauncher.launch("*/*"));
 
         binding.fabTextStatus.setOnClickListener(v -> showTextStatusDialog());
 
@@ -77,7 +77,7 @@ public class ReflowFragment extends Fragment {
     }
 
     private void setupRecyclerView() {
-        adapter = new StatusAdapter(statusList, status -> {
+        adapter = new StatusAdapter(statusList, currentUserId, status -> {
             Intent intent = new Intent(getContext(), com.hamraj37.somechat.ViewStatusActivity.class);
             intent.putExtra("status", status);
             startActivity(intent);
@@ -134,6 +134,18 @@ public class ReflowFragment extends Fragment {
                                         }
                                     }
                                 }
+
+                                // Sort statusList: Unseen first, then by timestamp
+                                statusList.sort((s1, s2) -> {
+                                    boolean s1Unseen = hasUnseenItems(s1);
+                                    boolean s2Unseen = hasUnseenItems(s2);
+
+                                    if (s1Unseen != s2Unseen) {
+                                        return s1Unseen ? -1 : 1;
+                                    }
+                                    return Long.compare(s2.getLastUpdated(), s1.getLastUpdated());
+                                });
+
                                 updateMyStatusUI();
                                 adapter.notifyDataSetChanged();
                                 binding.noStatusText.setVisibility(statusList.isEmpty() ? View.VISIBLE : View.GONE);
@@ -149,18 +161,43 @@ public class ReflowFragment extends Fragment {
                 });
     }
 
+    private boolean hasUnseenItems(Status status) {
+        if (status.getItems() == null) return false;
+        for (Status.StatusItem item : status.getItems()) {
+            if (item.getViews() == null || !item.getViews().containsKey(currentUserId)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void updateMyStatusUI() {
         if (myStatus != null && !myStatus.getItems().isEmpty()) {
-            Status.StatusItem lastItem = myStatus.getItems().get(myStatus.getItems().size() - 1);
-            Glide.with(this).load(lastItem.getMediaUrl()).circleCrop().into(binding.myStatusImage);
+            List<Status.StatusItem> sortedItems = new ArrayList<>(myStatus.getItems());
+            sortedItems.sort((i1, i2) -> Long.compare(i1.getTimestamp(), i2.getTimestamp()));
+            
+            Status.StatusItem lastItem = sortedItems.get(sortedItems.size() - 1);
+            if (getContext() != null) {
+                Glide.with(this).load(lastItem.getMediaUrl()).circleCrop().into(binding.myStatusImage);
+            }
             
             SimpleDateFormat sdf = new SimpleDateFormat("h:mm a", Locale.getDefault());
             binding.myStatusTime.setText(sdf.format(new Date(lastItem.getTimestamp())));
             binding.addStatusIcon.setVisibility(View.GONE);
+
+            // Set ring color based on unseen
+            if (hasUnseenItems(myStatus)) {
+                binding.myStatusImage.setStrokeColorResource(R.color.whatsapp_green);
+                binding.myStatusImage.setStrokeWidth(4);
+            } else {
+                binding.myStatusImage.setStrokeColorResource(android.R.color.darker_gray);
+                binding.myStatusImage.setStrokeWidth(1);
+            }
         } else {
             binding.myStatusImage.setImageResource(R.mipmap.ic_launcher_round);
             binding.myStatusTime.setText("Tap to add status update");
             binding.addStatusIcon.setVisibility(View.VISIBLE);
+            binding.myStatusImage.setStrokeWidth(0);
         }
     }
 
@@ -192,29 +229,57 @@ public class ReflowFragment extends Fragment {
     }
 
     private void uploadStatus(Uri uri) {
-        Toast.makeText(getContext(), "Uploading status...", Toast.LENGTH_SHORT).show();
+        String mimeType = getContext().getContentResolver().getType(uri);
+        String type = (mimeType != null && mimeType.startsWith("video")) ? "video" : "image";
+        String extension = type.equals("video") ? ".mp4" : ".jpg";
+
+        com.google.android.material.progressindicator.LinearProgressIndicator progressIndicator = new com.google.android.material.progressindicator.LinearProgressIndicator(getContext());
+        progressIndicator.setIndeterminate(false);
+        progressIndicator.setMax(100);
+        
+        androidx.appcompat.app.AlertDialog progressDialog = new com.google.android.material.dialog.MaterialAlertDialogBuilder(getContext())
+                .setTitle("Uploading " + type)
+                .setMessage("Please wait...")
+                .setView(progressIndicator)
+                .setCancelable(false)
+                .show();
+
         try {
             java.io.InputStream is = getContext().getContentResolver().openInputStream(uri);
+            if (is == null) {
+                progressDialog.dismiss();
+                return;
+            }
             byte[] bytes = new byte[is.available()];
             is.read(bytes);
             is.close();
 
-            String fileName = currentUserId + "_" + System.currentTimeMillis() + ".jpg";
+            String fileName = currentUserId + "_" + System.currentTimeMillis() + extension;
             GitHubStorage.uploadBytes(bytes, "statuses", fileName, new GitHubStorage.UploadCallback() {
                 @Override
                 public void onSuccess(String downloadUrl) {
-                    saveStatusToFirebase(downloadUrl, "image", "");
+                    progressDialog.dismiss();
+                    saveStatusToFirebase(downloadUrl, type, "");
                 }
 
                 @Override
-                public void onProgress(int progress) {}
+                public void onProgress(int progress) {
+                    if (getActivity() != null) {
+                        getActivity().runOnUiThread(() -> {
+                            progressIndicator.setProgress(progress);
+                            progressDialog.setMessage("Uploading: " + progress + "%");
+                        });
+                    }
+                }
 
                 @Override
                 public void onFailure(Exception e) {
+                    progressDialog.dismiss();
                     Toast.makeText(getContext(), "Failed to upload status", Toast.LENGTH_SHORT).show();
                 }
             });
         } catch (Exception e) {
+            progressDialog.dismiss();
             e.printStackTrace();
         }
     }

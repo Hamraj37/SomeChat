@@ -47,6 +47,7 @@ public class Status implements Serializable {
         private long timestamp;
         private String caption;
         private java.util.Map<String, Long> views; // userId -> timestamp
+        private java.util.Map<String, Boolean> likes; // userId -> true
 
         public StatusItem() {}
 
@@ -75,5 +76,8 @@ public class Status implements Serializable {
 
         public java.util.Map<String, Long> getViews() { return views; }
         public void setViews(java.util.Map<String, Long> views) { this.views = views; }
+
+        public java.util.Map<String, Boolean> getLikes() { return likes; }
+        public void setLikes(java.util.Map<String, Boolean> likes) { this.likes = likes; }
     }
 }

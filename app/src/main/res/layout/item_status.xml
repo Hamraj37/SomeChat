@@ -11,8 +11,9 @@
 
     <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/status_user_image"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:padding="3dp"
         android:scaleType="centerCrop"
         android:src="@mipmap/ic_launcher_round"
         app:shapeAppearanceOverlay="@style/CircleAppearance"

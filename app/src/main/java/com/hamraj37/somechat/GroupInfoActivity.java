@@ -287,7 +287,7 @@ public class GroupInfoActivity extends BaseActivity {
     }
 
     private void updateUI() {
-        if (group == null) return;
+        if (group == null || isFinishing() || isDestroyed()) return;
         
         groupNameTitle.setText(group.getGroupName());
         if (group.getGroupAvatar() != null && !group.getGroupAvatar().isEmpty()) {
