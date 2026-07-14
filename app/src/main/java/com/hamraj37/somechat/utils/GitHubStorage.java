@@ -172,7 +172,7 @@ public class GitHubStorage {
                      java.io.InputStream is = res.body().byteStream();
                      java.io.FileOutputStream fos = new java.io.FileOutputStream(destination)) {
                     long totalBytes = res.body().contentLength();
-                    byte[] buffer = new byte[8192];
+                    byte[] buffer = new byte[65536]; // 64KB buffer for faster download
                     int bytesRead;
                     long totalRead = 0;
                     while ((bytesRead = is.read(buffer)) != -1) {

@@ -182,6 +182,11 @@ public class ViewStatusActivity extends BaseActivity {
         setupProgressBars();
         setupReplyListeners();
         setupGestureDetector();
+        
+        // Preload first few items
+        preloadMedia(0);
+        preloadMedia(1);
+        
         updateUI();
 
         findViewById(R.id.btn_close).setOnClickListener(v -> finish());
@@ -716,6 +721,47 @@ public class ViewStatusActivity extends BaseActivity {
         } else {
             ivHighlightedStar.setVisibility(View.GONE);
         }
+
+        // Preload next items
+        preloadMedia(currentIndex + 1);
+        preloadMedia(currentIndex + 2);
+    }
+
+    private final java.util.Set<String> preloadingIds = new java.util.HashSet<>();
+
+    private void preloadMedia(int index) {
+        if (index < 0 || index >= statusItems.size()) return;
+        Status.StatusItem item = statusItems.get(index);
+        
+        if ("text".equals(item.getType())) return;
+
+        if ("image".equals(item.getType())) {
+            // Preload image with Glide
+            Glide.with(this).load(item.getMediaUrl()).preload();
+            return;
+        }
+
+        File localFile = getLocalFile(item);
+        if (localFile.exists() || preloadingIds.contains(item.getId())) return;
+
+        preloadingIds.add(item.getId());
+        com.hamraj37.somechat.utils.GitHubStorage.downloadToFile(item.getMediaUrl(), localFile, new com.hamraj37.somechat.utils.GitHubStorage.UploadCallback() {
+            @Override
+            public void onSuccess(String path) {
+                preloadingIds.remove(item.getId());
+                // If we finished downloading the one we are currently trying to show
+                runOnUiThread(() -> {
+                    if (item.getId().equals(currentlyShowingId) && !isFinishing() && !isDestroyed()) {
+                        displayMedia(path, "video");
+                    }
+                });
+            }
+            @Override public void onProgress(int progress) {}
+            @Override
+            public void onFailure(Exception e) {
+                preloadingIds.remove(item.getId());
+            }
+        });
     }
 
     private void loadHighlightedIds() {
@@ -743,42 +789,17 @@ public class ViewStatusActivity extends BaseActivity {
     }
 
     private void loadMedia(Status.StatusItem item) {
-        String url = item.getMediaUrl();
-        
         if ("image".equals(item.getType())) {
-            displayMedia(url, "image");
+            displayMedia(item.getMediaUrl(), "image");
             return;
         }
 
         File localFile = getLocalFile(item);
         if (localFile.exists()) {
-            displayMedia(localFile.getAbsolutePath(), item.getType());
+            displayMedia(localFile.getAbsolutePath(), "video");
         } else {
             videoLoadingProgress.setVisibility(View.VISIBLE);
-            com.hamraj37.somechat.utils.GitHubStorage.downloadToFile(url, localFile, new com.hamraj37.somechat.utils.GitHubStorage.UploadCallback() {
-                @Override
-                public void onSuccess(String path) {
-                    runOnUiThread(() -> {
-                        if (!isFinishing() && !isDestroyed() && item.getId().equals(currentlyShowingId)) {
-                            displayMedia(path, item.getType());
-                        }
-                    });
-                }
-
-                @Override
-                public void onProgress(int progress) {}
-
-                @Override
-                public void onFailure(Exception e) {
-                    runOnUiThread(() -> {
-                        if (!isFinishing() && !isDestroyed() && item.getId().equals(currentlyShowingId)) {
-                            videoLoadingProgress.setVisibility(View.GONE);
-                            Toast.makeText(ViewStatusActivity.this, "Failed to download media", Toast.LENGTH_SHORT).show();
-                            nextStatus();
-                        }
-                    });
-                }
-            });
+            preloadMedia(currentIndex);
         }
     }
 
