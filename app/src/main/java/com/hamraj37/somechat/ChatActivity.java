@@ -992,7 +992,10 @@ public class ChatActivity extends BaseActivity {
             } else {
                 File file = new File(bgPath);
                 if (file.exists()) {
-                    Glide.with(this).load(file).into(bgImage);
+                    Glide.with(this)
+                            .load(file)
+                            .signature(new com.bumptech.glide.signature.ObjectKey(file.lastModified()))
+                            .into(bgImage);
                 }
             }
         }

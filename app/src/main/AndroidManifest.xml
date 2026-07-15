@@ -126,6 +126,11 @@
             android:exported="false"
             android:label="Chat Background"
             android:theme="@style/Theme.SomeChat.NoActionBar" />
+        <activity
+            android:name=".ui.settings.CreateThemeActivity"
+            android:exported="false"
+            android:label="Create Theme"
+            android:theme="@style/Theme.SomeChat.NoActionBar" />
         <service
             android:name=".services.CallService"
             android:enabled="true"

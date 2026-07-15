@@ -12,6 +12,7 @@ import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.hamraj37.somechat.BaseActivity;
+import com.hamraj37.somechat.R;
 import com.hamraj37.somechat.databinding.ActivitySettingsBinding;
 
 import java.util.concurrent.Executor;
@@ -42,11 +43,44 @@ public class SettingsActivity extends BaseActivity {
 
         setupBiometricLock();
         setupChatBackground();
+        setupRestoreTheme();
+    }
+
+    private void setupRestoreTheme() {
+        binding.btnRestoreTheme.setOnClickListener(v -> new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.restore_default_theme)
+                .setMessage("This will reset your chat background and bubble colors. Are you sure?")
+                .setPositiveButton("Restore", (dialog, which) -> {
+                    prefs.edit()
+                            .remove("chat_background_path")
+                            .remove("theme_sent_color")
+                            .remove("theme_received_color")
+                            .remove("theme_sent_text_color")
+                            .remove("theme_received_text_color")
+                            .apply();
+
+                    // Delete custom background file if exists
+                    java.io.File file = new java.io.File(getFilesDir(), "chat_background.jpg");
+                    if (file.exists()) {
+                        if (!file.delete()) {
+                            android.util.Log.e("SettingsActivity", "Could not delete background file");
+                        }
+                    }
+
+                    Toast.makeText(this, "Theme restored to default", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("Cancel", null)
+                .show());
     }
 
     private void setupChatBackground() {
         binding.btnChatBackground.setOnClickListener(v -> {
             Intent intent = new Intent(this, ChatBackgroundActivity.class);
+            startActivity(intent);
+        });
+        
+        binding.btnCreateTheme.setOnClickListener(v -> {
+            Intent intent = new Intent(this, CreateThemeActivity.class);
             startActivity(intent);
         });
     }

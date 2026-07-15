@@ -65,6 +65,7 @@ public class ChatBackgroundActivity extends BaseActivity {
         loadCurrent();
 
         findViewById(R.id.btn_choose_custom).setOnClickListener(v -> mGetContent.launch("image/*"));
+        findViewById(R.id.btn_emoji_pattern).setOnClickListener(v -> showEmojiInputDialog());
         findViewById(R.id.btn_remove).setOnClickListener(v -> {
             selectedValue = null;
             isCustom = false;
@@ -108,8 +109,144 @@ public class ChatBackgroundActivity extends BaseActivity {
         recyclerView.setAdapter(adapter);
     }
 
+    private void showEmojiInputDialog() {
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setPadding(50, 40, 50, 10);
+
+        android.widget.EditText input = new android.widget.EditText(this);
+        input.setHint("Enter emojis (e.g. 🌸✨🐱)");
+        layout.addView(input);
+
+        android.widget.CheckBox randomCheck = new android.widget.CheckBox(this);
+        randomCheck.setText(R.string.random_positioning);
+        layout.addView(randomCheck);
+
+        android.widget.CheckBox useCurrentCheck = new android.widget.CheckBox(this);
+        useCurrentCheck.setText(R.string.add_to_current);
+        layout.addView(useCurrentCheck);
+
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.emoji_pattern)
+                .setView(layout)
+                .setPositiveButton("Create", (dialog, which) -> {
+                    String emojis = input.getText().toString().trim();
+                    if (!emojis.isEmpty()) {
+                        createEmojiBackground(emojis, randomCheck.isChecked(), useCurrentCheck.isChecked());
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void createEmojiBackground(String emojis, boolean isRandom, boolean useCurrent) {
+        try {
+            int width = 1080;
+            int height = 1920;
+            android.graphics.Bitmap bitmap;
+            
+            if (useCurrent) {
+                bitmap = getCurrentBackgroundBitmap(width, height);
+            } else {
+                bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888);
+            }
+            
+            android.graphics.Canvas canvas = new android.graphics.Canvas(bitmap);
+            
+            if (!useCurrent) {
+                // Background color (matching theme surface)
+                boolean isNight = (getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+                canvas.drawColor(isNight ? android.graphics.Color.parseColor("#121212") : android.graphics.Color.parseColor("#F5F5F5"));
+            }
+
+            android.graphics.Paint paint = new android.graphics.Paint();
+            paint.setTextSize(80);
+            paint.setAntiAlias(true);
+
+            String[] emojiArray = splitEmojis(emojis);
+            java.util.Random random = new java.util.Random();
+
+            if (isRandom) {
+                int count = 60; // Number of emojis to scatter
+                for (int i = 0; i < count; i++) {
+                    float x = random.nextFloat() * width;
+                    float y = random.nextFloat() * height;
+                    float size = 60 + random.nextFloat() * 80; // Random size
+                    paint.setTextSize(size);
+                    paint.setAlpha(150 + random.nextInt(105)); // Random transparency
+                    
+                    canvas.save();
+                    canvas.rotate(random.nextFloat() * 360, x, y); // Random rotation
+                    canvas.drawText(emojiArray[random.nextInt(emojiArray.length)], x, y, paint);
+                    canvas.restore();
+                }
+            } else {
+                float stepX = 200;
+                float stepY = 250;
+                int emojiIndex = 0;
+
+                for (float y = stepY / 2; y < height + stepY; y += stepY) {
+                    boolean offset = ((int) (y / stepY)) % 2 == 0;
+                    for (float x = offset ? 0 : stepX / 2; x < width + stepX; x += stepX) {
+                        canvas.drawText(emojiArray[emojiIndex % emojiArray.length], x, y, paint);
+                        emojiIndex++;
+                    }
+                }
+            }
+
+            File file = new File(getFilesDir(), "chat_background_temp.jpg");
+            try (FileOutputStream out = new FileOutputStream(file)) {
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, out);
+            }
+
+            isCustom = true;
+            selectedValue = file.getAbsolutePath();
+            Glide.with(this)
+                    .load(file)
+                    .signature(new com.bumptech.glide.signature.ObjectKey(System.currentTimeMillis()))
+                    .into(previewBackground);
+
+        } catch (Exception e) {
+            Toast.makeText(this, "Failed to create pattern: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private android.graphics.Bitmap getCurrentBackgroundBitmap(int width, int height) {
+        android.graphics.Bitmap result = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888);
+        android.graphics.Canvas canvas = new android.graphics.Canvas(result);
+        
+        android.graphics.drawable.Drawable drawable = previewBackground.getDrawable();
+        if (drawable != null) {
+            // Draw current drawable onto our new bitmap, scaled
+            drawable.setBounds(0, 0, width, height);
+            drawable.draw(canvas);
+        } else {
+            // Fallback to theme color if no drawable
+            boolean isNight = (getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+            canvas.drawColor(isNight ? android.graphics.Color.parseColor("#121212") : android.graphics.Color.parseColor("#F5F5F5"));
+        }
+        return result;
+    }
+
+    private String[] splitEmojis(String emojis) {
+        java.util.List<String> list = new java.util.ArrayList<>();
+        int i = 0;
+        while (i < emojis.length()) {
+            int cp = emojis.codePointAt(i);
+            int charCount = Character.charCount(cp);
+            list.add(emojis.substring(i, i + charCount));
+            i += charCount;
+        }
+        return list.toArray(new String[0]);
+    }
+
     private void processCustomImage(Uri uri) {
-        try (InputStream inputStream = getContentResolver().openInputStream(uri)) {
+        try {
+            InputStream inputStream = getContentResolver().openInputStream(uri);
+            if (inputStream == null) {
+                Toast.makeText(this, "Could not open image", Toast.LENGTH_SHORT).show();
+                return;
+            }
             File file = new File(getFilesDir(), "chat_background_temp.jpg");
             try (FileOutputStream outputStream = new FileOutputStream(file)) {
                 byte[] buffer = new byte[1024];
@@ -117,10 +254,19 @@ public class ChatBackgroundActivity extends BaseActivity {
                 while ((read = inputStream.read(buffer)) != -1) {
                     outputStream.write(buffer, 0, read);
                 }
+                outputStream.flush();
             }
+            inputStream.close();
+            
             isCustom = true;
             selectedValue = file.getAbsolutePath();
-            Glide.with(this).load(file).into(previewBackground);
+            
+            // Use signature to ensure Glide detects file changes
+            Glide.with(this)
+                    .load(file)
+                    .signature(new com.bumptech.glide.signature.ObjectKey(System.currentTimeMillis()))
+                    .into(previewBackground);
+
         } catch (Exception e) {
             Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }

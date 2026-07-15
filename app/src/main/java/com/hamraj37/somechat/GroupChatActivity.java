@@ -528,7 +528,10 @@ public class GroupChatActivity extends BaseActivity {
             } else {
                 java.io.File file = new java.io.File(bgPath);
                 if (file.exists()) {
-                    com.bumptech.glide.Glide.with(this).load(file).into(bgImage);
+                    com.bumptech.glide.Glide.with(this)
+                            .load(file)
+                            .signature(new com.bumptech.glide.signature.ObjectKey(file.lastModified()))
+                            .into(bgImage);
                 }
             }
         }

@@ -45,6 +45,11 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     private boolean isGroup = false;
     private String highlightMessageId = null;
 
+    private int themeSentColor = -1;
+    private int themeReceivedColor = -1;
+    private int themeSentTextColor = -1;
+    private int themeReceivedTextColor = -1;
+
     public interface OnMessageClickListener {
         void onReplyClick(String messageId);
         void onMessageLongClick(Message message, View view);
@@ -77,6 +82,16 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         super.onAttachedToRecyclerView(recyclerView);
         this.context = recyclerView.getContext();
         updateCurrentUserId();
+        loadThemeColors();
+    }
+
+    private void loadThemeColors() {
+        if (context == null) return;
+        android.content.SharedPreferences prefs = context.getSharedPreferences("app_settings", android.content.Context.MODE_PRIVATE);
+        themeSentColor = prefs.getInt("theme_sent_color", -1);
+        themeReceivedColor = prefs.getInt("theme_received_color", -1);
+        themeSentTextColor = prefs.getInt("theme_sent_text_color", -1);
+        themeReceivedTextColor = prefs.getInt("theme_received_text_color", -1);
     }
 
     public void updateUploadProgress(String messageId, int progress) {
@@ -309,6 +324,8 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             bubble.setActivated(isHighlighted);
         }
 
+        applyBubbleTheme(holder.itemView, isSender);
+
         if (holder instanceof SentMessageViewHolder) {
             ((SentMessageViewHolder) holder).bind(displayMessage);
         } else if (holder instanceof ReceivedMessageViewHolder) {
@@ -330,6 +347,47 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         }
 
         bindReactions(holder.itemView, displayMessage);
+    }
+
+    private void applyBubbleTheme(View itemView, boolean isSent) {
+        int bubbleColor = isSent ? themeSentColor : themeReceivedColor;
+        int textColor = isSent ? themeSentTextColor : themeReceivedTextColor;
+        
+        if (bubbleColor == -1) return;
+
+        com.google.android.material.card.MaterialCardView bubble = null;
+        if (itemView instanceof ViewGroup) {
+            ViewGroup vg = (ViewGroup) itemView;
+            for (int i = 0; i < vg.getChildCount(); i++) {
+                if (vg.getChildAt(i) instanceof com.google.android.material.card.MaterialCardView) {
+                    bubble = (com.google.android.material.card.MaterialCardView) vg.getChildAt(i);
+                    break;
+                }
+            }
+        }
+
+        if (bubble != null) {
+            bubble.setCardBackgroundColor(bubbleColor);
+            
+            if (textColor != -1) {
+                // Apply text color to main message text
+                TextView textMsg = bubble.findViewById(R.id.text_message);
+                if (textMsg != null) textMsg.setTextColor(textColor);
+
+                // Apply to other elements (icons, etc)
+                android.widget.ImageView playBtn = bubble.findViewById(R.id.btn_play_pause);
+                if (playBtn != null) playBtn.setColorFilter(textColor);
+
+                TextView duration = bubble.findViewById(R.id.text_duration);
+                if (duration != null) duration.setTextColor(textColor);
+                
+                TextView replyN = bubble.findViewById(R.id.reply_name);
+                if (replyN != null) replyN.setTextColor(textColor);
+                
+                TextView replyT = bubble.findViewById(R.id.reply_text);
+                if (replyT != null) replyT.setTextColor(textColor);
+            }
+        }
     }
 
     private void bindReactions(View itemView, Message message) {

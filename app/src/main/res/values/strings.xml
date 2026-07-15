@@ -104,4 +104,18 @@
     <string name="settings">Settings</string>
     <string name="chat_background">Chat Background</string>
     <string name="change_chat_wallpaper">Change chat wallpaper</string>
+    <string name="create_theme">Create Theme</string>
+    <string name="customize_chat_bubbles">Customize chat bubbles and colors</string>
+    <string name="sent_bubble_color">Sent Bubble Color</string>
+    <string name="received_bubble_color">Received Bubble Color</string>
+    <string name="save_apply_theme">Save &amp; Apply Theme</string>
+    <string name="theme_preview_received">This is a received message</string>
+    <string name="theme_preview_sent">And this is a sent one!</string>
+    <string name="emoji_pattern">Emoji Pattern</string>
+    <string name="create_emoji_bg">Create emoji pattern background</string>
+    <string name="random_positioning">Random positioning</string>
+    <string name="add_to_current">Add to current background</string>
+    <string name="enter_emojis">Enter Emojis</string>
+    <string name="restore_default_theme">Restore Default Theme</string>
+    <string name="restore_theme_desc">Reset background and bubble colors to original</string>
 </resources>
