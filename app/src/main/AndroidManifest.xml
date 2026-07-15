@@ -116,6 +116,16 @@
             android:exported="false"
             android:label="@string/qr_code"
             android:theme="@style/Theme.SomeChat.NoActionBar" />
+        <activity
+            android:name=".ui.settings.SettingsActivity"
+            android:exported="false"
+            android:label="@string/settings"
+            android:theme="@style/Theme.SomeChat.NoActionBar" />
+        <activity
+            android:name=".ui.settings.ChatBackgroundActivity"
+            android:exported="false"
+            android:label="Chat Background"
+            android:theme="@style/Theme.SomeChat.NoActionBar" />
         <service
             android:name=".services.CallService"
             android:enabled="true"

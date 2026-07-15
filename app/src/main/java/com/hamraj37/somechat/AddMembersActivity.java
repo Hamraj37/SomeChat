@@ -21,7 +21,6 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.hamraj37.somechat.models.Message;
 import com.hamraj37.somechat.models.User;
 
 import java.util.ArrayList;
@@ -137,59 +136,19 @@ public class AddMembersActivity extends BaseActivity {
             return;
         }
 
-        DatabaseReference groupMembersRef = FirebaseDatabase.getInstance().getReference("groups").child(groupId).child("members");
-        DatabaseReference groupChatRef = FirebaseDatabase.getInstance().getReference("group_chats").child(groupId).child("messages");
+        DatabaseReference invitesRef = FirebaseDatabase.getInstance().getReference("groupInvites");
+        DatabaseReference groupPendingRef = FirebaseDatabase.getInstance().getReference("groups").child(groupId).child("pendingInvites");
 
-        // Get current user name for system message
-        FirebaseDatabase.getInstance().getReference("users").child(currentUserId).child("displayName")
-                .addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        String adminName = snapshot.getValue(String.class);
-                        if (adminName == null) adminName = "Admin";
+        for (String userId : selectedMemberIds) {
+            // Add to group's pending invites
+            groupPendingRef.child(userId).setValue(currentUserId);
+            
+            // Add to user's invites list
+            invitesRef.child(userId).child(groupId).setValue(currentUserId);
+        }
 
-                        for (String userId : selectedMemberIds) {
-                            // Add to group members
-                            groupMembersRef.child(userId).setValue(true);
-                            // Add to user groups list
-                            FirebaseDatabase.getInstance().getReference("users").child(userId).child("groups").child(groupId).setValue(true);
-
-                            // Send system message for each added user (or one combined message)
-                            postSystemMessage(userId, adminName, groupChatRef);
-                        }
-
-                        Toast.makeText(AddMembersActivity.this, "Members added successfully", Toast.LENGTH_SHORT).show();
-                        finish();
-                    }
-
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {}
-                });
-    }
-
-    private void postSystemMessage(String addedUserId, String adminName, DatabaseReference chatRef) {
-        FirebaseDatabase.getInstance().getReference("users").child(addedUserId).child("displayName")
-                .addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        String addedName = snapshot.getValue(String.class);
-                        if (addedName == null) addedName = "A member";
-
-                        String messageId = chatRef.push().getKey();
-                        if (messageId != null) {
-                            Message msg = new Message();
-                            msg.setMessageId(messageId);
-                            msg.setSenderId("system");
-                            msg.setType("system");
-                            msg.setText(adminName + " added " + addedName);
-                            msg.setTimestamp(System.currentTimeMillis());
-                            chatRef.child(messageId).setValue(msg);
-                        }
-                    }
-
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {}
-                });
+        Toast.makeText(AddMembersActivity.this, "Invitations sent successfully", Toast.LENGTH_SHORT).show();
+        finish();
     }
 
     private class MembersAdapter extends RecyclerView.Adapter<MemberViewHolder> {

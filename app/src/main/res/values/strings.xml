@@ -97,4 +97,11 @@
     <string name="align_qr_notice">Align QR code within the frame to scan</string>
     <string name="share">Share</string>
     <string name="more">More</string>
+    <string name="invited_by">Invited by %1$s</string>
+    <string name="group_invitations">Group Invitations</string>
+    <string name="biometric_lock">Biometric Lock</string>
+    <string name="biometric_lock_desc">Require fingerprint or face to open app</string>
+    <string name="settings">Settings</string>
+    <string name="chat_background">Chat Background</string>
+    <string name="change_chat_wallpaper">Change chat wallpaper</string>
 </resources>

@@ -20,14 +20,17 @@ import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.hamraj37.somechat.ChatActivity;
 import com.hamraj37.somechat.ProfileInfoActivity;
 import com.hamraj37.somechat.R;
 import com.hamraj37.somechat.adapters.FriendRequestAdapter;
+import com.hamraj37.somechat.adapters.GroupInviteAdapter;
 import com.hamraj37.somechat.databinding.FragmentTransformBinding;
 import com.hamraj37.somechat.databinding.ItemTransformBinding;
+import com.hamraj37.somechat.models.Message;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +41,8 @@ public class TransformFragment extends Fragment {
     private TransformViewModel transformViewModel;
     private FriendRequestAdapter requestAdapter;
     private final List<String> requestList = new ArrayList<>();
+    private GroupInviteAdapter inviteAdapter;
+    private final List<String> inviteList = new ArrayList<>();
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -54,8 +59,99 @@ public class TransformFragment extends Fragment {
         transformViewModel.getChats().observe(getViewLifecycleOwner(), adapter::submitList);
 
         setupFriendRequests();
+        setupGroupInvites();
 
         return root;
+    }
+
+    private void setupGroupInvites() {
+        String myUid = FirebaseAuth.getInstance().getUid();
+        if (myUid == null) return;
+
+        inviteAdapter = new GroupInviteAdapter(inviteList, new GroupInviteAdapter.OnInviteListener() {
+            @Override
+            public void onAccept(String groupId) {
+                acceptGroupInvite(myUid, groupId);
+            }
+
+            @Override
+            public void onDecline(String groupId) {
+                declineGroupInvite(myUid, groupId);
+            }
+        });
+
+        binding.groupInvitesRecycler.setLayoutManager(new LinearLayoutManager(getContext()));
+        binding.groupInvitesRecycler.setAdapter(inviteAdapter);
+
+        FirebaseDatabase.getInstance().getReference("groupInvites").child(myUid)
+                .addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        inviteList.clear();
+                        for (DataSnapshot ds : snapshot.getChildren()) {
+                            inviteList.add(ds.getKey());
+                        }
+
+                        if (inviteList.isEmpty()) {
+                            binding.groupInvitesContainer.setVisibility(View.GONE);
+                        } else {
+                            binding.groupInvitesContainer.setVisibility(View.VISIBLE);
+                        }
+                        inviteAdapter.notifyDataSetChanged();
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {}
+                });
+    }
+
+    private void acceptGroupInvite(String myUid, String groupId) {
+        DatabaseReference rtdb = FirebaseDatabase.getInstance().getReference();
+        
+        // 1. Add user to group members
+        rtdb.child("groups").child(groupId).child("members").child(myUid).setValue(true)
+                .addOnSuccessListener(aVoid -> {
+                    // 2. Add group to user's groups list
+                    rtdb.child("users").child(myUid).child("groups").child(groupId).setValue(true);
+                    
+                    // 3. Remove invitation
+                    rtdb.child("groupInvites").child(myUid).child(groupId).removeValue();
+                    rtdb.child("groups").child(groupId).child("pendingInvites").child(myUid).removeValue();
+
+                    // 4. Send system message to group
+                    postJoinSystemMessage(myUid, groupId);
+                });
+    }
+
+    private void postJoinSystemMessage(String myUid, String groupId) {
+        FirebaseDatabase.getInstance().getReference("users").child(myUid).child("displayName")
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        String name = snapshot.getValue(String.class);
+                        if (name == null) name = "A member";
+
+                        DatabaseReference chatRef = FirebaseDatabase.getInstance().getReference("group_chats").child(groupId).child("messages");
+                        String messageId = chatRef.push().getKey();
+                        if (messageId != null) {
+                            Message msg = new Message();
+                            msg.setMessageId(messageId);
+                            msg.setSenderId("system");
+                            msg.setType("system");
+                            msg.setText(name + " joined the group");
+                            msg.setTimestamp(System.currentTimeMillis());
+                            chatRef.child(messageId).setValue(msg);
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {}
+                });
+    }
+
+    private void declineGroupInvite(String myUid, String groupId) {
+        FirebaseDatabase.getInstance().getReference("groupInvites").child(myUid).child(groupId).removeValue();
+        FirebaseDatabase.getInstance().getReference("groups").child(groupId).child("pendingInvites").child(myUid).removeValue();
     }
 
     private void setupFriendRequests() {

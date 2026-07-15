@@ -21,11 +21,19 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.biometric.BiometricPrompt;
+import androidx.core.content.ContextCompat;
+
 import com.hamraj37.somechat.services.CallService;
 import java.util.Locale;
 
 public class BaseActivity extends AppCompatActivity {
 
+    protected static boolean isAppUnlocked = false;
+    private static int activeActivities = 0;
     private BroadcastReceiver messageReceiver;
     private BroadcastReceiver callReceiver;
     private View callBar;
@@ -83,6 +91,63 @@ public class BaseActivity extends AppCompatActivity {
                 startActivity(callIntent);
             }
         };
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        activeActivities++;
+        checkAppLock();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        activeActivities--;
+        if (activeActivities <= 0) {
+            // App backgrounded, reset unlock state for next entry
+            isAppUnlocked = false;
+        }
+    }
+
+    protected void checkAppLock() {
+        android.content.SharedPreferences prefs = getSharedPreferences("app_settings", android.content.Context.MODE_PRIVATE);
+        boolean isLockEnabled = prefs.getBoolean("biometric_lock", false);
+
+        if (isLockEnabled && !isAppUnlocked) {
+            showBiometricPrompt();
+        }
+    }
+
+    private void showBiometricPrompt() {
+        java.util.concurrent.Executor executor = ContextCompat.getMainExecutor(this);
+        BiometricPrompt biometricPrompt = new BiometricPrompt(this,
+                executor, new BiometricPrompt.AuthenticationCallback() {
+            @Override
+            public void onAuthenticationError(int errorCode, @NonNull CharSequence errString) {
+                super.onAuthenticationError(errorCode, errString);
+                if (errorCode == BiometricPrompt.ERROR_USER_CANCELED || errorCode == BiometricPrompt.ERROR_NEGATIVE_BUTTON) {
+                    finishAffinity(); // Close all activities
+                } else {
+                    Toast.makeText(getApplicationContext(), "Lock error: " + errString, Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
+                super.onAuthenticationSucceeded(result);
+                isAppUnlocked = true;
+            }
+        });
+
+        BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
+                .setTitle("SomeChat Locked")
+                .setSubtitle("Authenticate to use SomeChat")
+                .setNegativeButtonText("Exit")
+                .setAllowedAuthenticators(androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG)
+                .build();
+
+        biometricPrompt.authenticate(promptInfo);
     }
 
     @Override

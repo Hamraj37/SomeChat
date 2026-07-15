@@ -7,6 +7,13 @@
     android:fitsSystemWindows="true"
     android:background="?attr/colorSurface">
 
+    <ImageView
+        android:id="@+id/chat_background_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:contentDescription="@null" />
+
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appBarLayout"
         android:layout_width="match_parent"

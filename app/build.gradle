@@ -87,6 +87,7 @@ dependencies {
     implementation libs.glide
     implementation libs.webrtc
     implementation libs.jsoup
+    implementation libs.biometric
     implementation libs.zxing.core
     implementation libs.zxing.android
 

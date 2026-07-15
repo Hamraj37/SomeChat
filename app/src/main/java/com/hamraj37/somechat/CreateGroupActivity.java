@@ -192,13 +192,23 @@ public class CreateGroupActivity extends BaseActivity {
         DatabaseReference groupsRef = FirebaseDatabase.getInstance().getReference("groups");
         groupsRef.child(group.getGroupId()).setValue(group).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
-                // Also add to each user's groups list for easier querying
-                for (String userId : group.getMembers().keySet()) {
-                    FirebaseDatabase.getInstance().getReference("users").child(userId)
-                            .child("groups").child(group.getGroupId()).setValue(true);
+                // 1. Add creator directly to their groups list
+                FirebaseDatabase.getInstance().getReference("users").child(currentUserId)
+                        .child("groups").child(group.getGroupId()).setValue(true);
+
+                // 2. Send invitations to all other selected members
+                DatabaseReference invitesRef = FirebaseDatabase.getInstance().getReference("groupInvites");
+                DatabaseReference groupPendingRef = FirebaseDatabase.getInstance().getReference("groups")
+                        .child(group.getGroupId()).child("pendingInvites");
+
+                for (String userId : selectedMemberIds) {
+                    if (!userId.equals(currentUserId)) {
+                        groupPendingRef.child(userId).setValue(currentUserId);
+                        invitesRef.child(userId).child(group.getGroupId()).setValue(currentUserId);
+                    }
                 }
                 
-                Toast.makeText(this, "Group created successfully", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Group created. Invitations sent.", Toast.LENGTH_SHORT).show();
                 
                 Intent intent = new Intent(this, GroupChatActivity.class);
                 intent.putExtra("groupId", group.getGroupId());

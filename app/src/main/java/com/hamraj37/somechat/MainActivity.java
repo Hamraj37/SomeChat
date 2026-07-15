@@ -2,9 +2,11 @@ package com.hamraj37.somechat;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.Menu;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationView;
@@ -12,6 +14,8 @@ import com.google.android.material.navigation.NavigationView;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.SearchView;
+import androidx.biometric.BiometricPrompt;
+import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
@@ -100,6 +104,11 @@ public class MainActivity extends BaseActivity {
         checkAndRequestPermissions();
         startCallService();
         com.hamraj37.somechat.utils.UpdateManager.checkForUpdates(this);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
     }
 
     private void setupUnreadCountBadge() {
@@ -329,8 +338,8 @@ public class MainActivity extends BaseActivity {
             popup.getMenuInflater().inflate(R.menu.overflow, popup.getMenu());
             popup.setOnMenuItemClickListener(item -> {
                 if (item.getItemId() == R.id.nav_settings) {
-                    NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
-                    navController.navigate(R.id.nav_settings);
+                    Intent intent = new Intent(this, com.hamraj37.somechat.ui.settings.SettingsActivity.class);
+                    startActivity(intent);
                     return true;
                 } else if (item.getItemId() == R.id.nav_profile) {
                     Intent intent = new Intent(this, ProfileInfoActivity.class);
@@ -366,7 +375,17 @@ public class MainActivity extends BaseActivity {
                 } else if (searchView.hasFocus()) {
                     searchView.clearFocus();
                 } else {
-                    finish();
+                    NavController navController = Navigation.findNavController(MainActivity.this, R.id.nav_host_fragment_content_main);
+                    if (navController.getCurrentDestination() != null && navController.getCurrentDestination().getId() != R.id.nav_chats) {
+                        BottomNavigationView bottomNavigationView = binding.appBarMain.contentMain.bottomNavView;
+                        if (bottomNavigationView != null) {
+                            bottomNavigationView.setSelectedItemId(R.id.nav_chats);
+                        } else {
+                            finish();
+                        }
+                    } else {
+                        finish();
+                    }
                 }
             }
         });

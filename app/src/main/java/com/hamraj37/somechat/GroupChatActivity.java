@@ -121,6 +121,7 @@ public class GroupChatActivity extends BaseActivity {
         btnAttachment = findViewById(R.id.btn_attachment);
         attachmentMenu = findViewById(R.id.attachment_menu);
 
+        setupBackground();
         setupToolbar();
         setupRecyclerView();
         setupInputListeners();
@@ -514,6 +515,23 @@ public class GroupChatActivity extends BaseActivity {
                     }
                     @Override public void onCancelled(@NonNull DatabaseError error) {}
                 });
+    }
+
+    private void setupBackground() {
+        android.content.SharedPreferences prefs = getSharedPreferences("app_settings", android.content.Context.MODE_PRIVATE);
+        String bgPath = prefs.getString("chat_background_path", null);
+        ImageView bgImage = findViewById(R.id.chat_background_image);
+        if (bgPath != null && bgImage != null) {
+            if (bgPath.startsWith("res:")) {
+                int resId = getResources().getIdentifier(bgPath.replace("res:", ""), "drawable", getPackageName());
+                if (resId != 0) com.bumptech.glide.Glide.with(this).load(resId).into(bgImage);
+            } else {
+                java.io.File file = new java.io.File(bgPath);
+                if (file.exists()) {
+                    com.bumptech.glide.Glide.with(this).load(file).into(bgImage);
+                }
+            }
+        }
     }
 
     private void setupToolbar() {

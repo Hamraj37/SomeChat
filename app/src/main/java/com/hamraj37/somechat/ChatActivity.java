@@ -201,6 +201,7 @@ public class ChatActivity extends BaseActivity {
 
         openedChatId = receiverId;
 
+        setupBackground();
         setupToolbar();
         
         if (chatRef != null && messageListener != null) {
@@ -979,6 +980,23 @@ public class ChatActivity extends BaseActivity {
     }
 
 
+
+    private void setupBackground() {
+        android.content.SharedPreferences prefs = getSharedPreferences("app_settings", Context.MODE_PRIVATE);
+        String bgPath = prefs.getString("chat_background_path", null);
+        ImageView bgImage = findViewById(R.id.chat_background_image);
+        if (bgPath != null && bgImage != null) {
+            if (bgPath.startsWith("res:")) {
+                int resId = getResources().getIdentifier(bgPath.replace("res:", ""), "drawable", getPackageName());
+                if (resId != 0) Glide.with(this).load(resId).into(bgImage);
+            } else {
+                File file = new File(bgPath);
+                if (file.exists()) {
+                    Glide.with(this).load(file).into(bgImage);
+                }
+            }
+        }
+    }
 
     private void setupToolbar() {
         androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
