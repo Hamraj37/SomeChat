@@ -62,6 +62,28 @@ public class AIChatActivity extends BaseActivity {
     private String currentModelId = "tencent/hy3:free";
     private static final String OPENROUTER_API_KEY = BuildConfig.OPENROUTER_API_KEY;
 
+    private final String[] models = {
+            "google/gemma-4-26b-a4b-it:free",
+            "tencent/hy3:free",
+            "poolside/laguna-xs-2.1:free",
+            "nvidia/nemotron-3-super-120b-a12b:free",
+            "qwen/qwen3-coder:free"
+    };
+    private final String[] modelNames = {
+            "Gemma 4 26B (Google)",
+            "Hunyuan 3 (Tencent)",
+            "Laguna XS 2.1 (Poolside)",
+            "Nemotron 3 Super 120B (NVIDIA)",
+            "Qwen 3 Coder (Alibaba)"
+    };
+    private final String[] modelShortNames = {
+            "Gemma 4",
+            "Hunyuan 3",
+            "Laguna XS",
+            "Nemotron 3",
+            "Qwen 3"
+    };
+
     private static final String PREFS_NAME = "AIChatPrefs";
     private static final String KEY_MODEL_ID = "selected_model_id";
     private static final String KEY_MODEL_SHORT_NAME = "selected_model_short_name";
@@ -232,12 +254,18 @@ public class AIChatActivity extends BaseActivity {
     }
 
     private void getAiResponse(String userText) {
+        getAiResponse(userText, 0);
+    }
+
+    private void getAiResponse(final String userText, final int attempt) {
         if (OPENROUTER_API_KEY == null || OPENROUTER_API_KEY.isEmpty() || OPENROUTER_API_KEY.equals("YOUR_API_KEY_HERE")) {
             Toast.makeText(this, "AI Error: API Key not configured", Toast.LENGTH_LONG).show();
             return;
         }
 
-        setAiProcessing(true);
+        if (attempt == 0) {
+            setAiProcessing(true);
+        }
 
         try {
             JSONObject root = new JSONObject();
@@ -307,17 +335,29 @@ public class AIChatActivity extends BaseActivity {
                 }
 
                 @Override
-                public void onResponse(Call call, Response response) throws IOException {
+                public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                     if (!response.isSuccessful()) {
-                        runOnUiThread(() -> {
-                            setAiProcessing(false);
-                            Toast.makeText(AIChatActivity.this, "AI Error: " + response.code(), Toast.LENGTH_SHORT).show();
-                        });
+                        if (response.code() == 429 && attempt < models.length - 1) {
+                            runOnUiThread(() -> {
+                                switchToNextModel();
+                                getAiResponse(userText, attempt + 1);
+                            });
+                        } else {
+                            runOnUiThread(() -> {
+                                setAiProcessing(false);
+                                String errorMsg = response.code() == 429 
+                                    ? "All models are rate limited. Try again later." 
+                                    : "AI Error: " + response.code();
+                                Toast.makeText(AIChatActivity.this, errorMsg, Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                        response.close();
                         return;
                     }
 
                     if (response.body() == null) {
                         setAiProcessing(false);
+                        response.close();
                         return;
                     }
 
@@ -393,6 +433,31 @@ public class AIChatActivity extends BaseActivity {
             currentCall.cancel();
         }
         setAiProcessing(false);
+    }
+
+    private void switchToNextModel() {
+        int currentIndex = -1;
+        for (int i = 0; i < models.length; i++) {
+            if (models[i].equals(currentModelId)) {
+                currentIndex = i;
+                break;
+            }
+        }
+        int nextIndex = (currentIndex + 1) % models.length;
+        currentModelId = models[nextIndex];
+        String shortName = modelShortNames[nextIndex];
+
+        android.widget.TextView aiStatus = findViewById(R.id.ai_status);
+        if (aiStatus != null) {
+            aiStatus.setText(getString(R.string.ai_online, shortName));
+        }
+
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                .putString(KEY_MODEL_ID, currentModelId)
+                .putString(KEY_MODEL_SHORT_NAME, shortName)
+                .apply();
+        
+        Toast.makeText(this, "Rate limit reached. Switching to " + shortName, Toast.LENGTH_SHORT).show();
     }
 
     private void addAiMessage(String text) {
@@ -506,27 +571,6 @@ public class AIChatActivity extends BaseActivity {
 
     private void showModelSelectionMenu(View v) {
         android.widget.PopupMenu popupMenu = new android.widget.PopupMenu(this, v);
-        String[] models = {
-                "google/gemma-4-26b-a4b-it:free",
-                "tencent/hy3:free",
-                "poolside/laguna-xs-2.1:free",
-                "nvidia/nemotron-3-super-120b-a12b:free",
-                "qwen/qwen3-coder:free"
-        };
-        String[] modelNames = {
-                "Gemma 4 26B (Google)",
-                "Hunyuan 3 (Tencent)",
-                "Laguna XS 2.1 (Poolside)",
-                "Nemotron 3 Super 120B (NVIDIA)",
-                "Qwen 3 Coder (Alibaba)"
-        };
-        String[] shortNames = {
-                "Gemma 4",
-                "Hunyuan 3",
-                "Laguna XS",
-                "Nemotron 3",
-                "Qwen 3"
-        };
 
         for (int i = 0; i < models.length; i++) {
             popupMenu.getMenu().add(0, i, i, modelNames[i]);
@@ -535,7 +579,7 @@ public class AIChatActivity extends BaseActivity {
         popupMenu.setOnMenuItemClickListener(item -> {
             int index = item.getItemId();
             currentModelId = models[index];
-            String shortName = shortNames[index];
+            String shortName = modelShortNames[index];
             
             android.widget.TextView aiStatus = findViewById(R.id.ai_status);
             aiStatus.setText(getString(R.string.ai_online, shortName));
