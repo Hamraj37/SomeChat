@@ -130,18 +130,57 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/text_message"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingHorizontal="12dp"
-                android:paddingVertical="8dp"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:textColorLink="?attr/colorPrimary"
-                android:autoLink="web"
-                android:linksClickable="true"
-                android:textAppearance="?attr/textAppearanceBodyLarge"
-                tools:text="I am fine, thanks!" />
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:id="@+id/message_content_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingBottom="4dp" />
+
+                <!-- Legacy text_message for non-AI or simple messages -->
+                <TextView
+                    android:id="@+id/text_message"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="12dp"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="12dp"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textColorLink="?attr/colorPrimary"
+                    android:linksClickable="true"
+                    android:textAppearance="?attr/textAppearanceBodyLarge"
+                    android:visibility="gone" />
+
+                <!-- This button will be managed dynamically or hidden -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/btn_copy_text"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_alignParentTop="true"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="16dp"
+                    app:cardCornerRadius="8dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp"
+                    app:cardBackgroundColor="#20808080"
+                    android:visibility="gone"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_copy"
+                        app:tint="?attr/colorOnSurfaceVariant" />
+                </com.google.android.material.card.MaterialCardView>
+            </RelativeLayout>
 
             <include
                 android:id="@+id/link_preview"

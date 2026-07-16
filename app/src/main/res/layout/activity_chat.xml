@@ -36,7 +36,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:background="@android:color/transparent"
-                app:navigationIcon="@android:drawable/ic_menu_revert"
+                app:navigationIcon="?attr/homeAsUpIndicator"
                 app:navigationIconTint="?attr/colorOnSurface"
                 app:contentInsetStart="0dp"
                 app:contentInsetStartWithNavigation="0dp"

@@ -3,6 +3,7 @@ package com.hamraj37.somechat.adapters;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -16,6 +17,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+
+import io.noties.markwon.Markwon;
 
 public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
@@ -43,12 +46,15 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     private android.content.Context context;
     private OnMessageClickListener listener;
     private boolean isGroup = false;
+    private boolean showHeader = true;
     private String highlightMessageId = null;
 
     private int themeSentColor = -1;
     private int themeReceivedColor = -1;
     private int themeSentTextColor = -1;
     private int themeReceivedTextColor = -1;
+
+    private Markwon markwon;
 
     public interface OnMessageClickListener {
         void onReplyClick(String messageId);
@@ -71,6 +77,18 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         updateCurrentUserId();
     }
 
+    public void setShowHeader(boolean showHeader) {
+        this.showHeader = showHeader;
+    }
+
+    private int getAdapterPosition(int listIndex) {
+        return listIndex + (showHeader ? 1 : 0);
+    }
+
+    private int getListIndex(int adapterPosition) {
+        return adapterPosition - (showHeader ? 1 : 0);
+    }
+
     private void updateCurrentUserId() {
         if (currentUserId == null) {
             currentUserId = FirebaseAuth.getInstance().getUid();
@@ -81,6 +99,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     public void onAttachedToRecyclerView(@NonNull RecyclerView recyclerView) {
         super.onAttachedToRecyclerView(recyclerView);
         this.context = recyclerView.getContext();
+        this.markwon = Markwon.create(context);
         updateCurrentUserId();
         loadThemeColors();
     }
@@ -98,7 +117,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         uploadProgressMap.put(messageId, progress);
         for (int i = 0; i < messageList.size(); i++) {
             if (messageId.equals(messageList.get(i).getMessageId())) {
-                notifyItemChanged(i + 1); // +1 for header
+                notifyItemChanged(getAdapterPosition(i));
                 break;
             }
         }
@@ -108,7 +127,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         uploadProgressMap.remove(messageId);
         for (int i = 0; i < messageList.size(); i++) {
             if (messageId.equals(messageList.get(i).getMessageId())) {
-                notifyItemChanged(i + 1);
+                notifyItemChanged(getAdapterPosition(i));
                 break;
             }
         }
@@ -118,7 +137,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         downloadProgressMap.put(messageId, progress);
         for (int i = 0; i < messageList.size(); i++) {
             if (messageId.equals(messageList.get(i).getMessageId())) {
-                notifyItemChanged(i + 1);
+                notifyItemChanged(getAdapterPosition(i));
                 break;
             }
         }
@@ -128,7 +147,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         downloadProgressMap.remove(messageId);
         for (int i = 0; i < messageList.size(); i++) {
             if (messageId.equals(messageList.get(i).getMessageId())) {
-                notifyItemChanged(i + 1);
+                notifyItemChanged(getAdapterPosition(i));
                 break;
             }
         }
@@ -138,7 +157,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         this.highlightMessageId = messageId;
         for (int i = 0; i < messageList.size(); i++) {
             if (messageList.get(i).getMessageId().equals(messageId)) {
-                final int pos = i + 1;
+                final int pos = getAdapterPosition(i);
                 notifyItemChanged(pos);
                 
                 new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
@@ -165,7 +184,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
         for (int i = 0; i < messageList.size(); i++) {
             if (messageId.equals(messageList.get(i).getMessageId())) {
-                notifyItemChanged(i + 1);
+                notifyItemChanged(getAdapterPosition(i));
                 break;
             }
         }
@@ -181,7 +200,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         isSelectionMode = false;
         for (int i = 0; i < messageList.size(); i++) {
             if (previousSelected.contains(messageList.get(i).getMessageId())) {
-                notifyItemChanged(i + 1);
+                notifyItemChanged(getAdapterPosition(i));
             }
         }
         if (listener != null) {
@@ -209,9 +228,10 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
     @Override
     public int getItemViewType(int position) {
-        if (position == 0) return VIEW_TYPE_HEADER;
+        if (showHeader && position == 0) return VIEW_TYPE_HEADER;
 
-        Message message = messageList.get(position - 1);
+        int messagePos = showHeader ? position - 1 : position;
+        Message message = messageList.get(messagePos);
         if (message == null) return VIEW_TYPE_RECEIVED;
         
         String senderId = message.getSenderId();
@@ -273,7 +293,8 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         if (holder instanceof HeaderViewHolder) return;
 
-        Message message = messageList.get(position - 1);
+        int messagePos = showHeader ? position - 1 : position;
+        Message message = messageList.get(messagePos);
         if (message == null) return;
 
         boolean isSender = message.getSenderId().equals(currentUserId);
@@ -421,7 +442,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
     @Override
     public int getItemCount() {
-        return messageList.size() + 1;
+        return messageList.size() + (showHeader ? 1 : 0);
     }
 
     @Override
@@ -443,6 +464,92 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         }
     }
 
+    private void renderDynamicContent(LinearLayout container, TextView fallbackTv, String text, boolean isSent) {
+        container.removeAllViews();
+        if (text == null || text.isEmpty()) return;
+
+        // Pattern to match code blocks with optional language identifier
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("```(\\w*)\\n?([\\s\\S]*?)```");
+        java.util.regex.Matcher matcher = pattern.matcher(text);
+
+        int lastEnd = 0;
+        boolean foundCode = false;
+
+        while (matcher.find()) {
+            foundCode = true;
+            String beforeText = text.substring(lastEnd, matcher.start()).trim();
+            if (!beforeText.isEmpty()) {
+                addTextPart(container, beforeText, isSent);
+            }
+
+            String language = matcher.group(1).trim();
+            String codeContent = matcher.group(2).trim();
+            
+            if (language.isEmpty()) language = "code";
+            
+            addCodePart(container, codeContent, language);
+
+            lastEnd = matcher.end();
+        }
+
+        String afterText = text.substring(lastEnd).trim();
+        if (!afterText.isEmpty()) {
+            addTextPart(container, afterText, isSent);
+        }
+
+        if (!foundCode) {
+            fallbackTv.setVisibility(View.VISIBLE);
+            container.setVisibility(View.GONE);
+            if (markwon != null) markwon.setMarkdown(fallbackTv, text);
+            else fallbackTv.setText(text);
+        } else {
+            fallbackTv.setVisibility(View.GONE);
+            container.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void addTextPart(LinearLayout container, String text, boolean isSent) {
+        TextView tv = new TextView(container.getContext());
+        tv.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        int p12 = (int) (12 * container.getContext().getResources().getDisplayMetrics().density);
+        int p4 = (int) (4 * container.getContext().getResources().getDisplayMetrics().density);
+        tv.setPadding(p12, p4, p12, p4);
+        
+        int colorAttr = isSent ? com.google.android.material.R.attr.colorOnPrimary : com.google.android.material.R.attr.colorOnSurfaceVariant;
+        tv.setTextColor(com.google.android.material.color.MaterialColors.getColor(container.getContext(), colorAttr, 0));
+        tv.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16); 
+        
+        if (markwon != null) markwon.setMarkdown(tv, text);
+        else tv.setText(text);
+        container.addView(tv);
+    }
+
+    private void addCodePart(LinearLayout container, String code, String language) {
+        View codeView = LayoutInflater.from(container.getContext()).inflate(R.layout.layout_code_block, container, false);
+        TextView langTv = codeView.findViewById(R.id.code_language);
+        TextView codeTv = codeView.findViewById(R.id.code_text);
+        View copyBtn = codeView.findViewById(R.id.btn_copy_code);
+
+        langTv.setText(language.toLowerCase());
+        codeTv.setText(code);
+        copyBtn.setOnClickListener(v -> copyToClipboard(code));
+        container.addView(codeView);
+    }
+
+    private int pixel(int dp, View view) {
+        return (int) (dp * view.getContext().getResources().getDisplayMetrics().density);
+    }
+
+    private void copyToClipboard(String text) {
+        if (context == null) return;
+        android.content.ClipboardManager clipboard = (android.content.ClipboardManager) context.getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+        if (clipboard != null && text != null) {
+            android.content.ClipData clip = android.content.ClipData.newPlainText("Copied Code", text);
+            clipboard.setPrimaryClip(clip);
+            android.widget.Toast.makeText(context, context.getString(R.string.code_copied), android.widget.Toast.LENGTH_SHORT).show();
+        }
+    }
+
     class HeaderViewHolder extends RecyclerView.ViewHolder {
         public HeaderViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -450,6 +557,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     }
 
     class SentMessageViewHolder extends RecyclerView.ViewHolder {
+        LinearLayout contentContainer;
         TextView textMessage;
         TextView textTimestamp;
         android.widget.ImageView imageStatus;
@@ -464,6 +572,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
         public SentMessageViewHolder(@NonNull View itemView) {
             super(itemView);
+            contentContainer = itemView.findViewById(R.id.message_content_container);
             textMessage = itemView.findViewById(R.id.text_message);
             textTimestamp = itemView.findViewById(R.id.text_timestamp);
             imageStatus = itemView.findViewById(R.id.image_status);
@@ -478,7 +587,18 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         }
 
         void bind(Message message) {
-            textMessage.setText(message.getText());
+            if (contentContainer != null) {
+                renderDynamicContent(contentContainer, textMessage, message.getText(), true);
+                View btnCopy = itemView.findViewById(R.id.btn_copy_text);
+                if (btnCopy != null) btnCopy.setVisibility(View.GONE);
+            } else {
+                textMessage.setVisibility(View.VISIBLE);
+                if (markwon != null) {
+                    markwon.setMarkdown(textMessage, message.getText());
+                } else {
+                    textMessage.setText(message.getText());
+                }
+            }
             textTimestamp.setText(formatDate(message.getTimestamp()));
             bindReply(itemView, message);
             bindLinkPreview(message, linkPreviewCard, linkImage, linkTitle, linkDescription, linkUrl);
@@ -523,7 +643,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         View senderInfoContainer;
         TextView senderName;
         TextView senderUsername;
+        LinearLayout contentContainer;
         TextView textMessage;
+        View btnCopy;
         TextView textTimestamp;
         android.widget.ImageView imagePin;
         TextView textEdited;
@@ -539,7 +661,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             senderInfoContainer = itemView.findViewById(R.id.sender_info_container);
             senderName = itemView.findViewById(R.id.sender_name);
             senderUsername = itemView.findViewById(R.id.sender_username);
+            contentContainer = itemView.findViewById(R.id.message_content_container);
             textMessage = itemView.findViewById(R.id.text_message);
+            btnCopy = itemView.findViewById(R.id.btn_copy_text);
             textTimestamp = itemView.findViewById(R.id.text_timestamp);
             imagePin = itemView.findViewById(R.id.image_pin);
             textEdited = itemView.findViewById(R.id.text_edited);
@@ -566,7 +690,47 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                     senderInfoContainer.setVisibility(View.GONE);
                 }
             }
-            textMessage.setText(message.getText());
+            
+            if (contentContainer != null) {
+                renderDynamicContent(contentContainer, textMessage, message.getText(), false);
+                if (btnCopy != null) btnCopy.setVisibility(View.GONE);
+            } else {
+                textMessage.setVisibility(View.VISIBLE);
+                if (markwon != null) {
+                    markwon.setMarkdown(textMessage, message.getText());
+                } else {
+                    textMessage.setText(message.getText());
+                }
+                
+                if (btnCopy != null) {
+                    String msgText = message.getText();
+                    boolean hasCode = msgText != null && msgText.contains("```");
+                    btnCopy.setVisibility(hasCode ? View.VISIBLE : View.GONE);
+                    
+                    btnCopy.setOnClickListener(v -> {
+                        String textToCopy = msgText;
+                        if (textToCopy != null && textToCopy.contains("```")) {
+                            try {
+                                int start = textToCopy.indexOf("```") + 3;
+                                int firstNewline = textToCopy.indexOf("\n", start);
+                                int nextBackticks = textToCopy.indexOf("```", start);
+                                if (firstNewline != -1 && (nextBackticks == -1 || firstNewline < nextBackticks)) {
+                                    String possibleLang = textToCopy.substring(start, firstNewline).trim();
+                                    if (!possibleLang.contains(" ") && possibleLang.length() < 15) {
+                                        start = firstNewline + 1;
+                                    }
+                                }
+                                int end = textToCopy.indexOf("```", start);
+                                if (end != -1) {
+                                    textToCopy = textToCopy.substring(start, end).trim();
+                                }
+                            } catch (Exception ignored) {}
+                        }
+                        copyToClipboard(textToCopy);
+                    });
+                }
+            }
+
             textTimestamp.setText(formatDate(message.getTimestamp()));
             bindReply(itemView, message);
             bindLinkPreview(message, linkPreviewCard, linkImage, linkTitle, linkDescription, linkUrl);
@@ -594,6 +758,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 return true;
             });
         }
+
     }
 
     class VoiceSentViewHolder extends RecyclerView.ViewHolder {
@@ -1140,7 +1305,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                         ((android.app.Activity) context).runOnUiThread(() -> {
                             for (int i = 0; i < messageList.size(); i++) {
                                 if (messageList.get(i).getMessageId().equals(message.getMessageId())) {
-                                    notifyItemChanged(i + 1);
+                                    notifyItemChanged(getAdapterPosition(i));
                                     break;
                                 }
                             }
@@ -1303,7 +1468,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     private int getPositionForMessageId(String messageId) {
         for (int i = 0; i < messageList.size(); i++) {
             if (messageList.get(i).getMessageId().equals(messageId)) {
-                return i + 1;
+                return getAdapterPosition(i);
             }
         }
         return -1;
@@ -1358,7 +1523,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     private void playAudio(String mediaData, int position) {
         if (mediaData == null || mediaData.isEmpty()) return;
         
-        Message message = messageList.get(position - 1);
+        Message message = messageList.get(getListIndex(position));
         String messageId = message.getMessageId();
 
         try {

@@ -18,7 +18,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:title="New Group"
-            app:navigationIcon="@android:drawable/ic_menu_revert" />
+            app:navigationIcon="?attr/homeAsUpIndicator" />
 
         <LinearLayout
             android:id="@+id/group_details_container"

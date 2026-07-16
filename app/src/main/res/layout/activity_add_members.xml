@@ -18,7 +18,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:title="Add Members"
-            app:navigationIcon="@android:drawable/ic_menu_revert" />
+            app:navigationIcon="?attr/homeAsUpIndicator" />
 
         <TextView
             android:id="@+id/selected_count_text"

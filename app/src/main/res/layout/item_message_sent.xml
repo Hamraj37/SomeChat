@@ -99,18 +99,29 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/text_message"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingHorizontal="12dp"
-                android:paddingVertical="8dp"
-                android:textColor="?attr/colorOnPrimary"
-                android:textColorLink="?attr/colorOnPrimary"
-                android:autoLink="web"
-                android:linksClickable="true"
-                android:textAppearance="?attr/textAppearanceBodyLarge"
-                tools:text="Hello, how are you?" />
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:id="@+id/message_content_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingBottom="4dp" />
+
+                <TextView
+                    android:id="@+id/text_message"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="8dp"
+                    android:textColor="?attr/colorOnPrimary"
+                    android:textColorLink="?attr/colorOnPrimary"
+                    android:linksClickable="true"
+                    android:textAppearance="?attr/textAppearanceBodyLarge"
+                    tools:text="Hello, how are you?" />
+            </RelativeLayout>
 
             <include
                 android:id="@+id/link_preview"

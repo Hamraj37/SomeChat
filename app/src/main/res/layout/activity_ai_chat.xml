@@ -29,7 +29,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:background="@android:color/transparent"
-                app:navigationIcon="@android:drawable/ic_menu_revert"
+                app:navigationIcon="?attr/homeAsUpIndicator"
                 app:navigationIconTint="?attr/colorOnSurface"
                 app:contentInsetStart="0dp"
                 app:contentInsetStartWithNavigation="0dp">
@@ -75,7 +75,7 @@
                                 android:text="@string/ai_online"
                                 android:textAppearance="?attr/textAppearanceLabelSmall"
                                 android:textColor="?attr/colorPrimary"
-                                app:drawableEndCompat="@android:drawable/arrow_down_float"
+                                app:drawableEndCompat="@drawable/ic_arrow_down"
                                 app:drawableTint="?attr/colorPrimary"
                                 android:drawablePadding="4dp" />
                         </LinearLayout>
@@ -83,14 +83,25 @@
                     </LinearLayout>
 
                     <ImageView
-                        android:id="@+id/btn_ai_about"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:layout_marginEnd="12dp"
-                        android:padding="8dp"
-                        android:src="@android:drawable/ic_menu_info_details"
+                        android:id="@+id/btn_ai_new_chat"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:padding="12dp"
+                        android:src="@drawable/ic_ai_new_chat"
                         app:tint="?attr/colorOnSurfaceVariant"
-                        android:background="?attr/selectableItemBackgroundBorderless" />
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/new_chat" />
+
+                    <ImageView
+                        android:id="@+id/btn_ai_about"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_marginEnd="8dp"
+                        android:padding="12dp"
+                        android:src="@drawable/ic_ai_info"
+                        app:tint="?attr/colorOnSurfaceVariant"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/more" />
 
                 </LinearLayout>
 
@@ -106,10 +117,29 @@
         android:layout_height="0dp"
         android:clipToPadding="false"
         android:padding="8dp"
+        android:scrollbars="vertical"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:stackFromEnd="true"
-        app:layout_constraintBottom_toTopOf="@+id/input_card"
+        app:layout_constraintBottom_toTopOf="@+id/ai_suggestions_scroll"
         app:layout_constraintTop_toBottomOf="@+id/app_bar" />
+
+    <HorizontalScrollView
+        android:id="@+id/ai_suggestions_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:clipToPadding="false"
+        android:paddingHorizontal="12dp"
+        app:layout_constraintBottom_toTopOf="@id/ai_typing_indicator">
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/ai_suggestions_group"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:singleLine="true"
+            app:chipSpacingHorizontal="8dp" />
+
+    </HorizontalScrollView>
 
     <com.google.android.material.progressindicator.LinearProgressIndicator
         android:id="@+id/ai_typing_indicator"

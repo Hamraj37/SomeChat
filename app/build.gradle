@@ -93,6 +93,7 @@ dependencies {
     implementation libs.biometric
     implementation libs.zxing.core
     implementation libs.zxing.android
+    implementation libs.markwon.core
 
     // Room
     implementation libs.room.runtime

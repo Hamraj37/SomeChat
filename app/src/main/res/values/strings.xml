@@ -123,4 +123,18 @@
     <string name="ai_hint">Ask me anything...</string>
     <string name="ai_online">Online • %1$s</string>
     <string name="ai_greeting">Hello! I\'m SomeChat AI. How can I help you today?</string>
+    <string name="ai_suggest_joke">Tell me a joke</string>
+    <string name="ai_suggest_poem">Write a short poem</string>
+    <string name="ai_suggest_code">Help me with Java code</string>
+    <string name="ai_suggest_email">Write a formal email</string>
+    <string name="ai_suggest_translate">Translate to Spanish</string>
+    <string name="ai_suggest_story">Tell me a short story</string>
+    <string name="ai_suggest_more">Tell me more</string>
+    <string name="ai_suggest_explain">Explain further</string>
+    <string name="ai_suggest_example">Give an example</string>
+    <string name="ai_suggest_summarize">Summarize this</string>
+    <string name="ai_suggest_code_explain">Explain this code</string>
+    <string name="new_chat">New Chat</string>
+    <string name="clear_chat_confirmation">Are you sure you want to start a new chat session? This will clear the current history.</string>
+    <string name="code_copied">Code copied to clipboard</string>
 </resources>

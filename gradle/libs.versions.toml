@@ -21,6 +21,7 @@ jsoup = "1.17.2"
 biometric = "1.1.0"
 zxing = "3.5.3"
 zxing-android = "4.3.0"
+markwon = "4.6.2"
 
 firebaseAuth = "22.3.1" # Example version if needed, though usually handled by BOM
 playServicesAuth = "21.0.0"
@@ -55,6 +56,7 @@ jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
 biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 zxing-android = { group = "com.journeyapps", name = "zxing-android-embedded", version.ref = "zxing-android" }
+markwon-core = { group = "io.noties.markwon", name = "core", version.ref = "markwon" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
