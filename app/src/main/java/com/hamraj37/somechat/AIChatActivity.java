@@ -59,7 +59,7 @@ public class AIChatActivity extends BaseActivity {
     private Message streamingMsg;
     private static final String AI_ID = "somechat_ai";
     private final OkHttpClient client = new OkHttpClient();
-    private String currentModelId = "google/gemma-4-26b-a4b-it:free";
+    private String currentModelId = "tencent/hy3:free";
     private static final String OPENROUTER_API_KEY = BuildConfig.OPENROUTER_API_KEY;
 
     private static final String PREFS_NAME = "AIChatPrefs";
@@ -80,8 +80,8 @@ public class AIChatActivity extends BaseActivity {
 
         // Load saved model
         android.content.SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        currentModelId = prefs.getString(KEY_MODEL_ID, "google/gemma-4-26b-a4b-it:free");
-        String savedShortName = prefs.getString(KEY_MODEL_SHORT_NAME, "Gemma 4");
+        currentModelId = prefs.getString(KEY_MODEL_ID, "tencent/hy3:free");
+        String savedShortName = prefs.getString(KEY_MODEL_SHORT_NAME, "Hunyuan 3");
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -510,19 +510,22 @@ public class AIChatActivity extends BaseActivity {
                 "google/gemma-4-26b-a4b-it:free",
                 "tencent/hy3:free",
                 "poolside/laguna-xs-2.1:free",
-                "nvidia/nemotron-3-super-120b-a12b:free"
+                "nvidia/nemotron-3-super-120b-a12b:free",
+                "qwen/qwen3-coder:free"
         };
         String[] modelNames = {
                 "Gemma 4 26B (Google)",
                 "Hunyuan 3 (Tencent)",
                 "Laguna XS 2.1 (Poolside)",
-                "Nemotron 3 Super 120B (NVIDIA)"
+                "Nemotron 3 Super 120B (NVIDIA)",
+                "Qwen 3 Coder (Alibaba)"
         };
         String[] shortNames = {
                 "Gemma 4",
                 "Hunyuan 3",
                 "Laguna XS",
-                "Nemotron 3"
+                "Nemotron 3",
+                "Qwen 3"
         };
 
         for (int i = 0; i < models.length; i++) {
@@ -542,7 +545,7 @@ public class AIChatActivity extends BaseActivity {
                     .putString(KEY_MODEL_ID, currentModelId)
                     .putString(KEY_MODEL_SHORT_NAME, shortName)
                     .apply();
-            
+
             Toast.makeText(this, "Model changed to: " + modelNames[index], Toast.LENGTH_SHORT).show();
             return true;
         });
@@ -565,6 +568,9 @@ public class AIChatActivity extends BaseActivity {
         } else if (currentModelId.contains("nemotron")) {
             title = "About Nemotron 3";
             message = "Developed by NVIDIA. A massive 120B parameter model that excels at high-performance tasks, complex reasoning, and providing detailed, accurate information.";
+        } else if (currentModelId.contains("qwen3")) {
+            title = "About Qwen 3 Coder";
+            message = "Developed by Alibaba. A specialized model optimized for programming and technical tasks, offering high-level code generation and understanding.";
         }
 
         new MaterialAlertDialogBuilder(this)
