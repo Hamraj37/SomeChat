@@ -474,7 +474,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         container.removeAllViews();
         if (text == null || text.isEmpty()) return;
 
-        if (!isAi) {
+        if (!isAi || isSent) {
             fallbackTv.setVisibility(View.VISIBLE);
             container.setVisibility(View.GONE);
             fallbackTv.setText(text);
@@ -608,11 +608,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 if (btnCopy != null) btnCopy.setVisibility(View.GONE);
             } else {
                 textMessage.setVisibility(View.VISIBLE);
-                if (markwon != null && isAi) {
-                    markwon.setMarkdown(textMessage, message.getText());
-                } else {
-                    textMessage.setText(message.getText());
-                }
+                textMessage.setText(message.getText());
             }
             textTimestamp.setText(formatDate(message.getTimestamp()));
             bindReply(itemView, message);
@@ -709,7 +705,14 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             
             if (contentContainer != null) {
                 renderDynamicContent(contentContainer, textMessage, message.getText(), false);
-                if (btnCopy != null) btnCopy.setVisibility(View.GONE);
+                if (btnCopy != null) {
+                    if (isAi) {
+                        btnCopy.setVisibility(View.VISIBLE);
+                        btnCopy.setOnClickListener(v -> copyToClipboard(message.getText()));
+                    } else {
+                        btnCopy.setVisibility(View.GONE);
+                    }
+                }
             } else {
                 textMessage.setVisibility(View.VISIBLE);
                 if (markwon != null && isAi) {
@@ -719,31 +722,36 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 }
                 
                 if (btnCopy != null) {
-                    String msgText = message.getText();
-                    boolean hasCode = msgText != null && msgText.contains("```");
-                    btnCopy.setVisibility(hasCode ? View.VISIBLE : View.GONE);
-                    
-                    btnCopy.setOnClickListener(v -> {
-                        String textToCopy = msgText;
-                        if (textToCopy != null && textToCopy.contains("```")) {
-                            try {
-                                int start = textToCopy.indexOf("```") + 3;
-                                int firstNewline = textToCopy.indexOf("\n", start);
-                                int nextBackticks = textToCopy.indexOf("```", start);
-                                if (firstNewline != -1 && (nextBackticks == -1 || firstNewline < nextBackticks)) {
-                                    String possibleLang = textToCopy.substring(start, firstNewline).trim();
-                                    if (!possibleLang.contains(" ") && possibleLang.length() < 15) {
-                                        start = firstNewline + 1;
+                    if (isAi) {
+                        btnCopy.setVisibility(View.VISIBLE);
+                        btnCopy.setOnClickListener(v -> copyToClipboard(message.getText()));
+                    } else {
+                        String msgText = message.getText();
+                        boolean hasCode = msgText != null && msgText.contains("```");
+                        btnCopy.setVisibility(hasCode ? View.VISIBLE : View.GONE);
+                        
+                        btnCopy.setOnClickListener(v -> {
+                            String textToCopy = msgText;
+                            if (textToCopy != null && textToCopy.contains("```")) {
+                                try {
+                                    int start = textToCopy.indexOf("```") + 3;
+                                    int firstNewline = textToCopy.indexOf("\n", start);
+                                    int nextBackticks = textToCopy.indexOf("```", start);
+                                    if (firstNewline != -1 && (nextBackticks == -1 || firstNewline < nextBackticks)) {
+                                        String possibleLang = textToCopy.substring(start, firstNewline).trim();
+                                        if (!possibleLang.contains(" ") && possibleLang.length() < 15) {
+                                            start = firstNewline + 1;
+                                        }
                                     }
-                                }
-                                int end = textToCopy.indexOf("```", start);
-                                if (end != -1) {
-                                    textToCopy = textToCopy.substring(start, end).trim();
-                                }
-                            } catch (Exception ignored) {}
-                        }
-                        copyToClipboard(textToCopy);
-                    });
+                                    int end = textToCopy.indexOf("```", start);
+                                    if (end != -1) {
+                                        textToCopy = textToCopy.substring(start, end).trim();
+                                    }
+                                } catch (Exception ignored) {}
+                            }
+                            copyToClipboard(textToCopy);
+                        });
+                    }
                 }
             }
 
