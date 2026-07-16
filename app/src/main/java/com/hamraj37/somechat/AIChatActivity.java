@@ -335,7 +335,7 @@ public class AIChatActivity extends BaseActivity {
                                     if (delta.has("content")) {
                                         String content = delta.getString("content");
                                         aiContent.append(content);
-                                        
+
                                         runOnUiThread(() -> {
                                             int existingIndex = messageList.indexOf(streamingMsg);
                                             if (existingIndex == -1) {
