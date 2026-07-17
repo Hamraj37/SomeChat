@@ -314,12 +314,14 @@ public class TransformFragment extends Fragment {
 
             holder.imageView.setOnClickListener(v -> {
                 if (chatItem.isGroup()) {
-                    // Maybe show group info?
-                    return;
+                    Intent intent = new Intent(holder.itemView.getContext(), com.hamraj37.somechat.GroupInfoActivity.class);
+                    intent.putExtra("groupId", chatItem.getUid());
+                    holder.itemView.getContext().startActivity(intent);
+                } else {
+                    Intent intent = new Intent(holder.itemView.getContext(), ProfileInfoActivity.class);
+                    intent.putExtra("uid", chatItem.getUid());
+                    holder.itemView.getContext().startActivity(intent);
                 }
-                Intent intent = new Intent(holder.itemView.getContext(), ProfileInfoActivity.class);
-                intent.putExtra("uid", chatItem.getUid());
-                holder.itemView.getContext().startActivity(intent);
             });
 
             holder.itemView.setOnClickListener(v -> {
