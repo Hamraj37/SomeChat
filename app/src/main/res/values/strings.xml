@@ -139,4 +139,6 @@
     <string name="new_chat">New Chat</string>
     <string name="clear_chat_confirmation">Are you sure you want to start a new chat session? This will clear the current history.</string>
     <string name="code_copied">Code copied to clipboard</string>
+    <string name="audio">Audio</string>
+    <string name="video">Video</string>
 </resources>

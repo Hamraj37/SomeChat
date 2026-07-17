@@ -167,6 +167,40 @@
                                 android:lineSpacingExtra="2dp"
                                 tools:text="This is my bio. I love chatting with friends on SomeChat!" />
 
+                            <LinearLayout
+                                android:id="@+id/call_actions_container"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="16dp"
+                                android:orientation="horizontal"
+                                android:gravity="center"
+                                android:visibility="gone"
+                                tools:visibility="visible">
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/audio_call_button"
+                                    style="@style/Widget.Material3.Button.TonalButton"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:layout_marginEnd="8dp"
+                                    android:text="@string/audio"
+                                    app:icon="@drawable/ic_call"
+                                    app:iconGravity="textStart" />
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/video_call_button"
+                                    style="@style/Widget.Material3.Button.TonalButton"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:layout_marginStart="8dp"
+                                    android:text="@string/video"
+                                    app:icon="@drawable/ic_video_call"
+                                    app:iconGravity="textStart" />
+
+                            </LinearLayout>
+
                         </LinearLayout>
 
                         <LinearLayout

@@ -88,11 +88,13 @@ public class ProfileInfoActivity extends BaseActivity {
             binding.qrCodeButton.setVisibility(View.GONE);
             binding.editProfileImageFab.setVisibility(View.GONE);
             binding.editCoverImageFab.setVisibility(View.GONE);
+            binding.callActionsContainer.setVisibility(View.VISIBLE);
             checkFriendshipStatus();
         } else {
             binding.editProfileImageFab.setVisibility(View.VISIBLE);
             binding.editCoverImageFab.setVisibility(View.VISIBLE);
             binding.qrCodeButton.setVisibility(View.VISIBLE);
+            binding.callActionsContainer.setVisibility(View.GONE);
         }
 
         loadUserProfile();
@@ -457,7 +459,19 @@ public class ProfileInfoActivity extends BaseActivity {
             binding.profileImage.setOnClickListener(v -> pickImageLauncher.launch("image/*"));
             binding.editProfileImageFab.setOnClickListener(v -> pickImageLauncher.launch("image/*"));
             binding.editCoverImageFab.setOnClickListener(v -> pickCoverLauncher.launch("image/*"));
+        } else {
+            binding.audioCallButton.setOnClickListener(v -> startCall(false));
+            binding.videoCallButton.setOnClickListener(v -> startCall(true));
         }
+    }
+
+    private void startCall(boolean isVideo) {
+        Intent intent = new Intent(this, isVideo ? VideoCallActivity.class : AudioCallActivity.class);
+        intent.putExtra("uid", targetUid);
+        intent.putExtra("displayName", otherUserName);
+        intent.putExtra("photoUrl", currentPhotoUrl);
+        intent.putExtra("isIncoming", false);
+        startActivity(intent);
     }
 
     private void showQRDialog() {
