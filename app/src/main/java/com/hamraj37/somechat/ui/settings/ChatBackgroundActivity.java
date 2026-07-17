@@ -92,6 +92,7 @@ public class ChatBackgroundActivity extends BaseActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
         
         List<Integer> presets = new ArrayList<>();
+        presets.add(R.drawable.bg_glass_main);
         presets.add(R.drawable.bg_chat_whatsapp);
         presets.add(R.drawable.bg_chat_telegram);
         presets.add(R.drawable.bg_chat_instagram);
