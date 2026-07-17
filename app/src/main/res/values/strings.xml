@@ -141,4 +141,6 @@
     <string name="code_copied">Code copied to clipboard</string>
     <string name="audio">Audio</string>
     <string name="video">Video</string>
+    <string name="friends">Friends</string>
+    <string name="no_friends_yet">No friends yet</string>
 </resources>

@@ -29,6 +29,7 @@ import com.google.firebase.database.ValueEventListener;
 import com.hamraj37.somechat.adapters.HighlightAdapter;
 import com.hamraj37.somechat.adapters.MediaAdapter;
 import com.hamraj37.somechat.adapters.PinnedMessagesAdapter;
+import com.hamraj37.somechat.adapters.UserAdapter;
 import com.hamraj37.somechat.databinding.ActivityProfileInfoBinding;
 import com.hamraj37.somechat.models.Highlight;
 import com.hamraj37.somechat.models.Message;
@@ -53,6 +54,8 @@ public class ProfileInfoActivity extends BaseActivity {
     private List<Highlight> highlightList = new ArrayList<>();
     private HighlightAdapter highlightAdapter;
     private String currentPhotoUrl;
+    private List<User> friendsList = new ArrayList<>();
+    private UserAdapter friendsAdapter;
 
     private final androidx.activity.result.ActivityResultLauncher<String> pickImageLauncher =
             registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.GetContent(),
@@ -89,12 +92,16 @@ public class ProfileInfoActivity extends BaseActivity {
             binding.editProfileImageFab.setVisibility(View.GONE);
             binding.editCoverImageFab.setVisibility(View.GONE);
             binding.callActionsContainer.setVisibility(View.VISIBLE);
+            binding.friendsCard.setVisibility(View.GONE);
             checkFriendshipStatus();
         } else {
             binding.editProfileImageFab.setVisibility(View.VISIBLE);
             binding.editCoverImageFab.setVisibility(View.VISIBLE);
             binding.qrCodeButton.setVisibility(View.VISIBLE);
             binding.callActionsContainer.setVisibility(View.GONE);
+            binding.friendsCard.setVisibility(View.VISIBLE);
+            setupFriendsRecyclerView();
+            loadFriends();
         }
 
         loadUserProfile();
@@ -111,6 +118,110 @@ public class ProfileInfoActivity extends BaseActivity {
         } else {
             binding.mediaCard.setVisibility(View.GONE);
             binding.pinnedMessagesCard.setVisibility(View.GONE);
+        }
+    }
+
+    private void setupFriendsRecyclerView() {
+        friendsAdapter = new UserAdapter(friendsList, new UserAdapter.OnUserClickListener() {
+            @Override
+            public void onUserClick(User user) {
+                Intent intent = new Intent(ProfileInfoActivity.this, ProfileInfoActivity.class);
+                intent.putExtra("uid", user.getUid());
+                startActivity(intent);
+            }
+
+            @Override
+            public void onRemoveClick(User user) {
+                new MaterialAlertDialogBuilder(ProfileInfoActivity.this)
+                        .setTitle("Unfriend " + user.getDisplayName() + "?")
+                        .setMessage("Are you sure you want to remove this user from your friends?")
+                        .setPositiveButton("Unfriend", (dialog, which) -> {
+                            String myUid = FirebaseAuth.getInstance().getUid();
+                            if (myUid != null && user.getUid() != null) {
+                                Map<String, Object> updates = new HashMap<>();
+                                updates.put("/friends/" + myUid + "/" + user.getUid(), null);
+                                updates.put("/friends/" + user.getUid() + "/" + myUid, null);
+                                FirebaseDatabase.getInstance().getReference().updateChildren(updates);
+                            }
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .show();
+            }
+
+            @Override
+            public void onNewGroupClick() {}
+        });
+        friendsAdapter.setShowRemoveButton(true);
+        binding.friendsRecycler.setAdapter(friendsAdapter);
+    }
+
+    private void loadFriends() {
+        String myUid = FirebaseAuth.getInstance().getUid();
+        if (myUid == null) return;
+
+        FirebaseDatabase.getInstance().getReference("friends").child(myUid)
+                .addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        List<String> friendUids = new ArrayList<>();
+                        for (DataSnapshot ds : snapshot.getChildren()) {
+                            friendUids.add(ds.getKey());
+                        }
+                        fetchFriendDetails(friendUids);
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {}
+                });
+    }
+
+    private void fetchFriendDetails(List<String> uids) {
+        if (uids.isEmpty()) {
+            friendsList.clear();
+            friendsAdapter.notifyDataSetChanged();
+            binding.friendsCount.setText("0");
+            binding.noFriendsText.setVisibility(View.VISIBLE);
+            binding.friendsRecycler.setVisibility(View.GONE);
+            return;
+        }
+
+        binding.noFriendsText.setVisibility(View.GONE);
+        binding.friendsRecycler.setVisibility(View.VISIBLE);
+        
+        List<User> newFriends = new ArrayList<>();
+        final int total = uids.size();
+        final int[] count = {0};
+
+        for (String uid : uids) {
+            FirebaseDatabase.getInstance().getReference("users").child(uid)
+                    .addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot snapshot) {
+                            User user = snapshot.getValue(User.class);
+                            if (user != null) {
+                                user.setUid(snapshot.getKey());
+                                newFriends.add(user);
+                            }
+                            count[0]++;
+                            if (count[0] == total) {
+                                friendsList.clear();
+                                friendsList.addAll(newFriends);
+                                friendsAdapter.notifyDataSetChanged();
+                                binding.friendsCount.setText(String.valueOf(friendsList.size()));
+                            }
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+                            count[0]++;
+                            if (count[0] == total) {
+                                friendsList.clear();
+                                friendsList.addAll(newFriends);
+                                friendsAdapter.notifyDataSetChanged();
+                                binding.friendsCount.setText(String.valueOf(friendsList.size()));
+                            }
+                        }
+                    });
         }
     }
 

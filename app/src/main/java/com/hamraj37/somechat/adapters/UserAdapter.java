@@ -22,11 +22,13 @@ public class UserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private List<User> userList;
     private final OnUserClickListener listener;
     private boolean showActions = false;
+    private boolean showRemoveButton = false;
     private java.util.Map<String, Boolean> adminsMap = null;
     private java.util.Map<String, Boolean> likesMap = null;
 
     public interface OnUserClickListener {
         void onUserClick(User user);
+        default void onRemoveClick(User user) {}
         void onNewGroupClick();
     }
 
@@ -37,6 +39,11 @@ public class UserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     public void setShowActions(boolean show) {
         this.showActions = show;
+        notifyDataSetChanged();
+    }
+
+    public void setShowRemoveButton(boolean show) {
+        this.showRemoveButton = show;
         notifyDataSetChanged();
     }
 
@@ -133,6 +140,13 @@ public class UserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 listener.onUserClick(user);
             }
         });
+
+        if (userHolder.removeButton != null) {
+            userHolder.removeButton.setVisibility(showRemoveButton ? View.VISIBLE : View.GONE);
+            userHolder.removeButton.setOnClickListener(v -> {
+                if (listener != null) listener.onRemoveClick(user);
+            });
+        }
     }
 
     @Override
@@ -167,6 +181,7 @@ public class UserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         TextView email;
         TextView adminBadge;
         ImageView likeIcon;
+        View removeButton;
 
         public UserViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -176,6 +191,7 @@ public class UserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             email = itemView.findViewById(R.id.user_email);
             adminBadge = itemView.findViewById(R.id.admin_badge);
             likeIcon = itemView.findViewById(R.id.status_like_icon);
+            removeButton = itemView.findViewById(R.id.btn_remove_user);
         }
     }
 }
