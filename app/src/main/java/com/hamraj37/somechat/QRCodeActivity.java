@@ -11,6 +11,7 @@ import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
@@ -127,17 +128,30 @@ public class QRCodeActivity extends BaseActivity {
         try {
             // If it's a ScrollView, we want to capture the full content, not just visible area
             Bitmap bitmap;
+            View targetView = view;
             if (view instanceof android.widget.ScrollView) {
-                android.widget.ScrollView sv = (android.widget.ScrollView) view;
-                View content = sv.getChildAt(0);
-                bitmap = Bitmap.createBitmap(content.getWidth(), content.getHeight(), Bitmap.Config.ARGB_8888);
-                Canvas canvas = new Canvas(bitmap);
-                content.draw(canvas);
-            } else {
-                bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
-                Canvas canvas = new Canvas(bitmap);
-                view.draw(canvas);
+                targetView = ((android.widget.ScrollView) view).getChildAt(0);
             }
+
+            if (targetView.getWidth() <= 0 || targetView.getHeight() <= 0) {
+                Toast.makeText(this, "View not ready", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            bitmap = Bitmap.createBitmap(targetView.getWidth(), targetView.getHeight(), Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bitmap);
+
+            // Draw the actual background (gradient) onto the bitmap first
+            android.graphics.drawable.Drawable background = ContextCompat.getDrawable(this, R.drawable.bg_glass_main);
+            if (background != null) {
+                background.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+                background.draw(canvas);
+            } else {
+                // Fallback to white if background drawable not found
+                canvas.drawColor(android.graphics.Color.WHITE);
+            }
+
+            targetView.draw(canvas);
 
             File cachePath = new File(getExternalCacheDir(), "images");
             if (!cachePath.exists()) cachePath.mkdirs();
