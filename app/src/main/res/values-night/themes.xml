@@ -1,10 +1,16 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Theme.SomeChat" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Status Bar -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightNavigationBar">false</item>
+
         <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/whatsapp_green</item>
-        <item name="colorOnPrimary">@color/white</item>
-        <item name="colorPrimaryContainer">@color/whatsapp_green_dark</item>
+        <item name="colorPrimary">@color/whatsapp_light_green</item>
+        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorPrimaryContainer">@color/whatsapp_green</item>
         <item name="colorOnPrimaryContainer">@color/white</item>
         <!-- Secondary brand color. -->
         <item name="colorSecondary">@color/whatsapp_light_green</item>
