@@ -60,6 +60,9 @@ public class ProfileInfoActivity extends BaseActivity {
     private int currentFriendsTab = 0; // 0: Friends, 1: Requests, 2: Pending
     private ValueEventListener friendsListener;
     private DatabaseReference friendsRef;
+    private final Map<Integer, Long> tabCounts = new HashMap<>();
+    private final List<ValueEventListener> countListeners = new ArrayList<>();
+    private final List<DatabaseReference> countRefs = new ArrayList<>();
 
     private final androidx.activity.result.ActivityResultLauncher<String> pickImageLauncher =
             registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.GetContent(),
@@ -106,6 +109,7 @@ public class ProfileInfoActivity extends BaseActivity {
             binding.friendsCard.setVisibility(View.VISIBLE);
             setupFriendsTabs();
             setupFriendsRecyclerView();
+            setupTabCounts();
             loadFriendsData();
         }
 
@@ -123,6 +127,41 @@ public class ProfileInfoActivity extends BaseActivity {
         } else {
             binding.mediaCard.setVisibility(View.GONE);
             binding.pinnedMessagesCard.setVisibility(View.GONE);
+        }
+    }
+
+    private void setupTabCounts() {
+        String myUid = FirebaseAuth.getInstance().getUid();
+        if (myUid == null) return;
+
+        String[] paths = {"friends", "friendRequests", "sentFriendRequests"};
+        for (int i = 0; i < paths.length; i++) {
+            final int index = i;
+            DatabaseReference ref = FirebaseDatabase.getInstance().getReference(paths[i]).child(myUid);
+            ValueEventListener listener = new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot snapshot) {
+                    tabCounts.put(index, snapshot.getChildrenCount());
+                    updateTabTitles();
+                }
+                @Override public void onCancelled(@NonNull DatabaseError error) {}
+            };
+            ref.addValueEventListener(listener);
+            countRefs.add(ref);
+            countListeners.add(listener);
+        }
+    }
+
+    private void updateTabTitles() {
+        if (binding == null) return;
+        String[] baseTitles = {getString(R.string.friends), getString(R.string.requests), getString(R.string.pending)};
+        for (int i = 0; i < 3; i++) {
+            com.google.android.material.tabs.TabLayout.Tab tab = binding.friendsTabs.getTabAt(i);
+            if (tab != null) {
+                Long countObj = tabCounts.get(i);
+                long count = countObj != null ? countObj : 0L;
+                tab.setText(baseTitles[i] + (count > 0 ? " " + count : ""));
+            }
         }
     }
 
@@ -260,7 +299,6 @@ public class ProfileInfoActivity extends BaseActivity {
         friendsAdapter.notifyDataSetChanged();
 
         if (uids.isEmpty()) {
-            binding.friendsCount.setText("0");
             
             String noItemsText = getString(R.string.no_friends_yet);
             if (fetchTab == 1) noItemsText = getString(R.string.no_requests);
@@ -296,7 +334,6 @@ public class ProfileInfoActivity extends BaseActivity {
                                 friendsList.clear();
                                 friendsList.addAll(newFriends);
                                 friendsAdapter.notifyDataSetChanged();
-                                binding.friendsCount.setText(String.valueOf(friendsList.size()));
                             }
                         }
 
@@ -308,7 +345,6 @@ public class ProfileInfoActivity extends BaseActivity {
                                 friendsList.clear();
                                 friendsList.addAll(newFriends);
                                 friendsAdapter.notifyDataSetChanged();
-                                binding.friendsCount.setText(String.valueOf(friendsList.size()));
                             }
                         }
                     });
@@ -1234,6 +1270,9 @@ public class ProfileInfoActivity extends BaseActivity {
         super.onDestroy();
         if (friendsRef != null && friendsListener != null) {
             friendsRef.removeEventListener(friendsListener);
+        }
+        for (int i = 0; i < countRefs.size(); i++) {
+            countRefs.get(i).removeEventListener(countListeners.get(i));
         }
         binding = null;
     }
