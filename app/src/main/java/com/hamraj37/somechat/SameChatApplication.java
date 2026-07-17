@@ -7,7 +7,6 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.google.android.material.color.DynamicColors;
 
 import java.lang.ref.WeakReference;
 
@@ -18,8 +17,6 @@ public class SameChatApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        // This applies dynamic colors (Monet) to all activities in the app.
-        DynamicColors.applyToActivitiesIfAvailable(this);
         
         registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
             @Override
