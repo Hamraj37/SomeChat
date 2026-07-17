@@ -66,7 +66,7 @@ public class VideoCallActivity extends BaseActivity {
     private TextView callStatus, callTimer;
     private FloatingActionButton btnAccept, btnDecline, btnMute, btnSwitchCamera, btnSpeaker;
     private SurfaceViewRenderer localVideoView, remoteVideoView;
-    private View localVideoContainer;
+    private View localVideoContainer, videoPlaceholder;
 
     private WebRTCClient webRTCClient;
     private static final int PERMISSION_REQUEST_CODE = 101;
@@ -206,6 +206,7 @@ public class VideoCallActivity extends BaseActivity {
         localVideoView = findViewById(R.id.local_video_view);
         remoteVideoView = findViewById(R.id.remote_video_view);
         localVideoContainer = findViewById(R.id.local_video_container);
+        videoPlaceholder = findViewById(R.id.video_placeholder);
 
         name.setText(receiverName);
         if (receiverAvatar != null && !receiverAvatar.isEmpty()) {
@@ -426,6 +427,9 @@ public class VideoCallActivity extends BaseActivity {
                             if (remoteVideoView != null) {
                                 remoteVideoView.setVisibility(View.VISIBLE);
                                 videoTrack.addSink(remoteVideoView);
+                            }
+                            if (videoPlaceholder != null) {
+                                videoPlaceholder.setVisibility(View.GONE);
                             }
                             View avatar = findViewById(R.id.call_avatar);
                             View name = findViewById(R.id.call_name);
@@ -751,6 +755,7 @@ public class VideoCallActivity extends BaseActivity {
             callTimer.setVisibility(View.GONE);
             findViewById(R.id.call_avatar).setVisibility(View.GONE);
             findViewById(R.id.call_name).setVisibility(View.GONE);
+            if (videoPlaceholder != null) videoPlaceholder.setVisibility(View.GONE);
             localVideoContainer.setVisibility(View.GONE);
         } else {
             // Show UI elements when returning from PiP mode
@@ -768,6 +773,7 @@ public class VideoCallActivity extends BaseActivity {
             if (remoteVideoView.getVisibility() != View.VISIBLE) {
                 findViewById(R.id.call_avatar).setVisibility(View.VISIBLE);
                 findViewById(R.id.call_name).setVisibility(View.VISIBLE);
+                if (videoPlaceholder != null) videoPlaceholder.setVisibility(View.VISIBLE);
             }
             localVideoContainer.setVisibility(View.VISIBLE);
         }
