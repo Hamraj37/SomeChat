@@ -115,35 +115,47 @@ public class ReflowFragment extends Fragment {
                                         boolean isMe = status.getUserId().equals(currentUserId);
                                         boolean isFriend = friendIds.contains(status.getUserId());
                                         
-                                        if (isMe || isFriend) {
-                                            // Filter out old status items
-                                            List<Status.StatusItem> validItems = new ArrayList<>();
-                                            if (status.getItems() != null) {
-                                                for (Status.StatusItem item : status.getItems()) {
-                                                    if (item.getTimestamp() > yesterday) {
-                                                        validItems.add(item);
-                                                    }
+                                        // Filter out old status items
+                                        List<Status.StatusItem> validItems = new ArrayList<>();
+                                        boolean hasOldItems = false;
+                                        if (status.getItems() != null) {
+                                            for (Status.StatusItem item : status.getItems()) {
+                                                if (item.getTimestamp() > yesterday) {
+                                                    validItems.add(item);
+                                                } else {
+                                                    hasOldItems = true;
                                                 }
                                             }
+                                        }
 
-                                            if (!validItems.isEmpty()) {
-                                                // Create a copy of the status object for display in the list
-                                                // so we don't modify the original one which might be needed in full
-                                                Status displayStatus = new Status(
-                                                        status.getUserId(),
-                                                        status.getUserId(),
-                                                        status.getUserName(),
-                                                        status.getProfilePic(),
-                                                        status.getLastUpdated(),
-                                                        validItems
-                                                );
-                                                displayStatus.setStatusId(status.getStatusId());
+                                        if (validItems.isEmpty()) {
+                                            // No valid items left, delete from database if it's mine or if I see it
+                                            // (Usually better to let the owner or a background function handle this, 
+                                            // but for simplicity we clean up when we see it)
+                                            ds.getRef().removeValue();
+                                            continue;
+                                        } else if (hasOldItems) {
+                                            // Update status with only valid items
+                                            ds.getRef().child("items").setValue(validItems);
+                                            status.setItems(validItems);
+                                        }
 
-                                                if (isMe) {
-                                                    myStatus = displayStatus;
-                                                } else {
-                                                    statusList.add(displayStatus);
-                                                }
+                                        if (isMe || isFriend) {
+                                            // Create a copy of the status object for display in the list
+                                            Status displayStatus = new Status(
+                                                    status.getUserId(),
+                                                    status.getUserId(),
+                                                    status.getUserName(),
+                                                    status.getProfilePic(),
+                                                    status.getLastUpdated(),
+                                                    validItems
+                                            );
+                                            displayStatus.setStatusId(status.getStatusId());
+
+                                            if (isMe) {
+                                                myStatus = displayStatus;
+                                            } else {
+                                                statusList.add(displayStatus);
                                             }
                                         }
                                     }
@@ -302,10 +314,19 @@ public class ReflowFragment extends Fragment {
                         } else {
                             List<Status.StatusItem> items = myStatus.getItems();
                             if (items == null) items = new ArrayList<>();
-                            items.add(newItem);
+                            
+                            // Clean up old items before adding new one
+                            List<Status.StatusItem> validItems = new ArrayList<>();
+                            long yesterday = System.currentTimeMillis() - (24 * 60 * 60 * 1000);
+                            for (Status.StatusItem item : items) {
+                                if (item.getTimestamp() > yesterday) {
+                                    validItems.add(item);
+                                }
+                            }
+                            validItems.add(newItem);
                             
                             java.util.Map<String, Object> updates = new java.util.HashMap<>();
-                            updates.put("items", items);
+                            updates.put("items", validItems);
                             updates.put("lastUpdated", System.currentTimeMillis());
                             myStatusRef.updateChildren(updates);
                         }

@@ -26,3 +26,4 @@ release-key.jks
 /.idea/runConfigurations.xml
 /.idea/vcs.xml
 /app/google-services (4).json
+/.idea/appInsightsSettings.xml

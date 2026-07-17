@@ -206,10 +206,19 @@ public class StatusPreviewActivity extends BaseActivity {
                                 } else {
                                     List<Status.StatusItem> items = existingStatus.getItems();
                                     if (items == null) items = new ArrayList<>();
-                                    items.add(newItem);
+                                    
+                                    // Clean up old items before adding new one
+                                    List<Status.StatusItem> validItems = new ArrayList<>();
+                                    long yesterday = System.currentTimeMillis() - (24 * 60 * 60 * 1000);
+                                    for (Status.StatusItem item : items) {
+                                        if (item.getTimestamp() > yesterday) {
+                                            validItems.add(item);
+                                        }
+                                    }
+                                    validItems.add(newItem);
                                     
                                     Map<String, Object> updates = new HashMap<>();
-                                    updates.put("items", items);
+                                    updates.put("items", validItems);
                                     updates.put("lastUpdated", System.currentTimeMillis());
                                     myStatusRef.updateChildren(updates).addOnCompleteListener(task -> {
                                         Toast.makeText(StatusPreviewActivity.this, "Status updated", Toast.LENGTH_SHORT).show();

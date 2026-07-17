@@ -471,7 +471,13 @@ public class ViewStatusActivity extends BaseActivity {
     private void sortItems() {
         statusItems.clear();
         if (status.getItems() != null) {
-            statusItems.addAll(status.getItems());
+            long yesterday = System.currentTimeMillis() - (24 * 60 * 60 * 1000);
+            for (Status.StatusItem item : status.getItems()) {
+                // If it's a highlight, don't filter by time
+                if (isHighlight || item.getTimestamp() > yesterday) {
+                    statusItems.add(item);
+                }
+            }
             statusItems.sort((i1, i2) -> Long.compare(i1.getTimestamp(), i2.getTimestamp()));
         }
     }
@@ -658,7 +664,11 @@ public class ViewStatusActivity extends BaseActivity {
     }
 
     private void updateUI() {
-        if (statusItems.isEmpty() || isFinishing() || isDestroyed()) return;
+        if (statusItems.isEmpty()) {
+            if (!isFinishing()) finish();
+            return;
+        }
+        if (isFinishing() || isDestroyed()) return;
         Status.StatusItem item = statusItems.get(currentIndex);
         
         userNameText.setText(status.getUserName());
