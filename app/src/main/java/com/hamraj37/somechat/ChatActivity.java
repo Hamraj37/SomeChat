@@ -843,7 +843,7 @@ public class ChatActivity extends BaseActivity {
             selectionActionsContainer.setVisibility(View.GONE);
             
             androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
-            toolbar.setNavigationIcon(android.R.drawable.ic_menu_revert);
+            toolbar.setNavigationIcon(androidx.appcompat.R.drawable.abc_ic_ab_back_material);
             toolbar.setNavigationOnClickListener(v -> finish());
         }
     }

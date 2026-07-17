@@ -17,6 +17,12 @@ public class FullMediaActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_full_media);
 
+        // Ensure status bar icons are white on black background
+        androidx.core.view.WindowInsetsControllerCompat windowInsetsController = 
+            new androidx.core.view.WindowInsetsControllerCompat(getWindow(), getWindow().getDecorView());
+        windowInsetsController.setAppearanceLightStatusBars(false);
+        windowInsetsController.setAppearanceLightNavigationBars(false);
+
         ShapeableImageView fullImage = findViewById(R.id.full_image);
         VideoView fullVideo = findViewById(R.id.full_video);
         CircularProgressIndicator loading = findViewById(R.id.loading_progress);

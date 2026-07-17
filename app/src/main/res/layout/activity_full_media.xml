@@ -3,7 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/black">
+    android:background="@android:color/black"
+    android:fitsSystemWindows="true">
 
     <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/full_image"
@@ -33,7 +34,7 @@
         android:layout_height="48dp"
         android:layout_margin="16dp"
         android:background="?attr/selectableItemBackgroundBorderless"
-        android:src="@android:drawable/ic_menu_revert"
+        android:src="?attr/homeAsUpIndicator"
         app:tint="@android:color/white"
         android:contentDescription="@string/back" />
 
