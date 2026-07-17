@@ -963,8 +963,8 @@ public class ProfileInfoActivity extends BaseActivity {
             card.setRadius((int)(16 * getResources().getDisplayMetrics().density));
             card.setCardElevation(0);
             card.setStrokeWidth((int)(1 * getResources().getDisplayMetrics().density));
-            card.setStrokeColor(com.google.android.material.color.MaterialColors.getColor(this, com.google.android.material.R.attr.colorOutlineVariant, android.graphics.Color.LTGRAY));
-            card.setCardBackgroundColor(com.google.android.material.color.MaterialColors.getColor(this, com.google.android.material.R.attr.colorSurfaceVariant, android.graphics.Color.TRANSPARENT));
+            card.setStrokeColor(androidx.core.content.ContextCompat.getColor(this, R.color.glass_border));
+            card.setCardBackgroundColor(androidx.core.content.ContextCompat.getColor(this, R.color.glass_white));
             card.setClickable(true);
             card.setFocusable(true);
 
@@ -1003,7 +1003,7 @@ public class ProfileInfoActivity extends BaseActivity {
 
             TextView textView = new TextView(this);
             textView.setText(website.getTitle());
-            textView.setTextColor(com.google.android.material.color.MaterialColors.getColor(this, androidx.appcompat.R.attr.colorPrimary, android.graphics.Color.BLUE));
+            textView.setTextColor(com.google.android.material.color.MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurface, android.graphics.Color.BLACK));
             androidx.core.widget.TextViewCompat.setTextAppearance(textView, com.google.android.material.R.style.TextAppearance_Material3_TitleMedium);
             textView.setEllipsize(android.text.TextUtils.TruncateAt.END);
             textView.setSingleLine(true);
