@@ -12,10 +12,11 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="64dp"
-        app:cardBackgroundColor="?attr/colorPrimary"
+        app:cardBackgroundColor="@color/glass_green"
+        app:strokeColor="@color/glass_border"
+        app:strokeWidth="1dp"
         app:cardCornerRadius="16dp"
-        app:cardElevation="0dp"
-        app:strokeWidth="0dp">
+        app:cardElevation="0dp">
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -39,7 +40,7 @@
                     android:layout_width="12dp"
                     android:layout_height="12dp"
                     android:src="@drawable/ic_forward"
-                    app:tint="?attr/colorOnPrimary"
+                    app:tint="?attr/colorOnSurface"
                     android:alpha="0.6" />
 
                 <TextView
@@ -50,7 +51,7 @@
                     android:textSize="11sp"
                     android:textStyle="italic"
                     android:alpha="0.6"
-                    android:textColor="?attr/colorOnPrimary" />
+                    android:textColor="?attr/colorOnSurface" />
             </LinearLayout>
 
             <LinearLayout
@@ -66,7 +67,7 @@
                 <View
                     android:layout_width="4dp"
                     android:layout_height="match_parent"
-                    android:background="?attr/colorOnPrimary" />
+                    android:background="?attr/colorPrimary" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -79,7 +80,7 @@
                         android:id="@+id/reply_name"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="?attr/colorOnPrimary"
+                        android:textColor="?attr/colorPrimary"
                         android:textStyle="bold"
                         android:textSize="12sp"
                         android:maxLines="1"
@@ -92,7 +93,7 @@
                         android:layout_height="wrap_content"
                         android:ellipsize="end"
                         android:maxLines="1"
-                        android:textColor="?attr/colorOnPrimary"
+                        android:textColor="?attr/colorOnSurface"
                         android:alpha="0.8"
                         android:textSize="12sp"
                         tools:text="Replied message text..." />
@@ -116,8 +117,8 @@
                     android:layout_height="wrap_content"
                     android:paddingHorizontal="12dp"
                     android:paddingVertical="8dp"
-                    android:textColor="?attr/colorOnPrimary"
-                    android:textColorLink="?attr/colorOnPrimary"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textColorLink="?attr/colorPrimary"
                     android:linksClickable="true"
                     android:textAppearance="?attr/textAppearanceBodyLarge"
                     tools:text="Hello, how are you?" />

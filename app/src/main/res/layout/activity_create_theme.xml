@@ -76,13 +76,17 @@
                                 android:layout_height="wrap_content"
                                 android:layout_gravity="start"
                                 app:cardCornerRadius="12dp"
-                                app:cardElevation="0dp">
+                                app:cardElevation="0dp"
+                                app:cardBackgroundColor="@color/glass_white"
+                                app:strokeColor="@color/glass_border"
+                                app:strokeWidth="1dp">
                                 <TextView
                                     android:id="@+id/text_received"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:padding="12dp"
                                     android:text="@string/theme_preview_received"
+                                    android:textColor="?attr/colorOnSurface"
                                     android:textAppearance="?attr/textAppearanceBodyMedium" />
                             </com.google.android.material.card.MaterialCardView>
 
@@ -93,13 +97,17 @@
                                 android:layout_gravity="end"
                                 android:layout_marginTop="12dp"
                                 app:cardCornerRadius="12dp"
-                                app:cardElevation="0dp">
+                                app:cardElevation="0dp"
+                                app:cardBackgroundColor="@color/glass_green"
+                                app:strokeColor="@color/glass_border"
+                                app:strokeWidth="1dp">
                                 <TextView
                                     android:id="@+id/text_sent"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:padding="12dp"
                                     android:text="@string/theme_preview_sent"
+                                    android:textColor="?attr/colorOnSurface"
                                     android:textAppearance="?attr/textAppearanceBodyMedium" />
                             </com.google.android.material.card.MaterialCardView>
 

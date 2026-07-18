@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="glass_white">#B31A1A1A</color>
+    <color name="glass_green">#B3054D44</color>
     <color name="glass_border">#33888888</color>
 </resources>
