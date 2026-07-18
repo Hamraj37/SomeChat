@@ -152,6 +152,7 @@
                     android:paddingBottom="12dp"
                     android:textColor="?attr/colorOnSurface"
                     android:textColorLink="?attr/colorPrimary"
+                    android:textColorHighlight="@color/text_selection_highlight"
                     android:linksClickable="true"
                     android:textAppearance="?attr/textAppearanceBodyLarge"
                     android:visibility="gone" />

@@ -333,7 +333,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         boolean isSelected = selectedMessageIds.contains(message.getMessageId());
         
         holder.itemView.setAlpha(isHighlighted ? 0.5f : 1.0f);
-        holder.itemView.setBackgroundColor(isSelected ? 0x20000000 : android.graphics.Color.TRANSPARENT);
+        holder.itemView.setBackgroundColor(isSelected ? 0x2525D366 : android.graphics.Color.TRANSPARENT);
         
         View bubble = null;
         if (holder.itemView instanceof ViewGroup) {
@@ -532,6 +532,10 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         tv.setTextColor(com.google.android.material.color.MaterialColors.getColor(container.getContext(), colorAttr, 0));
         tv.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16); 
         tv.setTextIsSelectable(isAi);
+        
+        // Use themed highlight color
+        int highlightColor = com.google.android.material.color.MaterialColors.getColor(tv, android.R.attr.textColorHighlight);
+        tv.setHighlightColor(highlightColor);
         
         if (markwon != null) markwon.setMarkdown(tv, text);
         else tv.setText(text);

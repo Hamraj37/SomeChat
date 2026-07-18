@@ -9,4 +9,5 @@
     <color name="glass_white">#B3FFFFFF</color>
     <color name="glass_green">#B3DCF8C6</color>
     <color name="glass_border">#33FFFFFF</color>
+    <color name="text_selection_highlight">#6625D366</color>
 </resources>

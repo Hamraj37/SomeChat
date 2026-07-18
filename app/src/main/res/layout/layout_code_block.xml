@@ -79,6 +79,7 @@
                 android:textSize="13sp"
                 android:fontFamily="monospace"
                 android:textIsSelectable="true"
+                android:textColorHighlight="@color/text_selection_highlight"
                 tools:text="&lt;html&gt;\n  &lt;body&gt;Hello&lt;/body&gt;\n&lt;/html&gt;" />
 
         </HorizontalScrollView>

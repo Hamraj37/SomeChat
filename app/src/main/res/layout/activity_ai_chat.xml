@@ -176,6 +176,7 @@
                     android:padding="12dp"
                     android:textColor="?attr/colorOnSurface"
                     android:textColorHint="?attr/colorOnSurfaceVariant"
+                    android:textColorHighlight="@color/text_selection_highlight"
                     android:textAppearance="?attr/textAppearanceBodyLarge"
                     android:autofillHints="none" />
 
