@@ -84,10 +84,11 @@
                                     android:id="@+id/ai_status"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
+                                    android:gravity="center_vertical"
                                     android:text="@string/ai_online"
                                     android:textAppearance="?attr/textAppearanceLabelSmall"
                                     android:textColor="?attr/colorPrimary"
-                                    app:drawableEndCompat="@drawable/ic_arrow_down"
+                                    app:drawableEndCompat="@drawable/ic_arrow_down_small"
                                     app:drawableTint="?attr/colorPrimary"
                                     android:drawablePadding="4dp" />
                             </LinearLayout>
