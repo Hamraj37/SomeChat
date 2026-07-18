@@ -102,7 +102,7 @@
             android:name=".FullMediaActivity"
             android:exported="false"
             android:theme="@style/Theme.SomeChat.NoActionBar"
-            android:screenOrientation="sensor" />
+            android:screenOrientation="portrait" />
         <activity
             android:name=".StatusPreviewActivity"
             android:exported="false"
