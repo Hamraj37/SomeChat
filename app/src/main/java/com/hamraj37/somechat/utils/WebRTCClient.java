@@ -126,21 +126,29 @@ public class WebRTCClient {
     }
 
     public void createOffer(SdpObserver sdpObserver) {
-        MediaConstraints constraints = new MediaConstraints();
-        peerConnection.createOffer(sdpObserver, constraints);
+        if (peerConnection != null) {
+            MediaConstraints constraints = new MediaConstraints();
+            peerConnection.createOffer(sdpObserver, constraints);
+        }
     }
 
     public void createAnswer(SdpObserver sdpObserver) {
-        MediaConstraints constraints = new MediaConstraints();
-        peerConnection.createAnswer(sdpObserver, constraints);
+        if (peerConnection != null) {
+            MediaConstraints constraints = new MediaConstraints();
+            peerConnection.createAnswer(sdpObserver, constraints);
+        }
     }
 
     public void setRemoteDescription(SessionDescription sdp, SdpObserver sdpObserver) {
-        peerConnection.setRemoteDescription(sdpObserver, sdp);
+        if (peerConnection != null) {
+            peerConnection.setRemoteDescription(sdpObserver, sdp);
+        }
     }
 
     public void setLocalDescription(SessionDescription sdp, SdpObserver sdpObserver) {
-        peerConnection.setLocalDescription(sdpObserver, sdp);
+        if (peerConnection != null) {
+            peerConnection.setLocalDescription(sdpObserver, sdp);
+        }
     }
 
     public void addIceCandidate(IceCandidate candidate) {

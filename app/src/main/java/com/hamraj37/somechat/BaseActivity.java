@@ -27,7 +27,7 @@ import androidx.annotation.NonNull;
 import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
 
-import com.hamraj37.somechat.services.CallService;
+import com.hamraj37.somechat.services.CallState;
 import java.util.Locale;
 
 public class BaseActivity extends AppCompatActivity {
@@ -81,12 +81,12 @@ public class BaseActivity extends AppCompatActivity {
             @Override
             public void onReceive(Context context, Intent intent) {
                 String action = intent.getAction();
-                if ("com.hamraj37.somechat.CALL_ENDED".equals(action)) {
+                if ("com.hamraj37.somechat.AUDIO_CALL_ENDED".equals(action) || "com.hamraj37.somechat.VIDEO_CALL_ENDED".equals(action)) {
                     updateCallBar();
                     return;
                 }
 
-                if (!"com.hamraj37.somechat.INCOMING_CALL".equals(action)) {
+                if (!"com.hamraj37.somechat.AUDIO_INCOMING_CALL".equals(action) && !"com.hamraj37.somechat.VIDEO_INCOMING_CALL".equals(action)) {
                     return;
                 }
 
@@ -95,7 +95,7 @@ public class BaseActivity extends AppCompatActivity {
                 if (className.equals("AudioCallActivity") || className.equals("VideoCallActivity")) return;
 
                 // We no longer automatically open the activity here to avoid interrupting the user.
-                // The CallService shows a high-priority heads-up notification (floating window)
+                // The CallState shows a high-priority heads-up notification (floating window)
                 // which allows the user to Answer or Decline via buttons, or tap to open full screen.
             }
         };
@@ -176,8 +176,10 @@ public class BaseActivity extends AppCompatActivity {
         ContextCompat.registerReceiver(this, messageReceiver, msgFilter, ContextCompat.RECEIVER_NOT_EXPORTED);
         
         IntentFilter callFilter = new IntentFilter();
-        callFilter.addAction("com.hamraj37.somechat.INCOMING_CALL");
-        callFilter.addAction("com.hamraj37.somechat.CALL_ENDED");
+        callFilter.addAction("com.hamraj37.somechat.AUDIO_INCOMING_CALL");
+        callFilter.addAction("com.hamraj37.somechat.VIDEO_INCOMING_CALL");
+        callFilter.addAction("com.hamraj37.somechat.AUDIO_CALL_ENDED");
+        callFilter.addAction("com.hamraj37.somechat.VIDEO_CALL_ENDED");
         ContextCompat.registerReceiver(this, callReceiver, callFilter, ContextCompat.RECEIVER_NOT_EXPORTED);
 
         updateCallBar();
@@ -191,7 +193,7 @@ public class BaseActivity extends AppCompatActivity {
             return;
         }
 
-        if (CallService.isCallActive) {
+        if (CallState.isCallActive) {
             showCallBar();
         } else {
             hideCallBar();
@@ -237,10 +239,10 @@ public class BaseActivity extends AppCompatActivity {
     private void setupCallBarClickListener() {
         if (callBar != null) {
             callBar.setOnClickListener(v -> {
-                Intent intent = new Intent(this, CallService.isActiveCallVideo ? VideoCallActivity.class : AudioCallActivity.class);
-                intent.putExtra("uid", CallService.activeCallId);
-                intent.putExtra("displayName", CallService.activeCallName);
-                intent.putExtra("photoUrl", CallService.activeCallAvatar);
+                Intent intent = new Intent(this, CallState.isActiveCallVideo ? VideoCallActivity.class : AudioCallActivity.class);
+                intent.putExtra("uid", CallState.activeCallId);
+                intent.putExtra("displayName", CallState.activeCallName);
+                intent.putExtra("photoUrl", CallState.activeCallAvatar);
                 intent.putExtra("isIncoming", false);
                 // REORDER_TO_FRONT brings the existing instance to the front if it exists
                 // SINGLE_TOP ensures we don't create a new instance if it's already at the top
@@ -262,8 +264,8 @@ public class BaseActivity extends AppCompatActivity {
         callTimerRunnable = new Runnable() {
             @Override
             public void run() {
-                if (CallService.isCallActive && callBarTimer != null) {
-                    long millis = System.currentTimeMillis() - CallService.callStartTime;
+                if (CallState.isCallActive && callBarTimer != null) {
+                    long millis = System.currentTimeMillis() - CallState.callStartTime;
                     int seconds = (int) (millis / 1000);
                     int minutes = seconds / 60;
                     seconds = seconds % 60;

@@ -83,56 +83,64 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
+            android:clipToPadding="false"
+            android:paddingBottom="140dp"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
             tools:context=".ui.transform.TransformFragment" />
 
     </LinearLayout>
 
-    <FrameLayout
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_marginEnd="12dp"
-        android:layout_marginBottom="84dp">
+        android:layout_margin="@dimen/fab_margin"
+        android:orientation="vertical"
+        android:gravity="center_horizontal">
 
-        <View
-            android:id="@+id/ai_fab_border"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_gravity="center"
-            android:background="@drawable/bg_ai_fab_border_gradient" />
-
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fab_ai"
+        <FrameLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:contentDescription="@string/fab_ai_content_description"
-            app:srcCompat="@drawable/ic_ai_stars"
+            android:layout_marginBottom="16dp">
+
+            <View
+                android:id="@+id/ai_fab_border"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_ai_fab_border_gradient" />
+
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/fab_ai"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:contentDescription="@string/fab_ai_content_description"
+                app:srcCompat="@drawable/ic_ai_stars"
+                app:backgroundTint="@color/glass_white"
+                app:tint="@null"
+                android:stateListAnimator="@null"
+                android:outlineProvider="none"
+                app:elevation="0dp"
+                app:pressedTranslationZ="0dp"
+                app:borderWidth="0dp"
+                app:shapeAppearanceOverlay="@style/CircleAppearance" />
+        </FrameLayout>
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fab"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/fab_content_description"
+            app:srcCompat="@drawable/ic_add_user"
+            app:tint="?attr/colorPrimary"
             app:backgroundTint="@color/glass_white"
-            app:tint="@null"
             android:stateListAnimator="@null"
             android:outlineProvider="none"
             app:elevation="0dp"
             app:pressedTranslationZ="0dp"
-            app:borderWidth="0dp"
-            app:shapeAppearanceOverlay="@style/CircleAppearance" />
-    </FrameLayout>
+            app:borderWidth="0dp" />
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="16dp"
-        android:contentDescription="@string/fab_content_description"
-        app:srcCompat="@drawable/ic_add_user"
-        app:tint="?attr/colorPrimary"
-        app:backgroundTint="@color/glass_white"
-        android:stateListAnimator="@null"
-        android:outlineProvider="none"
-        app:elevation="0dp"
-        app:pressedTranslationZ="0dp"
-        app:borderWidth="0dp" />
+    </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

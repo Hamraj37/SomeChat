@@ -9,6 +9,11 @@ public class CallLogManager {
     public static void logCall(String myUid, String otherUid, String otherName, String otherAvatar, boolean isVideo, boolean isIncoming, String status, long duration) {
         if (myUid == null || otherUid == null) return;
 
+        // Requirement: don't show (log) outgoing call if it was rejected
+        if (!isIncoming && "rejected".equals(status)) {
+            return;
+        }
+
         // Duplicate prevention: check last 5 seconds for same user and type
         FirebaseDatabase.getInstance().getReference("call_logs").child(myUid)
                 .orderByChild("timestamp")

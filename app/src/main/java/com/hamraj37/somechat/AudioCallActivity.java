@@ -33,7 +33,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.hamraj37.somechat.utils.WebRTCClient;
 
-import com.hamraj37.somechat.services.CallService;
+import com.hamraj37.somechat.services.CallState;
 import org.webrtc.IceCandidate;
 import org.webrtc.PeerConnection;
 import org.webrtc.RtpTransceiver;
@@ -66,6 +66,7 @@ public class AudioCallActivity extends BaseActivity {
     private boolean isMuted = false;
     private boolean isSpeakerOn = false;
     private boolean isConnected = false;
+    private boolean isRemoteDescriptionSet = false;
     private Ringtone ringtone;
     private PowerManager.WakeLock proximityWakeLock;
     private boolean isLogged = false;
@@ -93,10 +94,10 @@ public class AudioCallActivity extends BaseActivity {
         // If we are returning to an existing call that is already connected, 
         // we don't want to re-initialize everything if the activity instance is preserved.
         // However, if onCreate is called, it means this is a new instance.
-        // We should check if this UID is the one currently active in CallService.
-        if (CallService.isCallActive && receiverId != null && receiverId.equals(CallService.activeCallId)) {
+        // We should check if this UID is the one currently active in CallState.
+        if (CallState.isCallActive && receiverId != null && receiverId.equals(CallState.activeCallId)) {
             // Resuming existing call state
-            startTime = CallService.callStartTime;
+            startTime = CallState.callStartTime;
             if (startTime != 0) {
                 isConnected = true;
                 callStatus.setText("Connected");
@@ -154,13 +155,13 @@ public class AudioCallActivity extends BaseActivity {
     }
 
     private void minimizeCall() {
-        CallService.isCallActive = true;
-        CallService.activeCallId = receiverId;
-        CallService.activeCallName = receiverName;
-        CallService.activeCallAvatar = receiverAvatar;
-        CallService.isActiveCallVideo = false;
-        CallService.isActiveCallIncoming = isIncoming;
-        CallService.callStartTime = startTime;
+        CallState.isCallActive = true;
+        CallState.activeCallId = receiverId;
+        CallState.activeCallName = receiverName;
+        CallState.activeCallAvatar = receiverAvatar;
+        CallState.isActiveCallVideo = false;
+        CallState.isActiveCallIncoming = isIncoming;
+        CallState.callStartTime = startTime;
         
         // Navigate back to the app's main interface
         Intent intent = new Intent(this, MainActivity.class);
@@ -279,12 +280,12 @@ public class AudioCallActivity extends BaseActivity {
             callRef.child("status").setValue("calling");
             
             // Mark as active call so if swiped away, it can be ended
-            CallService.isCallActive = true;
-            CallService.activeCallId = receiverId;
-            CallService.activeCallName = receiverName;
-            CallService.activeCallAvatar = receiverAvatar;
-            CallService.isActiveCallVideo = false;
-            CallService.isActiveCallIncoming = false;
+            CallState.isCallActive = true;
+            CallState.activeCallId = receiverId;
+            CallState.activeCallName = receiverName;
+            CallState.activeCallAvatar = receiverAvatar;
+            CallState.isActiveCallVideo = false;
+            CallState.isActiveCallIncoming = false;
 
             String name = FirebaseAuth.getInstance().getCurrentUser() != null ? 
                          FirebaseAuth.getInstance().getCurrentUser().getDisplayName() : "User";
@@ -320,13 +321,13 @@ public class AudioCallActivity extends BaseActivity {
                 if ("accepted".equals(status)) {
                     stopRingtone();
                     isConnected = true;
-                    CallService.isCallActive = true;
-                    CallService.activeCallId = receiverId;
-                    CallService.activeCallName = receiverName;
-                    CallService.activeCallAvatar = receiverAvatar;
-                    CallService.isActiveCallVideo = false;
-                    CallService.isActiveCallIncoming = isIncoming;
-                    CallService.callStartTime = startTime;
+                    CallState.isCallActive = true;
+                    CallState.activeCallId = receiverId;
+                    CallState.activeCallName = receiverName;
+                    CallState.activeCallAvatar = receiverAvatar;
+                    CallState.isActiveCallVideo = false;
+                    CallState.isActiveCallIncoming = isIncoming;
+                    CallState.callStartTime = startTime;
 
                     updateProximitySensor(true);
                     callStatus.setText("Connected");
@@ -334,14 +335,19 @@ public class AudioCallActivity extends BaseActivity {
                     findViewById(R.id.controls_container).setVisibility(View.VISIBLE);
                     startTimer();
                     
-                    if (!isIncoming && snapshot.hasChild("answer")) {
+                    if (!isIncoming && snapshot.hasChild("answer") && !isRemoteDescriptionSet) {
                         String sdp = snapshot.child("answer/sdp").getValue(String.class);
                         if (sdp != null) {
+                            isRemoteDescriptionSet = true;
                             SessionDescription remoteSdp = new SessionDescription(SessionDescription.Type.ANSWER, sdp);
                             webRTCClient.setRemoteDescription(remoteSdp, new SimpleSdpObserver());
                         }
                     }
                 } else if ("rejected".equals(status)) {
+                    CallState.reset();
+                    Intent endIntent = new Intent("com.hamraj37.somechat.AUDIO_CALL_ENDED");
+                    endIntent.setPackage(getPackageName());
+                    sendBroadcast(endIntent);
                     if (!isLogged) {
                         isLogged = true;
                         com.hamraj37.somechat.utils.CallLogManager.logCall(senderId, receiverId, receiverName, receiverAvatar, false, isIncoming, "rejected", 0);
@@ -349,6 +355,10 @@ public class AudioCallActivity extends BaseActivity {
                     Toast.makeText(AudioCallActivity.this, "Call Rejected", Toast.LENGTH_SHORT).show();
                     finish();
                 } else if ("ended".equals(status)) {
+                    CallState.reset();
+                    Intent endIntent = new Intent("com.hamraj37.somechat.AUDIO_CALL_ENDED");
+                    endIntent.setPackage(getPackageName());
+                    sendBroadcast(endIntent);
                     if (!isLogged) {
                         isLogged = true;
                         long duration = startTime == 0 ? 0 : (System.currentTimeMillis() - startTime) / 1000;
@@ -358,13 +368,16 @@ public class AudioCallActivity extends BaseActivity {
                     finish();
                 }
 
-                if (isIncoming && snapshot.hasChild("offer") && !snapshot.hasChild("answer")) {
+                if (isIncoming && snapshot.hasChild("offer") && !snapshot.hasChild("answer") && !isRemoteDescriptionSet) {
                     String sdp = snapshot.child("offer/sdp").getValue(String.class);
-                    SessionDescription remoteSdp = new SessionDescription(SessionDescription.Type.OFFER, sdp);
-                    webRTCClient.setRemoteDescription(remoteSdp, new SimpleSdpObserver());
+                    if (sdp != null) {
+                        isRemoteDescriptionSet = true;
+                        SessionDescription remoteSdp = new SessionDescription(SessionDescription.Type.OFFER, sdp);
+                        webRTCClient.setRemoteDescription(remoteSdp, new SimpleSdpObserver());
+                    }
                 }
 
-                if (snapshot.hasChild("iceCandidates")) {
+                if (snapshot.hasChild("iceCandidates") && isRemoteDescriptionSet) {
                     for (DataSnapshot candidateSnapshot : snapshot.child("iceCandidates").getChildren()) {
                         String candidateId = candidateSnapshot.getKey();
                         if (candidateId != null && addedIceCandidates.contains(candidateId)) {
@@ -439,8 +452,8 @@ public class AudioCallActivity extends BaseActivity {
     }
 
     private void endCall() {
-        CallService.isCallActive = false;
-        Intent endIntent = new Intent("com.hamraj37.somechat.CALL_ENDED");
+        CallState.reset();
+        Intent endIntent = new Intent("com.hamraj37.somechat.AUDIO_CALL_ENDED");
         endIntent.setPackage(getPackageName());
         sendBroadcast(endIntent);
 
@@ -473,7 +486,7 @@ public class AudioCallActivity extends BaseActivity {
 
     @Override
     protected void onDestroy() {
-        if (!CallService.isCallActive) {
+        if (!CallState.isCallActive) {
             updateProximitySensor(false);
             stopRingtone();
             stopTimer();

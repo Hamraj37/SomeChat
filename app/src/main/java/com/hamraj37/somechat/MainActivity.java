@@ -73,6 +73,17 @@ public class MainActivity extends BaseActivity {
             NavigationUI.setupWithNavController(bottomNavigationView, navController);
         }
 
+        NavigationView navigationView = findViewById(R.id.nav_view);
+        if (navigationView != null) {
+            if (mAppBarConfiguration == null) {
+                mAppBarConfiguration = new AppBarConfiguration.Builder(
+                        R.id.nav_chats, R.id.nav_status, R.id.nav_calls)
+                        .setOpenableLayout(findViewById(R.id.drawer_layout))
+                        .build();
+            }
+            NavigationUI.setupWithNavController(navigationView, navController);
+        }
+
         setupNavHeader();
         setupUnreadCountBadge();
         PresenceManager.setUserOnline();
@@ -152,11 +163,17 @@ public class MainActivity extends BaseActivity {
     }
 
     private void startCallService() {
-        Intent serviceIntent = new Intent(this, com.hamraj37.somechat.services.CallService.class);
+        Intent audioServiceIntent = new Intent(this, com.hamraj37.somechat.services.AudioCallService.class);
+        Intent videoServiceIntent = new Intent(this, com.hamraj37.somechat.services.VideoCallService.class);
+        Intent messageServiceIntent = new Intent(this, com.hamraj37.somechat.services.MessageService.class);
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent);
+            startForegroundService(audioServiceIntent);
+            startForegroundService(videoServiceIntent);
+            startForegroundService(messageServiceIntent);
         } else {
-            startService(serviceIntent);
+            startService(audioServiceIntent);
+            startService(videoServiceIntent);
+            startService(messageServiceIntent);
         }
     }
 
@@ -175,10 +192,17 @@ public class MainActivity extends BaseActivity {
 
         if (navigationView != null && navigationView.getHeaderCount() > 0) {
             View headerView = navigationView.getHeaderView(0);
-            headerView.setOnClickListener(v -> {
-                Intent intent = new Intent(this, ProfileInfoActivity.class);
-                startActivity(intent);
-            });
+            // Only enable profile click in the drawer (mobile/small tablet), 
+            // not in the static persistent sidebar (large tablets)
+            if (binding.appBarMain.contentMain.bottomNavView != null) {
+                headerView.setOnClickListener(v -> {
+                    Intent intent = new Intent(this, ProfileInfoActivity.class);
+                    startActivity(intent);
+                });
+            } else {
+                headerView.setOnClickListener(null);
+                headerView.setClickable(false);
+            }
             TextView navUsername = headerView.findViewById(R.id.nav_header_title);
             TextView navHandle = headerView.findViewById(R.id.nav_header_username);
             TextView navEmail = headerView.findViewById(R.id.nav_header_subtitle);
@@ -335,7 +359,9 @@ public class MainActivity extends BaseActivity {
     }
 
     private void logout() {
-        stopService(new Intent(this, com.hamraj37.somechat.services.CallService.class));
+        stopService(new Intent(this, com.hamraj37.somechat.services.AudioCallService.class));
+        stopService(new Intent(this, com.hamraj37.somechat.services.VideoCallService.class));
+        stopService(new Intent(this, com.hamraj37.somechat.services.MessageService.class));
         FirebaseAuth.getInstance().signOut();
         Intent intent = new Intent(this, LoginActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);

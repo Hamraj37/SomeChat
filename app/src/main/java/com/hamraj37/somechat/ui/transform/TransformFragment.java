@@ -74,15 +74,17 @@ public class TransformFragment extends Fragment {
         });
 
         // Start AI FAB border rotation animation
-        android.view.animation.Animation rotate = android.view.animation.AnimationUtils.loadAnimation(getContext(), R.anim.rotate_infinite);
-        binding.aiFabBorder.startAnimation(rotate);
+        if (binding.aiFabBorder != null) {
+            android.view.animation.Animation rotate = android.view.animation.AnimationUtils.loadAnimation(getContext(), R.anim.rotate_infinite);
+            binding.aiFabBorder.startAnimation(rotate);
+        }
 
         return root;
     }
 
     private void setupGroupInvites() {
         String myUid = FirebaseAuth.getInstance().getUid();
-        if (myUid == null) return;
+        if (myUid == null || binding.groupInvitesRecycler == null) return;
 
         inviteAdapter = new GroupInviteAdapter(inviteList, new GroupInviteAdapter.OnInviteListener() {
             @Override
@@ -103,6 +105,7 @@ public class TransformFragment extends Fragment {
                 .addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        if (binding == null) return;
                         inviteList.clear();
                         for (DataSnapshot ds : snapshot.getChildren()) {
                             inviteList.add(ds.getKey());
@@ -172,7 +175,7 @@ public class TransformFragment extends Fragment {
 
     private void setupFriendRequests() {
         String myUid = FirebaseAuth.getInstance().getUid();
-        if (myUid == null) return;
+        if (myUid == null || binding.requestsRecycler == null) return;
 
         requestAdapter = new FriendRequestAdapter(requestList, new FriendRequestAdapter.OnRequestListener() {
             @Override
@@ -193,6 +196,7 @@ public class TransformFragment extends Fragment {
                 .addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        if (binding == null) return;
                         requestList.clear();
                         for (DataSnapshot ds : snapshot.getChildren()) {
                             requestList.add(ds.getKey());
@@ -267,67 +271,83 @@ public class TransformFragment extends Fragment {
         @Override
         public void onBindViewHolder(@NonNull TransformViewHolder holder, int position) {
             ChatItem chatItem = getItem(position);
-            holder.textViewName.setText(chatItem.getName());
+            if (holder.textViewName != null) holder.textViewName.setText(chatItem.getName());
             
             // Set last message with icon if needed
-            holder.textViewLastMessage.setText(chatItem.getLastMessage());
-            String type = chatItem.getLastMessageType();
-            int iconRes = 0;
-            if ("image".equals(type)) {
-                iconRes = R.drawable.ic_camera_black_24dp;
-            } else if ("video".equals(type)) {
-                iconRes = android.R.drawable.ic_media_play;
-            } else if ("voice".equals(type)) {
-                iconRes = android.R.drawable.ic_btn_speak_now;
-            }
-
-            if (iconRes != 0) {
-                android.graphics.drawable.Drawable drawable = androidx.core.content.ContextCompat.getDrawable(holder.itemView.getContext(), iconRes);
-                if (drawable != null) {
-                    drawable = drawable.mutate();
-                    drawable.setTint(holder.textViewLastMessage.getCurrentTextColor());
-                    // Scale it to roughly match text size
-                    int size = (int) (holder.textViewLastMessage.getTextSize() * 1.1f);
-                    drawable.setBounds(0, 0, size, size);
-                    holder.textViewLastMessage.setCompoundDrawables(drawable, null, null, null);
-                    holder.textViewLastMessage.setCompoundDrawablePadding(8);
+            if (holder.textViewLastMessage != null) {
+                holder.textViewLastMessage.setText(chatItem.getLastMessage());
+                String type = chatItem.getLastMessageType();
+                int iconRes = 0;
+                if ("image".equals(type)) {
+                    iconRes = R.drawable.ic_camera_black_24dp;
+                } else if ("video".equals(type)) {
+                    iconRes = android.R.drawable.ic_media_play;
+                } else if ("voice".equals(type)) {
+                    iconRes = android.R.drawable.ic_btn_speak_now;
                 }
-            } else {
-                holder.textViewLastMessage.setCompoundDrawables(null, null, null, null);
-            }
 
-            holder.textViewTime.setText(chatItem.getTime());
-            
-            holder.onlineIndicator.setVisibility(chatItem.isOnline() ? View.VISIBLE : View.GONE);
-            
-            if (chatItem.getUnreadCount() > 0) {
-                holder.unreadCountBadge.setVisibility(View.VISIBLE);
-                holder.unreadCountBadge.setText(String.valueOf(chatItem.getUnreadCount()));
-            } else {
-                holder.unreadCountBadge.setVisibility(View.GONE);
-            }
-
-            if (chatItem.getPhotoUrl() != null && !chatItem.getPhotoUrl().isEmpty()) {
-                Glide.with(holder.itemView.getContext())
-                        .load(chatItem.getPhotoUrl())
-                        .circleCrop()
-                        .placeholder(R.mipmap.ic_launcher_round)
-                        .into(holder.imageView);
-            } else {
-                holder.imageView.setImageResource(R.mipmap.ic_launcher_round);
-            }
-
-            holder.imageView.setOnClickListener(v -> {
-                if (chatItem.isGroup()) {
-                    Intent intent = new Intent(holder.itemView.getContext(), com.hamraj37.somechat.GroupInfoActivity.class);
-                    intent.putExtra("groupId", chatItem.getUid());
-                    holder.itemView.getContext().startActivity(intent);
+                if (iconRes != 0) {
+                    android.graphics.drawable.Drawable drawable = androidx.core.content.ContextCompat.getDrawable(holder.itemView.getContext(), iconRes);
+                    if (drawable != null) {
+                        drawable = drawable.mutate();
+                        drawable.setTint(holder.textViewLastMessage.getCurrentTextColor());
+                        // Scale it to roughly match text size
+                        int size = (int) (holder.textViewLastMessage.getTextSize() * 1.1f);
+                        drawable.setBounds(0, 0, size, size);
+                        holder.textViewLastMessage.setCompoundDrawables(drawable, null, null, null);
+                        holder.textViewLastMessage.setCompoundDrawablePadding(8);
+                    }
                 } else {
-                    Intent intent = new Intent(holder.itemView.getContext(), ProfileInfoActivity.class);
-                    intent.putExtra("uid", chatItem.getUid());
-                    holder.itemView.getContext().startActivity(intent);
+                    holder.textViewLastMessage.setCompoundDrawables(null, null, null, null);
                 }
-            });
+            }
+
+            if (holder.textViewTime != null) holder.textViewTime.setText(chatItem.getTime());
+            
+            if (holder.onlineIndicator != null) {
+                holder.onlineIndicator.setVisibility(chatItem.isOnline() ? View.VISIBLE : View.GONE);
+            }
+            
+            if (holder.unreadCountBadge != null) {
+                if (chatItem.getUnreadCount() > 0) {
+                    holder.unreadCountBadge.setVisibility(View.VISIBLE);
+                    holder.unreadCountBadge.setText(String.valueOf(chatItem.getUnreadCount()));
+                } else {
+                    holder.unreadCountBadge.setVisibility(View.GONE);
+                }
+            }
+
+            if (holder.imageView != null) {
+                if (chatItem.getPhotoUrl() != null && !chatItem.getPhotoUrl().isEmpty()) {
+                    Glide.with(holder.itemView.getContext())
+                            .load(chatItem.getPhotoUrl())
+                            .circleCrop()
+                            .placeholder(R.mipmap.ic_launcher_round)
+                            .into(holder.imageView);
+                } else {
+                    holder.imageView.setImageResource(R.mipmap.ic_launcher_round);
+                }
+
+                // Only allow clicking profile photo to open profile info in List view (mobile).
+                // In Grid view (tablets), clicking the photo is disabled to prioritize opening the chat.
+                RecyclerView rv = (RecyclerView) holder.itemView.getParent();
+                if (rv != null && !(rv.getLayoutManager() instanceof androidx.recyclerview.widget.GridLayoutManager)) {
+                    holder.imageView.setOnClickListener(v -> {
+                        if (chatItem.isGroup()) {
+                            Intent intent = new Intent(holder.itemView.getContext(), com.hamraj37.somechat.GroupInfoActivity.class);
+                            intent.putExtra("groupId", chatItem.getUid());
+                            holder.itemView.getContext().startActivity(intent);
+                        } else {
+                            Intent intent = new Intent(holder.itemView.getContext(), ProfileInfoActivity.class);
+                            intent.putExtra("uid", chatItem.getUid());
+                            holder.itemView.getContext().startActivity(intent);
+                        }
+                    });
+                } else {
+                    holder.imageView.setOnClickListener(null);
+                    holder.imageView.setClickable(false);
+                }
+            }
 
             holder.itemView.setOnClickListener(v -> {
                 Intent intent;

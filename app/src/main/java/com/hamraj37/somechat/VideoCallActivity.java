@@ -4,7 +4,7 @@ import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import com.hamraj37.somechat.services.CallService;
+import com.hamraj37.somechat.services.CallState;
 import android.media.AudioManager;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
@@ -80,6 +80,7 @@ public class VideoCallActivity extends BaseActivity {
     private boolean isSpeakerOn = true; // Always default to speaker for video
     private boolean isFrontCamera = true;
     private boolean isConnected = false;
+    private boolean isRemoteDescriptionSet = false;
     private boolean isFlashOn = false;
     private float originalBrightness = -1f;
     private float dX, dY;
@@ -110,9 +111,9 @@ public class VideoCallActivity extends BaseActivity {
 
         initViews();
 
-        if (CallService.isCallActive && receiverId != null && receiverId.equals(CallService.activeCallId)) {
+        if (CallState.isCallActive && receiverId != null && receiverId.equals(CallState.activeCallId)) {
             // Resuming existing call state
-            startTime = CallService.callStartTime;
+            startTime = CallState.callStartTime;
             if (startTime != 0) {
                 isConnected = true;
                 callStatus.setText("Connected");
@@ -471,12 +472,12 @@ public class VideoCallActivity extends BaseActivity {
             callRef.child("status").setValue("calling");
 
             // Mark as active call so if swiped away, it can be ended
-            CallService.isCallActive = true;
-            CallService.activeCallId = receiverId;
-            CallService.activeCallName = receiverName;
-            CallService.activeCallAvatar = receiverAvatar;
-            CallService.isActiveCallVideo = true;
-            CallService.isActiveCallIncoming = false;
+            CallState.isCallActive = true;
+            CallState.activeCallId = receiverId;
+            CallState.activeCallName = receiverName;
+            CallState.activeCallAvatar = receiverAvatar;
+            CallState.isActiveCallVideo = true;
+            CallState.isActiveCallIncoming = false;
 
             String name = FirebaseAuth.getInstance().getCurrentUser() != null ? 
                          FirebaseAuth.getInstance().getCurrentUser().getDisplayName() : "User";
@@ -512,27 +513,32 @@ public class VideoCallActivity extends BaseActivity {
                 if ("accepted".equals(status)) {
                     stopRingtone();
                     isConnected = true;
-                    CallService.isCallActive = true;
-                    CallService.activeCallId = receiverId;
-                    CallService.activeCallName = receiverName;
-                    CallService.activeCallAvatar = receiverAvatar;
-                    CallService.isActiveCallVideo = true;
-                    CallService.isActiveCallIncoming = isIncoming;
-                    CallService.callStartTime = startTime;
+                    CallState.isCallActive = true;
+                    CallState.activeCallId = receiverId;
+                    CallState.activeCallName = receiverName;
+                    CallState.activeCallAvatar = receiverAvatar;
+                    CallState.isActiveCallVideo = true;
+                    CallState.isActiveCallIncoming = isIncoming;
+                    CallState.callStartTime = startTime;
 
                     callStatus.setText("Connected");
                     btnAccept.setVisibility(View.GONE);
                     findViewById(R.id.controls_container).setVisibility(View.VISIBLE);
                     startTimer();
                     
-                    if (!isIncoming && snapshot.hasChild("answer")) {
+                    if (!isIncoming && snapshot.hasChild("answer") && !isRemoteDescriptionSet) {
                         String sdp = snapshot.child("answer/sdp").getValue(String.class);
                         if (sdp != null) {
+                            isRemoteDescriptionSet = true;
                             SessionDescription remoteSdp = new SessionDescription(SessionDescription.Type.ANSWER, sdp);
                             webRTCClient.setRemoteDescription(remoteSdp, new SimpleSdpObserver());
                         }
                     }
                 } else if ("rejected".equals(status)) {
+                    CallState.reset();
+                    Intent endIntent = new Intent("com.hamraj37.somechat.VIDEO_CALL_ENDED");
+                    endIntent.setPackage(getPackageName());
+                    sendBroadcast(endIntent);
                     if (!isLogged) {
                         isLogged = true;
                         com.hamraj37.somechat.utils.CallLogManager.logCall(senderId, receiverId, receiverName, receiverAvatar, true, isIncoming, "rejected", 0);
@@ -540,6 +546,10 @@ public class VideoCallActivity extends BaseActivity {
                     Toast.makeText(VideoCallActivity.this, "Call Rejected", Toast.LENGTH_SHORT).show();
                     finish();
                 } else if ("ended".equals(status)) {
+                    CallState.reset();
+                    Intent endIntent = new Intent("com.hamraj37.somechat.VIDEO_CALL_ENDED");
+                    endIntent.setPackage(getPackageName());
+                    sendBroadcast(endIntent);
                     if (!isLogged) {
                         isLogged = true;
                         long duration = startTime == 0 ? 0 : (System.currentTimeMillis() - startTime) / 1000;
@@ -549,13 +559,16 @@ public class VideoCallActivity extends BaseActivity {
                     finish();
                 }
 
-                if (isIncoming && snapshot.hasChild("offer") && !snapshot.hasChild("answer")) {
+                if (isIncoming && snapshot.hasChild("offer") && !snapshot.hasChild("answer") && !isRemoteDescriptionSet) {
                     String sdp = snapshot.child("offer/sdp").getValue(String.class);
-                    SessionDescription remoteSdp = new SessionDescription(SessionDescription.Type.OFFER, sdp);
-                    webRTCClient.setRemoteDescription(remoteSdp, new SimpleSdpObserver());
+                    if (sdp != null) {
+                        isRemoteDescriptionSet = true;
+                        SessionDescription remoteSdp = new SessionDescription(SessionDescription.Type.OFFER, sdp);
+                        webRTCClient.setRemoteDescription(remoteSdp, new SimpleSdpObserver());
+                    }
                 }
 
-                if (snapshot.hasChild("iceCandidates")) {
+                if (snapshot.hasChild("iceCandidates") && isRemoteDescriptionSet) {
                     for (DataSnapshot candidateSnapshot : snapshot.child("iceCandidates").getChildren()) {
                         String candidateId = candidateSnapshot.getKey();
                         if (candidateId != null && addedIceCandidates.contains(candidateId)) {
@@ -629,8 +642,8 @@ public class VideoCallActivity extends BaseActivity {
     }
 
     private void endCall() {
-        CallService.isCallActive = false;
-        Intent endIntent = new Intent("com.hamraj37.somechat.CALL_ENDED");
+        CallState.reset();
+        Intent endIntent = new Intent("com.hamraj37.somechat.VIDEO_CALL_ENDED");
         endIntent.setPackage(getPackageName());
         sendBroadcast(endIntent);
 

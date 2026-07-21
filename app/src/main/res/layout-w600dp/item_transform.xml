@@ -3,15 +3,16 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:padding="8dp"
+    android:background="?attr/selectableItemBackground">
 
     <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/image_view_item_transform"
         android:layout_width="@dimen/item_transform_image_length"
         android:layout_height="@dimen/item_transform_image_length"
-        android:layout_margin="8dp"
         app:shapeAppearanceOverlay="@style/CircleAppearance"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tools:src="@tools:sample/avatars" />
@@ -28,17 +29,22 @@
 
     <TextView
         android:id="@+id/text_view_item_transform"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:layout_constraintEnd_toEndOf="@id/image_view_item_transform"
-        app:layout_constraintStart_toStartOf="@id/image_view_item_transform"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textAppearance="?attr/textAppearanceTitleSmall"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/image_view_item_transform"
-        tools:text="This is item # xx" />
+        tools:text="Contact Name" />
 
     <TextView
         android:id="@+id/text_view_last_message"
         android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
         android:visibility="gone"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -46,8 +52,26 @@
     <TextView
         android:id="@+id/text_view_time"
         android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
         android:visibility="gone"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/unread_count_badge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minWidth="18dp"
+        android:minHeight="18dp"
+        android:background="@drawable/unread_badge_bg"
+        android:gravity="center"
+        android:paddingHorizontal="4dp"
+        android:textColor="@android:color/white"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="@id/image_view_item_transform"
+        app:layout_constraintEnd_toEndOf="@id/image_view_item_transform"
+        tools:text="1" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

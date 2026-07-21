@@ -12,6 +12,8 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.MANAGE_OWN_CALLS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
@@ -139,10 +141,20 @@
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.SomeChat.NoActionBar" />
         <service
-            android:name=".services.CallService"
+            android:name=".services.AudioCallService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="phoneCall" />
+        <service
+            android:name=".services.VideoCallService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="phoneCall|camera" />
+        <service
+            android:name=".services.MessageService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

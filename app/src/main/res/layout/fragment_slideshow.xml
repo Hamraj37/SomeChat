@@ -36,7 +36,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_margin="16dp"
+        android:layout_margin="@dimen/fab_margin"
         android:contentDescription="@string/menu_calls"
         app:srcCompat="@android:drawable/ic_menu_call"
         app:elevation="0dp"
@@ -44,6 +44,7 @@
         app:borderWidth="0dp"
         android:stateListAnimator="@null"
         android:outlineProvider="none"
-        app:tint="@null" />
+        app:backgroundTint="@color/glass_white"
+        app:tint="?attr/colorPrimary" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
