@@ -21,6 +21,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.hamraj37.somechat.AudioCallActivity;
 import com.hamraj37.somechat.VideoCallActivity;
 import com.hamraj37.somechat.ChatActivity;
+import com.hamraj37.somechat.GroupChatActivity;
 import com.hamraj37.somechat.R;
 
 import java.util.HashSet;
@@ -78,7 +79,7 @@ public class MainService extends Service {
     }
 
     private void setupMessageHandler() {
-        messageHandler = new MessageHandler(this, (senderId, senderName, text) -> showMessageNotification(senderId, senderName, text));
+        messageHandler = new MessageHandler(this, (id, name, text, isGroup) -> showMessageNotification(id, name, text, isGroup));
         messageHandler.startListening();
     }
 
@@ -188,23 +189,30 @@ public class MainService extends Service {
         if (nm != null) nm.notify(getNotificationId(id), notification);
     }
 
-    private void showMessageNotification(String senderId, String senderName, String text) {
-        String name = senderName != null ? senderName : "New Message";
-        Intent intent = new Intent(this, ChatActivity.class);
-        intent.putExtra("uid", senderId);
-        intent.putExtra("displayName", name);
+    private void showMessageNotification(String id, String name, String text, boolean isGroup) {
+        String title = name != null ? name : "New Message";
+        Intent intent;
+        if (isGroup) {
+            intent = new Intent(this, GroupChatActivity.class);
+            intent.putExtra("groupId", id);
+            intent.putExtra("groupName", name);
+        } else {
+            intent = new Intent(this, ChatActivity.class);
+            intent.putExtra("uid", id);
+            intent.putExtra("displayName", name);
+        }
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
-        PendingIntent pi = PendingIntent.getActivity(this, senderId.hashCode(), intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent pi = PendingIntent.getActivity(this, id.hashCode(), intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         Notification notification = new NotificationCompat.Builder(this, MESSAGE_CHANNEL_ID)
-                .setContentTitle(name).setContentText(text)
+                .setContentTitle(title).setContentText(text)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentIntent(pi).setAutoCancel(true).build();
 
         NotificationManager nm = getSystemService(NotificationManager.class);
-        if (nm != null) nm.notify(senderId.hashCode(), notification);
+        if (nm != null) nm.notify(id.hashCode(), notification);
     }
 
     private void createNotificationChannels() {
