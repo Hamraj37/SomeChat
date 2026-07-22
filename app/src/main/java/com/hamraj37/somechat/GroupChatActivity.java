@@ -163,6 +163,14 @@ public class GroupChatActivity extends BaseActivity {
         btnAttachment = findViewById(R.id.btn_attachment);
         attachmentMenu = findViewById(R.id.attachment_menu);
         findViewById(R.id.btn_cancel_reply).setOnClickListener(v -> cancelReply());
+
+        // Setup Selection Action Listeners
+        findViewById(R.id.btn_reply_selected).setOnClickListener(v -> replyToSelectedMessage());
+        findViewById(R.id.btn_copy_selected).setOnClickListener(v -> copySelectedMessages());
+        findViewById(R.id.btn_pin_selected).setOnClickListener(v -> pinSelectedMessages());
+        findViewById(R.id.btn_forward_selected).setOnClickListener(v -> forwardSelectedMessages());
+        findViewById(R.id.btn_edit_selected).setOnClickListener(v -> editSelectedMessage());
+        findViewById(R.id.btn_delete_selected).setOnClickListener(v -> deleteSelectedMessages());
         
         checkPinnedScroll();
 
@@ -269,7 +277,8 @@ public class GroupChatActivity extends BaseActivity {
                 if (snapshot.exists()) {
                     groupName = snapshot.child("name").getValue(String.class);
                     groupAvatar = snapshot.child("avatar").getValue(String.class);
-                    updateToolbar();
+                    long membersCount = snapshot.child("members").getChildrenCount();
+                    updateToolbar(membersCount);
                 }
             }
             @Override public void onCancelled(@NonNull DatabaseError error) {}
@@ -277,12 +286,26 @@ public class GroupChatActivity extends BaseActivity {
         groupDetailsRef.addValueEventListener(groupDetailsListener);
     }
 
-    private void updateToolbar() {
+    private void updateToolbar(long memberCount) {
         TextView toolbarName = findViewById(R.id.toolbar_name);
+        TextView toolbarStatus = findViewById(R.id.toolbar_status);
         ImageView toolbarAvatar = findViewById(R.id.toolbar_avatar);
-        toolbarName.setText(groupName);
-        if (groupAvatar != null && !groupAvatar.isEmpty()) {
-            Glide.with(this).load(groupAvatar).circleCrop().into(toolbarAvatar);
+        
+        if (toolbarName != null) toolbarName.setText(groupName);
+        if (toolbarStatus != null) {
+            if (memberCount > 0) {
+                toolbarStatus.setText(memberCount + (memberCount == 1 ? " member" : " members"));
+            } else {
+                toolbarStatus.setText("Tap for group info");
+            }
+        }
+        
+        if (toolbarAvatar != null) {
+            if (groupAvatar != null && !groupAvatar.isEmpty()) {
+                Glide.with(this).load(groupAvatar).circleCrop().into(toolbarAvatar);
+            } else {
+                toolbarAvatar.setImageResource(R.mipmap.ic_launcher_round);
+            }
         }
     }
 
@@ -932,9 +955,15 @@ public class GroupChatActivity extends BaseActivity {
 
             findViewById(R.id.btn_reply_selected).setVisibility(isSingle ? View.VISIBLE : View.GONE);
             findViewById(R.id.btn_copy_selected).setVisibility(isSingle && isTextOnly ? View.VISIBLE : View.GONE);
+            findViewById(R.id.btn_forward_selected).setVisibility(View.VISIBLE);
+            findViewById(R.id.btn_pin_selected).setVisibility(isSingle ? View.VISIBLE : View.GONE);
             
             boolean isMyMessage = isSingle && selected.get(0).getSenderId().equals(senderId);
             findViewById(R.id.btn_edit_selected).setVisibility(isSingle && isTextOnly && isMyMessage ? View.VISIBLE : View.GONE);
+            
+            // Delete visibility - maybe allow if admin or sender of all selected? 
+            // For now, show if at least one is selected
+            findViewById(R.id.btn_delete_selected).setVisibility(View.VISIBLE);
 
             androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
             toolbar.setNavigationIcon(androidx.appcompat.R.drawable.abc_ic_ab_back_material); 
@@ -1079,6 +1108,17 @@ public class GroupChatActivity extends BaseActivity {
             enterEditMode(selected.get(0));
             adapter.clearSelection();
         }
+    }
+
+    private void forwardSelectedMessages() {
+        List<Message> selected = adapter.getSelectedMessages();
+        if (selected.isEmpty()) return;
+        
+        ArrayList<Message> forwardList = new ArrayList<>(selected);
+        Intent intent = new Intent(this, SearchUserActivity.class);
+        intent.putExtra("forward_list", forwardList);
+        startActivity(intent);
+        adapter.clearSelection();
     }
 
     @Override
