@@ -11,7 +11,9 @@ import androidx.lifecycle.Observer;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 import com.hamraj37.somechat.db.AppDatabase;
 import com.hamraj37.somechat.db.ChatItemDao;
@@ -37,6 +39,8 @@ public class TransformViewModel extends AndroidViewModel {
     private final Map<String, String> photoCache = new HashMap<>();
     private final java.util.Set<String> observedFriends = new java.util.HashSet<>();
     private final java.util.Set<String> observedGroups = new java.util.HashSet<>();
+    private final Map<String, List<ValueEventListener>> listenerMap = new HashMap<>();
+    private final Map<String, List<Query>> queryMap = new HashMap<>();
     private final SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a", Locale.getDefault());
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd", Locale.getDefault());
     private final ChatItemDao chatItemDao;
@@ -57,6 +61,7 @@ public class TransformViewModel extends AndroidViewModel {
 
     private final Observer<List<ChatItemEntity>> roomObserver = entities -> {
         List<ChatItem> items = new ArrayList<>();
+        chatsMap.clear();
         for (ChatItemEntity entity : entities) {
             ChatItem item = new ChatItem(
                     entity.getName(),
@@ -90,6 +95,32 @@ public class TransformViewModel extends AndroidViewModel {
     protected void onCleared() {
         super.onCleared();
         chatItemDao.getAllChatItems().removeObserver(roomObserver);
+        stopAllObservers();
+    }
+
+    private void stopAllObservers() {
+        for (String id : new ArrayList<>(observedFriends)) stopObserving(id);
+        for (String id : new ArrayList<>(observedGroups)) stopObserving(id);
+    }
+
+    private synchronized void stopObserving(String id) {
+        List<ValueEventListener> listeners = listenerMap.remove(id);
+        List<Query> queries = queryMap.remove(id);
+        if (listeners != null && queries != null) {
+            for (int i = 0; i < listeners.size(); i++) {
+                queries.get(i).removeEventListener(listeners.get(i));
+            }
+        }
+        observedFriends.remove(id);
+        observedGroups.remove(id);
+    }
+
+    private void addListener(String id, Query query, ValueEventListener listener) {
+        List<ValueEventListener> listeners = listenerMap.computeIfAbsent(id, k -> new ArrayList<>());
+        List<Query> queries = queryMap.computeIfAbsent(id, k -> new ArrayList<>());
+        listeners.add(listener);
+        queries.add(query);
+        query.addValueEventListener(listener);
     }
 
     private void loadFriends() {
@@ -116,66 +147,59 @@ public class TransformViewModel extends AndroidViewModel {
                         while (iterator.hasNext()) {
                             String observedId = iterator.next();
                             if (!currentFriends.contains(observedId)) {
-                                iterator.remove();
+                                stopObserving(observedId);
+                                iterator = observedFriends.iterator(); // Refresh iterator after modification
                                 AppDatabase.databaseWriteExecutor.execute(() -> chatItemDao.deleteByUid(observedId));
                             }
                         }
                     }
-
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {}
+                    @Override public void onCancelled(@NonNull DatabaseError error) {}
                 });
     }
 
     private void observeFriend(String myUid, String friendUid) {
         // Observe User Details
-        FirebaseDatabase.getInstance().getReference("users").child(friendUid)
-                .addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        User user = snapshot.getValue(User.class);
-                        if (user != null) {
-                            updateChatItem(friendUid, user, null, -1, false);
-                        }
-                    }
-                    @Override public void onCancelled(@NonNull DatabaseError error) {}
-                });
+        DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(friendUid);
+        addListener(friendUid, userRef, new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                User user = snapshot.getValue(User.class);
+                if (user != null) updateChatItem(friendUid, user, null, -1, false);
+            }
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
+        });
 
         // Observe Last Message
         String chatId = myUid.compareTo(friendUid) < 0 ? myUid + "_" + friendUid : friendUid + "_" + myUid;
-        FirebaseDatabase.getInstance().getReference("chats").child(chatId)
-                .limitToLast(1)
-                .addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        if (snapshot.exists()) {
-                            for (DataSnapshot ds : snapshot.getChildren()) {
-                                Message message = ds.getValue(Message.class);
-                                if (message != null) {
-                                    updateChatItem(friendUid, null, message, -1, false);
-                                }
-                            }
-                        }
+        DatabaseReference lastMsgRef = FirebaseDatabase.getInstance().getReference("chats").child(chatId);
+        addListener(friendUid, lastMsgRef.limitToLast(1), new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    for (DataSnapshot ds : snapshot.getChildren()) {
+                        Message message = ds.getValue(Message.class);
+                        if (message != null) updateChatItem(friendUid, null, message, -1, false);
                     }
-                    @Override public void onCancelled(@NonNull DatabaseError error) {}
-                });
+                }
+            }
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
+        });
 
         // Observe Unread Count
-        FirebaseDatabase.getInstance().getReference("chats").child(chatId)
-                .addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        int count = 0;
-                        for (DataSnapshot ds : snapshot.getChildren()) {
-                            Message m = ds.getValue(Message.class);
-                            if (m != null && !m.isSeen() && myUid.equals(m.getReceiverId())) {
-                                count++;
-                            }
-                        }
-                        updateChatItem(friendUid, null, null, count, false);
+        addListener(friendUid, lastMsgRef, new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                int count = 0;
+                for (DataSnapshot ds : snapshot.getChildren()) {
+                    Message m = ds.getValue(Message.class);
+                    if (m != null && !m.isSeen() && myUid.equals(m.getReceiverId())) {
+                        count++;
                     }
-                    @Override public void onCancelled(@NonNull DatabaseError error) {}
-                });
+                }
+                updateChatItem(friendUid, null, null, count, false);
+            }
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
+        });
     }
 
     private void loadGroups() {
@@ -201,7 +225,8 @@ public class TransformViewModel extends AndroidViewModel {
                         while (iterator.hasNext()) {
                             String observedId = iterator.next();
                             if (!currentGroups.contains(observedId)) {
-                                iterator.remove();
+                                stopObserving(observedId);
+                                iterator = observedGroups.iterator(); // Refresh iterator
                                 AppDatabase.databaseWriteExecutor.execute(() -> chatItemDao.deleteByUid(observedId));
                             }
                         }
@@ -211,52 +236,49 @@ public class TransformViewModel extends AndroidViewModel {
     }
 
     private void observeGroup(String groupId) {
-        FirebaseDatabase.getInstance().getReference("groups").child(groupId)
-                .addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        if (!snapshot.exists()) return;
-                        com.hamraj37.somechat.models.Group group = snapshot.getValue(com.hamraj37.somechat.models.Group.class);
-                        String name = null;
-                        String photo = null;
-                        if (group != null) {
-                            name = group.getGroupName();
-                            photo = group.getGroupAvatar();
-                        }
-                        if (name == null || name.isEmpty()) {
-                            name = snapshot.child("name").getValue(String.class);
-                            if (name == null) name = snapshot.child("groupName").getValue(String.class);
-                        }
-                        if (photo == null || photo.isEmpty()) {
-                            photo = snapshot.child("avatar").getValue(String.class);
-                            if (photo == null) photo = snapshot.child("groupAvatar").getValue(String.class);
-                        }
-                        updateGroupChatItem(groupId, name, photo, null);
-                    }
-                    @Override public void onCancelled(@NonNull DatabaseError error) {}
-                });
+        DatabaseReference groupRef = FirebaseDatabase.getInstance().getReference("groups").child(groupId);
+        addListener(groupId, groupRef, new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (!snapshot.exists()) return;
+                com.hamraj37.somechat.models.Group group = snapshot.getValue(com.hamraj37.somechat.models.Group.class);
+                String name = null, photo = null;
+                if (group != null) {
+                    name = group.getGroupName();
+                    photo = group.getGroupAvatar();
+                }
+                if (name == null || name.isEmpty()) {
+                    name = snapshot.child("name").getValue(String.class);
+                    if (name == null) name = snapshot.child("groupName").getValue(String.class);
+                }
+                if (photo == null || photo.isEmpty()) {
+                    photo = snapshot.child("avatar").getValue(String.class);
+                    if (photo == null) photo = snapshot.child("groupAvatar").getValue(String.class);
+                }
+                updateGroupChatItem(groupId, name, photo, null);
+            }
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
+        });
 
-        FirebaseDatabase.getInstance().getReference("groups").child(groupId).child("messages")
-                .limitToLast(1)
-                .addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        if (snapshot.exists()) {
-                            for (DataSnapshot ds : snapshot.getChildren()) {
-                                Message message = ds.getValue(Message.class);
-                                if (message != null) {
-                                    updateGroupChatItem(groupId, null, null, message);
-                                }
-                            }
-                        }
+        DatabaseReference msgRef = FirebaseDatabase.getInstance().getReference("groups").child(groupId).child("messages");
+        addListener(groupId, msgRef.limitToLast(1), new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    for (DataSnapshot ds : snapshot.getChildren()) {
+                        Message message = ds.getValue(Message.class);
+                        if (message != null) updateGroupChatItem(groupId, null, null, message);
                     }
-                    @Override public void onCancelled(@NonNull DatabaseError error) {}
-                });
+                }
+            }
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
+        });
     }
 
     private synchronized void updateGroupChatItem(String groupId, String groupName, String photo, Message lastMsg) {
-        ChatItem existing = chatsMap.get(groupId);
+        if (!observedGroups.contains(groupId)) return;
         
+        ChatItem existing = chatsMap.get(groupId);
         String name = groupName;
         if (name == null || name.isEmpty()) {
             name = nameCache.get(groupId);
@@ -264,16 +286,11 @@ public class TransformViewModel extends AndroidViewModel {
                 if ("somechat_ai".equals(groupId)) name = "SomeChat AI";
                 else name = "Loading group...";
             }
-        } else {
-            nameCache.put(groupId, name);
-        }
+        } else nameCache.put(groupId, name);
 
         String photoUrl = photo;
-        if (photoUrl == null || photoUrl.isEmpty()) {
-            photoUrl = photoCache.get(groupId);
-        } else {
-            photoCache.put(groupId, photoUrl);
-        }
+        if (photoUrl == null || photoUrl.isEmpty()) photoUrl = photoCache.get(groupId);
+        else photoCache.put(groupId, photoUrl);
 
         String displayMsgText;
         String type;
@@ -281,7 +298,7 @@ public class TransformViewModel extends AndroidViewModel {
             type = lastMsg.getType();
             if (type == null) type = "text";
             String sender = lastMsg.getSenderId().equals(FirebaseAuth.getInstance().getUid()) ? "You" : lastMsg.getSenderName();
-            displayMsgText = sender + ": " + lastMsg.getText();
+            displayMsgText = (sender != null ? sender + ": " : "") + lastMsg.getText();
         } else {
             displayMsgText = existing != null ? existing.getLastMessage() : "No messages yet";
             type = existing != null ? existing.getLastMessageType() : "text";
@@ -295,6 +312,8 @@ public class TransformViewModel extends AndroidViewModel {
     }
 
     private synchronized void updateChatItem(String friendUid, User user, Message lastMsg, int unreadCount, boolean isGroup) {
+        if (!observedFriends.contains(friendUid)) return;
+        
         ChatItem existing = chatsMap.get(friendUid);
         String myUid = FirebaseAuth.getInstance().getUid();
         
@@ -310,16 +329,10 @@ public class TransformViewModel extends AndroidViewModel {
                 if ("somechat_ai".equals(friendUid)) name = "SomeChat AI";
                 else name = "Loading...";
             }
-        } else {
-            nameCache.put(friendUid, name);
-        }
+        } else nameCache.put(friendUid, name);
         
         String photoUrl = user != null ? user.getPhotoUrl() : photoCache.get(friendUid);
-        if (user != null && user.getPhotoUrl() != null) {
-            photoCache.put(friendUid, user.getPhotoUrl());
-        } else if (photoUrl == null && "somechat_ai".equals(friendUid)) {
-            // photoUrl = "res:ic_ai_avatar"; // Example
-        }
+        if (user != null && user.getPhotoUrl() != null) photoCache.put(friendUid, user.getPhotoUrl());
         
         boolean online = user != null ? user.isOnline() : (existing != null && existing.isOnline());
         
@@ -380,8 +393,8 @@ public class TransformViewModel extends AndroidViewModel {
         List<ChatItem> all = mAllChats.getValue();
         if (all == null) return;
         List<ChatItem> filtered = all.stream()
-                .filter(chat -> chat.getName().toLowerCase().contains(query.toLowerCase()) ||
-                                chat.getLastMessage().toLowerCase().contains(query.toLowerCase()))
+                .filter(chat -> (chat.getName() != null && chat.getName().toLowerCase().contains(query.toLowerCase())) ||
+                                (chat.getLastMessage() != null && chat.getLastMessage().toLowerCase().contains(query.toLowerCase())))
                 .collect(Collectors.toList());
         mFilteredChats.setValue(filtered);
     }

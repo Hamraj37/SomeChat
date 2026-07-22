@@ -148,6 +148,8 @@
     <string name="no_requests">No friend requests</string>
     <string name="no_pending">No pending requests</string>
     <string name="cancel">Cancel</string>
+    <string name="delete_group">Delete Group</string>
+    <string name="leave_group">Leave Group</string>
     <string name="encryption_status">Encryption Status</string>
     <string name="e2ee">End-to-End Encryption</string>
     <string name="secured">Secured</string>

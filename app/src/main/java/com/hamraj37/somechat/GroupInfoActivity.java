@@ -80,7 +80,13 @@ public class GroupInfoActivity extends BaseActivity {
         setupRecyclerView();
         loadGroupDetails();
 
-        findViewById(R.id.btn_leave_group).setOnClickListener(v -> showLeaveGroupDialog());
+        findViewById(R.id.btn_leave_group).setOnClickListener(v -> {
+            if (group != null && currentUserId.equals(group.getCreatedBy())) {
+                showDeleteGroupDialog();
+            } else {
+                showLeaveGroupDialog();
+            }
+        });
         findViewById(R.id.btn_edit_group_name).setOnClickListener(v -> showEditGroupNameDialog());
         findViewById(R.id.btn_add_members).setOnClickListener(v -> {
             Intent intent = new Intent(this, AddMembersActivity.class);
@@ -326,6 +332,15 @@ public class GroupInfoActivity extends BaseActivity {
             findViewById(R.id.btn_change_group_photo).setVisibility(View.GONE);
             findViewById(R.id.btn_edit_group_name).setVisibility(View.GONE);
         }
+
+        com.google.android.material.button.MaterialButton btnLeave = findViewById(R.id.btn_leave_group);
+        if (currentUserId.equals(group.getCreatedBy())) {
+            btnLeave.setText(R.string.delete_group);
+            btnLeave.setIconResource(R.drawable.ic_delete); // Assuming ic_delete exists as seen in layout
+        } else {
+            btnLeave.setText(R.string.leave_group);
+            btnLeave.setIconResource(R.drawable.ic_delete); // Or a leave icon if available
+        }
     }
 
     private void showEditGroupNameDialog() {
@@ -470,6 +485,51 @@ public class GroupInfoActivity extends BaseActivity {
                         }
                     });
         }
+    }
+
+    private void showDeleteGroupDialog() {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Delete Group")
+                .setMessage("Are you sure you want to delete this group? This will remove all members and delete the group for everyone. This action cannot be undone.")
+                .setPositiveButton("Delete", (dialog, which) -> deleteGroup())
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void deleteGroup() {
+        if (group == null) return;
+
+        DatabaseReference groupRef = FirebaseDatabase.getInstance().getReference("groups").child(groupId);
+        DatabaseReference groupChatsRef = FirebaseDatabase.getInstance().getReference("group_chats").child(groupId);
+
+        // 1. Remove group from all members' "groups" node
+        if (group.getMembers() != null) {
+            for (String memberId : group.getMembers().keySet()) {
+                FirebaseDatabase.getInstance().getReference("users").child(memberId).child("groups").child(groupId).removeValue();
+                
+                // Remove from their local database too if possible (but we can't easily trigger that for others)
+                // They will see it's gone when they try to access it or it syncs
+            }
+        }
+
+        // 2. Remove from local database for current user
+        com.hamraj37.somechat.db.AppDatabase.databaseWriteExecutor.execute(() -> {
+            com.hamraj37.somechat.db.AppDatabase.getDatabase(GroupInfoActivity.this).chatItemDao().deleteByUid(groupId);
+        });
+
+        // 3. Delete group metadata and messages
+        groupRef.removeValue().addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                groupChatsRef.removeValue();
+                Toast.makeText(this, "Group deleted", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(this, MainActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+                finish();
+            } else {
+                Toast.makeText(this, "Failed to delete group", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void showLeaveGroupDialog() {
