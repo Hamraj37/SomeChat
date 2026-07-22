@@ -52,8 +52,10 @@ import org.webrtc.SurfaceViewRenderer;
 import org.webrtc.VideoTrack;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class VideoCallActivity extends BaseActivity {
 
@@ -469,8 +471,6 @@ public class VideoCallActivity extends BaseActivity {
         callRef = FirebaseDatabase.getInstance().getReference(signalingPath);
 
         if (!isIncoming && !isConnected) {
-            callRef.child("status").setValue("calling");
-
             // Mark as active call so if swiped away, it can be ended
             CallState.isCallActive = true;
             CallState.activeCallId = receiverId;
@@ -483,9 +483,13 @@ public class VideoCallActivity extends BaseActivity {
                          FirebaseAuth.getInstance().getCurrentUser().getDisplayName() : "User";
             String avatar = FirebaseAuth.getInstance().getCurrentUser() != null && FirebaseAuth.getInstance().getCurrentUser().getPhotoUrl() != null ?
                            FirebaseAuth.getInstance().getCurrentUser().getPhotoUrl().toString() : "";
-            callRef.child("callerName").setValue(name != null ? name : "User");
-            callRef.child("callerAvatar").setValue(avatar);
-            callRef.child("isVideo").setValue(true);
+
+            Map<String, Object> callData = new HashMap<>();
+            callData.put("status", "calling");
+            callData.put("callerName", name != null ? name : "User");
+            callData.put("callerAvatar", avatar);
+            callData.put("isVideo", true);
+            callRef.updateChildren(callData);
 
             webRTCClient.createOffer(new SimpleSdpObserver() {
                 @Override

@@ -473,13 +473,8 @@
                         android:contentDescription="Send"
                         android:src="@android:drawable/ic_btn_speak_now"
                         app:fabCustomSize="48dp"
-                        app:elevation="0dp"
-                        app:pressedTranslationZ="0dp"
-                        app:borderWidth="0dp"
-                        android:stateListAnimator="@null"
-                        android:outlineProvider="none"
-                        app:tint="?attr/colorPrimary"
-                        app:backgroundTint="@color/glass_green" />
+                        app:tint="@color/white"
+                        app:backgroundTint="@color/whatsapp_light_green" />
 
                 </LinearLayout>
             </LinearLayout>

@@ -136,13 +136,8 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             android:contentDescription="Text status"
-            android:outlineProvider="none"
-            android:stateListAnimator="@null"
-            app:backgroundTint="@color/glass_white"
-            app:borderWidth="0dp"
-            app:elevation="0dp"
+            app:backgroundTint="@color/white"
             app:fabSize="mini"
-            app:pressedTranslationZ="0dp"
             app:srcCompat="@android:drawable/ic_menu_edit"
             app:tint="?attr/colorPrimary" />
 
@@ -151,13 +146,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:srcCompat="@drawable/ic_camera_black_24dp"
-            app:tint="?attr/colorPrimary"
-            app:backgroundTint="@color/glass_green"
-            app:elevation="0dp"
-            app:pressedTranslationZ="0dp"
-            app:borderWidth="0dp"
-            android:stateListAnimator="@null"
-            android:outlineProvider="none"
+            app:tint="@color/white"
+            app:backgroundTint="@color/whatsapp_light_green"
             android:contentDescription="Add status" />
 
     </LinearLayout>

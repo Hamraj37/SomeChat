@@ -117,13 +117,8 @@
                 android:layout_gravity="center"
                 android:contentDescription="@string/fab_ai_content_description"
                 app:srcCompat="@drawable/ic_ai_stars"
-                app:backgroundTint="@color/glass_white"
+                app:backgroundTint="@color/white"
                 app:tint="@null"
-                android:stateListAnimator="@null"
-                android:outlineProvider="none"
-                app:elevation="0dp"
-                app:pressedTranslationZ="0dp"
-                app:borderWidth="0dp"
                 app:shapeAppearanceOverlay="@style/CircleAppearance" />
         </FrameLayout>
 
@@ -133,13 +128,8 @@
             android:layout_height="wrap_content"
             android:contentDescription="@string/fab_content_description"
             app:srcCompat="@drawable/ic_add_user"
-            app:tint="?attr/colorPrimary"
-            app:backgroundTint="@color/glass_white"
-            android:stateListAnimator="@null"
-            android:outlineProvider="none"
-            app:elevation="0dp"
-            app:pressedTranslationZ="0dp"
-            app:borderWidth="0dp" />
+            app:tint="@color/white"
+            app:backgroundTint="@color/whatsapp_light_green" />
 
     </LinearLayout>
 

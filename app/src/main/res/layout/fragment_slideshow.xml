@@ -39,12 +39,7 @@
         android:layout_margin="@dimen/fab_margin"
         android:contentDescription="@string/menu_calls"
         app:srcCompat="@android:drawable/ic_menu_call"
-        app:elevation="0dp"
-        app:pressedTranslationZ="0dp"
-        app:borderWidth="0dp"
-        android:stateListAnimator="@null"
-        android:outlineProvider="none"
-        app:backgroundTint="@color/glass_white"
-        app:tint="?attr/colorPrimary" />
+        app:backgroundTint="@color/whatsapp_light_green"
+        app:tint="@color/white" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

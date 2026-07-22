@@ -100,13 +100,8 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
             app:srcCompat="@android:drawable/ic_menu_send"
-            app:tint="?attr/colorPrimary"
-            app:backgroundTint="@color/glass_green"
-            app:elevation="0dp"
-            app:pressedTranslationZ="0dp"
-            app:borderWidth="0dp"
-            android:stateListAnimator="@null"
-            android:outlineProvider="none"
+            app:tint="@color/white"
+            app:backgroundTint="@color/whatsapp_light_green"
             app:fabCustomSize="48dp"
             android:contentDescription="@string/post_status" />
 

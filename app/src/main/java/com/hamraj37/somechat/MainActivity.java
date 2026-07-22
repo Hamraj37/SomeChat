@@ -163,17 +163,11 @@ public class MainActivity extends BaseActivity {
     }
 
     private void startCallService() {
-        Intent audioServiceIntent = new Intent(this, com.hamraj37.somechat.services.AudioCallService.class);
-        Intent videoServiceIntent = new Intent(this, com.hamraj37.somechat.services.VideoCallService.class);
-        Intent messageServiceIntent = new Intent(this, com.hamraj37.somechat.services.MessageService.class);
+        Intent serviceIntent = new Intent(this, com.hamraj37.somechat.services.MainService.class);
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            startForegroundService(audioServiceIntent);
-            startForegroundService(videoServiceIntent);
-            startForegroundService(messageServiceIntent);
+            startForegroundService(serviceIntent);
         } else {
-            startService(audioServiceIntent);
-            startService(videoServiceIntent);
-            startService(messageServiceIntent);
+            startService(serviceIntent);
         }
     }
 
@@ -359,9 +353,7 @@ public class MainActivity extends BaseActivity {
     }
 
     private void logout() {
-        stopService(new Intent(this, com.hamraj37.somechat.services.AudioCallService.class));
-        stopService(new Intent(this, com.hamraj37.somechat.services.VideoCallService.class));
-        stopService(new Intent(this, com.hamraj37.somechat.services.MessageService.class));
+        stopService(new Intent(this, com.hamraj37.somechat.services.MainService.class));
         FirebaseAuth.getInstance().signOut();
         Intent intent = new Intent(this, LoginActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
