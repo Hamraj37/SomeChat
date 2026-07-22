@@ -42,6 +42,7 @@ public class TransformViewModel extends AndroidViewModel {
     private final Map<String, Long> timestampCache = new HashMap<>();
     private final Map<String, Boolean> onlineCache = new HashMap<>();
     private final Map<String, Integer> unreadCache = new HashMap<>();
+    private final Map<String, Long> groupLastSeenCache = new HashMap<>();
     private final java.util.Set<String> observedFriends = new java.util.HashSet<>();
     private final java.util.Set<String> observedGroups = new java.util.HashSet<>();
     private final Map<String, List<ValueEventListener>> listenerMap = new HashMap<>();
@@ -250,6 +251,7 @@ public class TransformViewModel extends AndroidViewModel {
     }
 
     private void observeGroup(String groupId) {
+        String myUid = FirebaseAuth.getInstance().getUid();
         DatabaseReference groupRef = FirebaseDatabase.getInstance().getReference("groups").child(groupId);
         
         // Listen only to name and avatar to avoid triggering on every message
@@ -265,7 +267,7 @@ public class TransformViewModel extends AndroidViewModel {
                 if (snapshot.hasChild("groupAvatar")) photo = snapshot.child("groupAvatar").getValue(String.class);
                 else if (snapshot.hasChild("avatar")) photo = snapshot.child("avatar").getValue(String.class);
                 
-                updateGroupChatItem(groupId, name, photo, null);
+                updateGroupChatItem(groupId, name, photo, null, -1);
             }
             @Override public void onCancelled(@NonNull DatabaseError error) {}
         };
@@ -278,18 +280,55 @@ public class TransformViewModel extends AndroidViewModel {
                 if (snapshot.exists()) {
                     for (DataSnapshot ds : snapshot.getChildren()) {
                         Message message = ds.getValue(Message.class);
-                        if (message != null) updateGroupChatItem(groupId, null, null, message);
+                        if (message != null) {
+                            updateGroupChatItem(groupId, null, null, message, -1);
+                            refreshGroupUnreadCount(groupId, msgRef);
+                        }
                     }
                 } else {
                     // No messages yet
-                    updateGroupChatItem(groupId, null, null, null);
+                    updateGroupChatItem(groupId, null, null, null, 0);
                 }
+            }
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
+        });
+
+        if (myUid != null) {
+            DatabaseReference lastSeenRef = FirebaseDatabase.getInstance().getReference("users").child(myUid).child("groupLastSeen").child(groupId);
+            addListener(groupId, lastSeenRef, new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot snapshot) {
+                    Long lastSeen = snapshot.getValue(Long.class);
+                    groupLastSeenCache.put(groupId, lastSeen != null ? lastSeen : 0L);
+                    refreshGroupUnreadCount(groupId, msgRef);
+                }
+                @Override public void onCancelled(@NonNull DatabaseError error) {}
+            });
+        }
+    }
+
+    private void refreshGroupUnreadCount(String groupId, DatabaseReference msgRef) {
+        String myUid = FirebaseAuth.getInstance().getUid();
+        Long lastSeen = groupLastSeenCache.get(groupId);
+        if (lastSeen == null) lastSeen = 0L;
+
+        msgRef.orderByChild("timestamp").startAfter(lastSeen.doubleValue()).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                int count = 0;
+                for (DataSnapshot ds : snapshot.getChildren()) {
+                    Message m = ds.getValue(Message.class);
+                    if (m != null && !m.getSenderId().equals(myUid)) {
+                        count++;
+                    }
+                }
+                updateGroupChatItem(groupId, null, null, null, count);
             }
             @Override public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
 
-    private synchronized void updateGroupChatItem(String groupId, String groupName, String photo, Message lastMsg) {
+    private synchronized void updateGroupChatItem(String groupId, String groupName, String photo, Message lastMsg, int unreadCount) {
         if (!observedGroups.contains(groupId)) return;
         
         // 1. Update Name and Photo
@@ -362,7 +401,16 @@ public class TransformViewModel extends AndroidViewModel {
             timestamp = (ts != null) ? ts : 0L;
         }
 
-        ChatItemEntity entity = new ChatItemEntity(groupId, name, displayMsgText, time, photoUrl, false, timestamp, 0, type, true);
+        int finalUnreadCount;
+        if (unreadCount != -1) {
+            finalUnreadCount = unreadCount;
+            unreadCache.put(groupId, finalUnreadCount);
+        } else {
+            Integer u = unreadCache.get(groupId);
+            finalUnreadCount = (u != null) ? u : 0;
+        }
+
+        ChatItemEntity entity = new ChatItemEntity(groupId, name, displayMsgText, time, photoUrl, false, timestamp, finalUnreadCount, type, true);
         AppDatabase.databaseWriteExecutor.execute(() -> chatItemDao.insert(entity));
     }
 

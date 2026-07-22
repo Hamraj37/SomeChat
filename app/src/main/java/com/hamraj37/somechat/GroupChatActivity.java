@@ -1091,6 +1091,17 @@ public class GroupChatActivity extends BaseActivity {
     protected void onPause() {
         super.onPause();
         openedGroupId = null;
+        updateLastSeen();
+    }
+
+    private void updateLastSeen() {
+        if (senderId != null && groupId != null) {
+            FirebaseDatabase.getInstance().getReference("users")
+                    .child(senderId)
+                    .child("groupLastSeen")
+                    .child(groupId)
+                    .setValue(System.currentTimeMillis());
+        }
     }
 
     @Override
