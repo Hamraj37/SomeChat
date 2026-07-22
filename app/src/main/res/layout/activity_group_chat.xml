@@ -411,30 +411,89 @@
                     android:orientation="horizontal"
                     android:padding="4dp">
 
-                    <ImageView
-                        android:id="@+id/btn_attachment"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:layout_marginStart="4dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:padding="8dp"
-                        android:src="@drawable/ic_attachment"
-                        android:contentDescription="@string/attach_file"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-
-                    <EditText
-                        android:id="@+id/message_input"
+                    <FrameLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:background="@android:color/transparent"
-                        android:hint="Type a message..."
-                        android:inputType="textMultiLine"
-                        android:maxLines="4"
-                        android:padding="12dp"
-                        android:textColor="?attr/colorOnSurface"
-                        android:textColorHint="?attr/colorOnSurfaceVariant"
-                        android:textAppearance="?attr/textAppearanceBodyLarge" />
+                        android:layout_weight="1">
+
+                        <LinearLayout
+                            android:id="@+id/input_area"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                android:id="@+id/btn_attachment"
+                                android:layout_width="40dp"
+                                android:layout_height="40dp"
+                                android:layout_marginStart="4dp"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:padding="8dp"
+                                android:src="@drawable/ic_attachment"
+                                android:contentDescription="@string/attach_file"
+                                app:tint="?attr/colorOnSurfaceVariant" />
+
+                            <EditText
+                                android:id="@+id/message_input"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:background="@android:color/transparent"
+                                android:hint="Type a message..."
+                                android:inputType="textMultiLine"
+                                android:maxLines="4"
+                                android:padding="12dp"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textColorHint="?attr/colorOnSurfaceVariant"
+                                android:textAppearance="?attr/textAppearanceBodyLarge" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/recording_preview"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:visibility="gone">
+
+                            <ImageView
+                                android:id="@+id/btn_delete_recording"
+                                android:layout_width="40dp"
+                                android:layout_height="40dp"
+                                android:padding="8dp"
+                                android:src="@drawable/ic_delete"
+                                app:tint="#FF4444"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:contentDescription="Delete recording" />
+
+                            <View
+                                android:id="@+id/recording_dot"
+                                android:layout_width="8dp"
+                                android:layout_height="8dp"
+                                android:layout_marginStart="8dp"
+                                android:background="@drawable/ic_circle_red" />
+
+                            <Chronometer
+                                android:id="@+id/recording_timer"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textSize="16sp" />
+
+                            <TextView
+                                android:id="@+id/slide_to_cancel_text"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:gravity="center"
+                                android:text="&lt; Slide to cancel"
+                                android:textAppearance="?attr/textAppearanceBodyMedium"
+                                android:alpha="0.6" />
+                        </LinearLayout>
+
+                    </FrameLayout>
 
                     <com.google.android.material.floatingactionbutton.FloatingActionButton
                         android:id="@+id/btn_send"

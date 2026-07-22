@@ -74,6 +74,13 @@ public class GroupChatActivity extends BaseActivity {
     private List<Message> pinnedMessages = new ArrayList<>();
     private int currentPinnedIndex = 0;
 
+    private View inputArea;
+    private View recordingPreview;
+    private android.widget.Chronometer recordingTimer;
+    private View recordingDot;
+    private float startX;
+    private boolean isCanceled = false;
+
     private ImageView btnAttachment;
     private View attachmentMenu;
 
@@ -136,6 +143,12 @@ public class GroupChatActivity extends BaseActivity {
         pinnedMessageTitle = findViewById(R.id.pinned_message_title);
         pinnedMessageText = findViewById(R.id.pinned_message_text);
         findViewById(R.id.btn_unpin).setOnClickListener(v -> unpinCurrentMessage());
+
+        inputArea = findViewById(R.id.input_area);
+        recordingPreview = findViewById(R.id.recording_preview);
+        recordingTimer = findViewById(R.id.recording_timer);
+        recordingDot = findViewById(R.id.recording_dot);
+        findViewById(R.id.btn_delete_recording).setOnClickListener(v -> cancelRecording());
 
         btnAttachment = findViewById(R.id.btn_attachment);
         attachmentMenu = findViewById(R.id.attachment_menu);
@@ -202,27 +215,39 @@ public class GroupChatActivity extends BaseActivity {
 
         btnSend.setOnTouchListener((v, event) -> {
             String text = messageInput.getText().toString().trim();
-            if (text.isEmpty()) {
-                if (editingMessage != null) {
-                    if (event.getAction() == android.view.MotionEvent.ACTION_UP) {
-                        cancelEdit();
-                    }
-                    return true;
-                }
+            if (text.isEmpty() && editingMessage == null) {
                 // Voice message mode
                 switch (event.getAction()) {
                     case android.view.MotionEvent.ACTION_DOWN:
                         v.performClick();
+                        startX = event.getRawX();
+                        isCanceled = false;
                         startRecording();
+                        return true;
+                    case android.view.MotionEvent.ACTION_MOVE:
+                        if (isRecording && !isCanceled) {
+                            float diff = startX - event.getRawX();
+                            if (diff > 150) { // Threshold for swipe to cancel
+                                cancelRecording();
+                            }
+                        }
                         return true;
                     case android.view.MotionEvent.ACTION_UP:
                     case android.view.MotionEvent.ACTION_CANCEL:
-                        stopRecordingAndSend();
+                        if (isRecording) {
+                            if (!isCanceled) {
+                                stopRecordingAndSend();
+                            }
+                        }
                         return true;
                 }
             } else if (event.getAction() == android.view.MotionEvent.ACTION_UP) {
                 v.performClick();
-                sendMessage();
+                if (editingMessage != null && text.isEmpty()) {
+                    cancelEdit();
+                } else {
+                    sendMessage();
+                }
                 return true;
             }
             return false;
@@ -250,9 +275,47 @@ public class GroupChatActivity extends BaseActivity {
             mediaRecorder.start();
             isRecording = true;
             recordStartTime = System.currentTimeMillis();
-            Toast.makeText(this, "Recording...", Toast.LENGTH_SHORT).show();
+
+            inputArea.setVisibility(View.GONE);
+            recordingPreview.setVisibility(View.VISIBLE);
+            recordingTimer.setBase(android.os.SystemClock.elapsedRealtime());
+            recordingTimer.start();
+            startBlinkingAnimation();
+            
         } catch (IOException e) {
             android.util.Log.e("GroupChatActivity", "Recording failed", e);
+        }
+    }
+
+    private void startBlinkingAnimation() {
+        android.view.animation.Animation anim = new android.view.animation.AlphaAnimation(1.0f, 0.0f);
+        anim.setDuration(500);
+        anim.setRepeatMode(android.view.animation.Animation.REVERSE);
+        anim.setRepeatCount(android.view.animation.Animation.INFINITE);
+        recordingDot.startAnimation(anim);
+    }
+
+    private void cancelRecording() {
+        if (!isRecording) return;
+        isCanceled = true;
+        
+        try {
+            mediaRecorder.stop();
+            mediaRecorder.release();
+            mediaRecorder = null;
+            isRecording = false;
+            
+            File file = new File(audioPath);
+            if (file.exists()) file.delete();
+            
+            recordingTimer.stop();
+            recordingDot.clearAnimation();
+            recordingPreview.setVisibility(View.GONE);
+            inputArea.setVisibility(View.VISIBLE);
+            
+            Toast.makeText(this, "Recording canceled", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -265,6 +328,11 @@ public class GroupChatActivity extends BaseActivity {
             mediaRecorder = null;
             isRecording = false;
 
+            recordingTimer.stop();
+            recordingDot.clearAnimation();
+            recordingPreview.setVisibility(View.GONE);
+            inputArea.setVisibility(View.VISIBLE);
+
             long duration = (System.currentTimeMillis() - recordStartTime) / 1000;
             if (duration < 1) {
                 File tempFile = new File(audioPath);
@@ -276,6 +344,8 @@ public class GroupChatActivity extends BaseActivity {
             uploadVoiceMessage(audioPath, (int) duration);
         } catch (Exception e) {
             android.util.Log.e("GroupChatActivity", "Stop recording failed", e);
+            recordingPreview.setVisibility(View.GONE);
+            inputArea.setVisibility(View.VISIBLE);
         }
     }
 
