@@ -395,8 +395,6 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         int bubbleColor = isSent ? themeSentColor : themeReceivedColor;
         int textColor = isSent ? themeSentTextColor : themeReceivedTextColor;
         
-        if (bubbleColor == -1) return;
-
         com.google.android.material.card.MaterialCardView bubble = null;
         if (itemView instanceof ViewGroup) {
             ViewGroup vg = (ViewGroup) itemView;
@@ -409,27 +407,96 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         }
 
         if (bubble != null) {
-            bubble.setCardBackgroundColor(bubbleColor);
+            if (bubbleColor != -1) {
+                bubble.setCardBackgroundColor(bubbleColor);
+            }
             
             if (textColor != -1) {
-                // Apply text color to main message text
-                TextView textMsg = bubble.findViewById(R.id.text_message);
-                if (textMsg != null) textMsg.setTextColor(textColor);
-
-                // Apply to other elements (icons, etc)
-                android.widget.ImageView playBtn = bubble.findViewById(R.id.btn_play_pause);
-                if (playBtn != null) playBtn.setColorFilter(textColor);
-
-                TextView duration = bubble.findViewById(R.id.text_duration);
-                if (duration != null) duration.setTextColor(textColor);
-                
-                TextView replyN = bubble.findViewById(R.id.reply_name);
-                if (replyN != null) replyN.setTextColor(textColor);
-                
-                TextView replyT = bubble.findViewById(R.id.reply_text);
-                if (replyT != null) replyT.setTextColor(textColor);
+                applyTextColorToBubble(bubble, textColor);
+            } else if (bubbleColor != -1) {
+                // If bubble color is custom but text color isn't, use contrast color
+                applyTextColorToBubble(bubble, getContrastColor(bubbleColor));
             }
         }
+    }
+
+    private void applyTextColorToBubble(ViewGroup bubble, int color) {
+        // Main text
+        TextView textMsg = bubble.findViewById(R.id.text_message);
+        if (textMsg != null) textMsg.setTextColor(color);
+
+        // Document views
+        TextView textFilename = bubble.findViewById(R.id.text_filename);
+        if (textFilename != null) textFilename.setTextColor(color);
+        
+        TextView textFileInfo = bubble.findViewById(R.id.text_file_info);
+        if (textFileInfo != null) {
+            textFileInfo.setTextColor(color);
+            textFileInfo.setAlpha(0.7f);
+        }
+        
+        android.widget.ImageView fileIcon = bubble.findViewById(R.id.file_icon);
+        if (fileIcon != null) fileIcon.setColorFilter(color);
+        
+        android.widget.ImageView btnFileAction = bubble.findViewById(R.id.btn_file_action);
+        if (btnFileAction != null) btnFileAction.setColorFilter(color);
+
+        // Voice views
+        android.widget.ImageView playBtn = bubble.findViewById(R.id.btn_play_pause);
+        if (playBtn != null) playBtn.setColorFilter(color);
+
+        TextView duration = bubble.findViewById(R.id.text_duration);
+        if (duration != null) duration.setTextColor(color);
+
+        com.google.android.material.progressindicator.LinearProgressIndicator voiceProgress = bubble.findViewById(R.id.voice_progress);
+        if (voiceProgress != null) {
+            voiceProgress.setIndicatorColor(color);
+            voiceProgress.setTrackColor(color);
+        }
+        
+        // Reply views
+        TextView replyN = bubble.findViewById(R.id.reply_name);
+        if (replyN != null) replyN.setTextColor(color);
+        
+        TextView replyT = bubble.findViewById(R.id.reply_text);
+        if (replyT != null) {
+            replyT.setTextColor(color);
+            replyT.setAlpha(0.8f);
+        }
+
+        // Forward indicator
+        View forwardInd = bubble.findViewById(R.id.forward_indicator);
+        if (forwardInd instanceof ViewGroup) {
+            applyColorToViewGroup((ViewGroup) forwardInd, color);
+        }
+        
+        // Sender info (for groups)
+        TextView senderN = bubble.findViewById(R.id.sender_name);
+        if (senderN != null) senderN.setTextColor(color);
+        
+        TextView senderU = bubble.findViewById(R.id.sender_username);
+        if (senderU != null) {
+            senderU.setTextColor(color);
+            senderU.setAlpha(0.6f);
+        }
+    }
+
+    private void applyColorToViewGroup(ViewGroup vg, int color) {
+        for (int i = 0; i < vg.getChildCount(); i++) {
+            View child = vg.getChildAt(i);
+            if (child instanceof TextView) {
+                ((TextView) child).setTextColor(color);
+            } else if (child instanceof android.widget.ImageView) {
+                ((android.widget.ImageView) child).setColorFilter(color);
+            } else if (child instanceof ViewGroup) {
+                applyColorToViewGroup((ViewGroup) child, color);
+            }
+        }
+    }
+
+    private int getContrastColor(int color) {
+        double darkness = 1 - (0.299 * android.graphics.Color.red(color) + 0.587 * android.graphics.Color.green(color) + 0.114 * android.graphics.Color.blue(color)) / 255;
+        return darkness < 0.5 ? android.graphics.Color.BLACK : android.graphics.Color.WHITE;
     }
 
     private void bindReactions(View itemView, Message message) {
@@ -1296,13 +1363,28 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         // WhatsApp style backgrounds
         if (isSent) {
             card.setBackgroundColor(0x25000000); // Darken sent bubble slightly
-            if (title != null) title.setTextColor(0xFFFFFFFF);
-            if (description != null) description.setTextColor(0xCCFFFFFF);
-            if (url != null) url.setTextColor(0xBBFFFFFF);
+            int textColor = themeSentTextColor != -1 ? themeSentTextColor : 
+                          (themeSentColor != -1 ? getContrastColor(themeSentColor) : 0xFFFFFFFF);
+            if (title != null) title.setTextColor(textColor);
+            if (description != null) {
+                description.setTextColor(textColor);
+                description.setAlpha(0.8f);
+            }
+            if (url != null) {
+                url.setTextColor(textColor);
+                url.setAlpha(0.7f);
+            }
         } else {
             card.setBackgroundColor(0x10000000); // Subtle on received
-            if (title != null) title.setTextColor(0xFF000000);
-            if (description != null) description.setTextColor(0x99000000);
+            int textColor = themeReceivedTextColor != -1 ? themeReceivedTextColor : 
+                          (themeReceivedColor != -1 ? getContrastColor(themeReceivedColor) : 
+                          (com.google.android.material.color.MaterialColors.isColorLight(com.google.android.material.color.MaterialColors.getColor(context, android.R.attr.colorBackground, 0)) ? 0xFF000000 : 0xFFFFFFFF));
+            
+            if (title != null) title.setTextColor(textColor);
+            if (description != null) {
+                description.setTextColor(textColor);
+                description.setAlpha(0.8f);
+            }
             if (url != null) url.setTextColor(0xFF25D366); // WhatsApp Green for URLs
         }
 
