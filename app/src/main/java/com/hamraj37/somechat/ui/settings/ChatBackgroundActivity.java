@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -101,6 +102,22 @@ public class ChatBackgroundActivity extends BaseActivity {
             // Default is glassy
             adapter.setSelectedPos(0);
         }
+
+        // Load bubble colors
+        int sentColor = prefs.getInt("theme_sent_color", android.graphics.Color.parseColor("#DCF8C6"));
+        int receivedColor = prefs.getInt("theme_received_color", android.graphics.Color.WHITE);
+        int sentTextColor = prefs.getInt("theme_sent_text_color", android.graphics.Color.BLACK);
+        int receivedTextColor = prefs.getInt("theme_received_text_color", android.graphics.Color.BLACK);
+
+        MaterialCardView cardSent = findViewById(R.id.preview_card_sent);
+        MaterialCardView cardReceived = findViewById(R.id.preview_card_received);
+        TextView textSent = findViewById(R.id.preview_text_sent);
+        TextView textReceived = findViewById(R.id.preview_text_received);
+
+        if (cardSent != null) cardSent.setCardBackgroundColor(sentColor);
+        if (cardReceived != null) cardReceived.setCardBackgroundColor(receivedColor);
+        if (textSent != null) textSent.setTextColor(sentTextColor);
+        if (textReceived != null) textReceived.setTextColor(receivedTextColor);
     }
 
 

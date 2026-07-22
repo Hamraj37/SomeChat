@@ -78,11 +78,21 @@ public class CreateThemeActivity extends BaseActivity {
         if (bgPath != null) {
             if (bgPath.startsWith("res:")) {
                 int resId = getResources().getIdentifier(bgPath.replace("res:", ""), "drawable", getPackageName());
-                if (resId != 0) Glide.with(this).load(resId).into(previewBg);
+                if (resId != 0) {
+                    Glide.with(this).load(resId).into(previewBg);
+                } else {
+                    previewBg.setImageResource(R.drawable.bg_glass_main);
+                }
             } else {
                 File file = new File(bgPath);
-                if (file.exists()) Glide.with(this).load(file).into(previewBg);
+                if (file.exists()) {
+                    Glide.with(this).load(file).into(previewBg);
+                } else {
+                    previewBg.setImageResource(R.drawable.bg_glass_main);
+                }
             }
+        } else {
+            previewBg.setImageResource(R.drawable.bg_glass_main);
         }
 
         // Default colors

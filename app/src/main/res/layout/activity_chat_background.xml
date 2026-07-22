@@ -72,6 +72,7 @@
                             android:padding="16dp">
 
                             <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/preview_card_received"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_gravity="start"
@@ -81,6 +82,7 @@
                                 app:strokeWidth="1dp"
                                 app:strokeColor="@color/glass_border">
                                 <TextView
+                                    android:id="@+id/preview_text_received"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:padding="12dp"
@@ -90,6 +92,7 @@
                             </com.google.android.material.card.MaterialCardView>
 
                             <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/preview_card_sent"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_gravity="end"
@@ -100,6 +103,7 @@
                                 app:strokeWidth="1dp"
                                 app:strokeColor="@color/glass_border">
                                 <TextView
+                                    android:id="@+id/preview_text_sent"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:padding="12dp"
