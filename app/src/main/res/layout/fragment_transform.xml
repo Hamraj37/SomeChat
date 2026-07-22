@@ -84,7 +84,7 @@
             android:layout_height="0dp"
             android:layout_weight="1"
             android:clipToPadding="false"
-            android:paddingBottom="140dp"
+            android:paddingBottom="160dp"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
             tools:context=".ui.transform.TransformFragment" />
 
@@ -96,7 +96,7 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="@dimen/fab_margin"
         android:orientation="vertical"
-        android:gravity="center_horizontal">
+        android:gravity="end">
 
         <FrameLayout
             android:layout_width="wrap_content"
