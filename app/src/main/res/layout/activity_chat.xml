@@ -479,7 +479,8 @@
                         app:pressedTranslationZ="0dp"
                         app:hoveredFocusedTranslationZ="0dp"
                         app:borderWidth="0dp"
-                        android:stateListAnimator="@null" />
+                        android:stateListAnimator="@null"
+                        app:shapeAppearanceOverlay="@style/FabShapeAppearance" />
 
                 </LinearLayout>
             </LinearLayout>

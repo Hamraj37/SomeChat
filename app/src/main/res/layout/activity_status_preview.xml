@@ -103,7 +103,13 @@
             app:tint="@color/white"
             app:backgroundTint="@color/whatsapp_light_green"
             app:fabCustomSize="48dp"
-            android:contentDescription="@string/post_status" />
+            android:contentDescription="@string/post_status"
+            app:elevation="0dp"
+            app:pressedTranslationZ="0dp"
+            app:hoveredFocusedTranslationZ="0dp"
+            app:borderWidth="0dp"
+            android:stateListAnimator="@null"
+            app:shapeAppearanceOverlay="@style/FabShapeAppearance" />
 
     </LinearLayout>
 

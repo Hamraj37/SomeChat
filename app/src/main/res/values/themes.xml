@@ -36,6 +36,11 @@
         <item name="cornerSize">50%</item>
     </style>
 
+    <style name="FabShapeAppearance">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+
     <style name="RoundedTopRightBottomRight">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSizeTopRight">12dp</item>
