@@ -31,22 +31,6 @@
             app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_call"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="@dimen/fab_margin"
-        android:contentDescription="@string/menu_calls"
-        android:outlineProvider="none"
-        android:stateListAnimator="@null"
-        app:backgroundTint="@color/whatsapp_light_green"
-        app:borderWidth="0dp"
-        app:elevation="0dp"
-        app:hoveredFocusedTranslationZ="0dp"
-        app:pressedTranslationZ="0dp"
-        app:srcCompat="@android:drawable/stat_sys_phone_call"
-        app:tint="@color/white"
-        app:useCompatPadding="false" />
+
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

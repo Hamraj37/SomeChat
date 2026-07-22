@@ -9,7 +9,6 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import android.widget.Toast;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
@@ -38,9 +37,6 @@ public class SlideshowFragment extends Fragment {
         setupRecyclerView();
         loadCallLogs();
 
-        binding.fabCall.setOnClickListener(v -> {
-            Toast.makeText(getContext(), "New call feature coming soon!", Toast.LENGTH_SHORT).show();
-        });
 
         return root;
     }
