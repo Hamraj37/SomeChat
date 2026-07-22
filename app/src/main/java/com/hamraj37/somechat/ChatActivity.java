@@ -1649,6 +1649,25 @@ public class ChatActivity extends BaseActivity {
                 });
     }
 
+    @Override
+    public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
+        if (ev.getAction() == android.view.MotionEvent.ACTION_DOWN) {
+            if (attachmentMenu != null && attachmentMenu.getVisibility() == View.VISIBLE) {
+                android.graphics.Rect menuRect = new android.graphics.Rect();
+                attachmentMenu.getGlobalVisibleRect(menuRect);
+                
+                android.graphics.Rect btnRect = new android.graphics.Rect();
+                btnAttachment.getGlobalVisibleRect(btnRect);
+                
+                if (!menuRect.contains((int) ev.getRawX(), (int) ev.getRawY()) && 
+                    !btnRect.contains((int) ev.getRawX(), (int) ev.getRawY())) {
+                    hideAttachmentMenu();
+                }
+            }
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
     private void sendMessage() {
         if (!isFriend) {
             android.widget.Toast.makeText(this, "You must be friends to send messages", android.widget.Toast.LENGTH_SHORT).show();

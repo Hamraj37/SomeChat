@@ -966,6 +966,25 @@ public class GroupChatActivity extends BaseActivity {
         btnSend.setImageResource(android.R.drawable.ic_btn_speak_now);
     }
 
+    @Override
+    public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
+        if (ev.getAction() == android.view.MotionEvent.ACTION_DOWN) {
+            if (attachmentMenu != null && attachmentMenu.getVisibility() == View.VISIBLE) {
+                android.graphics.Rect menuRect = new android.graphics.Rect();
+                attachmentMenu.getGlobalVisibleRect(menuRect);
+
+                android.graphics.Rect btnRect = new android.graphics.Rect();
+                btnAttachment.getGlobalVisibleRect(btnRect);
+
+                if (!menuRect.contains((int) ev.getRawX(), (int) ev.getRawY()) &&
+                        !btnRect.contains((int) ev.getRawX(), (int) ev.getRawY())) {
+                    hideAttachmentMenu();
+                }
+            }
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
     private void sendMessage() {
         String text = messageInput.getText().toString().trim();
         if (TextUtils.isEmpty(text)) return;
