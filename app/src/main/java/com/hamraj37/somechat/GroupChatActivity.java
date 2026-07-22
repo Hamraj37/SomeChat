@@ -825,6 +825,7 @@ public class GroupChatActivity extends BaseActivity {
             @Override
             public void onMessageLongClick(Message message, View view) {
                 adapter.toggleSelection(message.getMessageId());
+                showReactionPicker(message, view);
             }
 
             @Override
@@ -844,6 +845,44 @@ public class GroupChatActivity extends BaseActivity {
         layoutManager.setStackFromEnd(true);
         chatRecycler.setLayoutManager(layoutManager);
         chatRecycler.setAdapter(adapter);
+
+        androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback itemTouchHelperCallback = new androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback(0, androidx.recyclerview.widget.ItemTouchHelper.RIGHT) {
+            @Override
+            public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+                return false;
+            }
+
+            @Override
+            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                if (direction == androidx.recyclerview.widget.ItemTouchHelper.RIGHT) {
+                    int pos = viewHolder.getBindingAdapterPosition();
+                    if (pos > 0) { // Assuming header is at position 0
+                        showReplyLayout(messageList.get(pos - 1));
+                    }
+                    adapter.notifyItemChanged(pos);
+                }
+            }
+
+            @Override
+            public int getSwipeDirs(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
+                if (viewHolder.getBindingAdapterPosition() == 0) return 0;
+                return super.getSwipeDirs(recyclerView, viewHolder);
+            }
+
+            @Override
+            public float getSwipeThreshold(@NonNull RecyclerView.ViewHolder viewHolder) {
+                return 0.15f;
+            }
+
+            @Override
+            public void onChildDraw(@NonNull android.graphics.Canvas c, @NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, float dX, float dY, int actionState, boolean isCurrentlyActive) {
+                float maxDx = 150f * recyclerView.getContext().getResources().getDisplayMetrics().density;
+                float limitedDX = Math.min(dX, maxDx);
+                super.onChildDraw(c, recyclerView, viewHolder, limitedDX, dY, actionState, isCurrentlyActive);
+            }
+        };
+
+        new androidx.recyclerview.widget.ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(chatRecycler);
     }
 
     private void setupFirebase() {
@@ -1108,6 +1147,38 @@ public class GroupChatActivity extends BaseActivity {
             enterEditMode(selected.get(0));
             adapter.clearSelection();
         }
+    }
+
+    private void showReactionPicker(Message message, View anchorView) {
+        View reactionView = getLayoutInflater().inflate(R.layout.layout_reactions, (ViewGroup) anchorView.getParent(), false);
+        android.widget.PopupWindow popupWindow = new android.widget.PopupWindow(reactionView, 
+                ViewGroup.LayoutParams.WRAP_CONTENT, 
+                ViewGroup.LayoutParams.WRAP_CONTENT, true);
+        
+        popupWindow.setElevation(16);
+        popupWindow.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+
+        int[] location = new int[2];
+        anchorView.getLocationOnScreen(location);
+        
+        reactionView.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        int x = location[0] + (anchorView.getWidth() / 2) - (reactionView.getMeasuredWidth() / 2);
+        int y = location[1] - reactionView.getMeasuredHeight() - 10;
+        
+        popupWindow.showAtLocation(anchorView, android.view.Gravity.NO_GRAVITY, x, y);
+
+        View.OnClickListener clickListener = v -> {
+            String emoji = ((TextView) v).getText().toString();
+            groupChatRef.child("messages").child(message.getMessageId()).child("reactions").child(senderId).setValue(emoji);
+            popupWindow.dismiss();
+        };
+
+        reactionView.findViewById(R.id.react_like).setOnClickListener(clickListener);
+        reactionView.findViewById(R.id.react_love).setOnClickListener(clickListener);
+        reactionView.findViewById(R.id.react_haha).setOnClickListener(clickListener);
+        reactionView.findViewById(R.id.react_wow).setOnClickListener(clickListener);
+        reactionView.findViewById(R.id.react_sad).setOnClickListener(clickListener);
+        reactionView.findViewById(R.id.react_pray).setOnClickListener(clickListener);
     }
 
     private void forwardSelectedMessages() {

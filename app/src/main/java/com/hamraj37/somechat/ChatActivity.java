@@ -1219,9 +1219,22 @@ public class ChatActivity extends BaseActivity {
             }
 
             @Override
+            public int getSwipeDirs(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
+                if (viewHolder.getBindingAdapterPosition() == 0) return 0; // Disable swipe for header
+                return super.getSwipeDirs(recyclerView, viewHolder);
+            }
+
+            @Override
+            public float getSwipeThreshold(@NonNull RecyclerView.ViewHolder viewHolder) {
+                return 0.15f; // Lower threshold to make it easier to trigger with limited movement
+            }
+
+            @Override
             public void onChildDraw(@NonNull android.graphics.Canvas c, @NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, float dX, float dY, int actionState, boolean isCurrentlyActive) {
-                if (dX > 200) dX = 200;
-                super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
+                // Limit movement to avoid swiping the item completely off-screen
+                float maxDx = 150f * recyclerView.getContext().getResources().getDisplayMetrics().density;
+                float limitedDX = Math.min(dX, maxDx);
+                super.onChildDraw(c, recyclerView, viewHolder, limitedDX, dY, actionState, isCurrentlyActive);
             }
         };
 
