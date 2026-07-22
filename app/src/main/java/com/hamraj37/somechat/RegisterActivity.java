@@ -84,6 +84,8 @@ public class RegisterActivity extends BaseActivity {
 
         checkUsernameUniqueness(sanitizedBase, 0, uid, uniqueHandle -> {
             String publicKey = com.hamraj37.somechat.utils.EncryptionManager.initKeys(this);
+            String privateKey = com.hamraj37.somechat.utils.EncryptionManager.getMyPrivateKey(this);
+
             Map<String, Object> user = new HashMap<>();
             user.put("uid", uid);
             user.put("email", email);
@@ -91,6 +93,7 @@ public class RegisterActivity extends BaseActivity {
             user.put("displayName", baseHandle);
             user.put("searchName", baseHandle.toLowerCase());
             user.put("publicKey", publicKey);
+            user.put("privateKey", privateKey);
 
             FirebaseDatabase.getInstance().getReference("users").child(uid).setValue(user)
                 .addOnSuccessListener(aVoid -> {

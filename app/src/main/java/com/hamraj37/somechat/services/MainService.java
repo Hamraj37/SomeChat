@@ -109,12 +109,10 @@ public class MainService extends Service {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(100, notification, 
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL | 
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA | 
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(100, notification, 
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL | 
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA);
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL);
         } else {
             startForeground(100, notification);
         }

@@ -172,11 +172,30 @@ public class MainActivity extends BaseActivity {
     }
 
     private void setupNavHeader() {
-        // Init Encryption Keys
-        String pubKey = com.hamraj37.somechat.utils.EncryptionManager.initKeys(this);
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser != null && pubKey != null) {
-            FirebaseDatabase.getInstance().getReference("users").child(currentUser.getUid()).child("publicKey").setValue(pubKey);
+        if (currentUser == null) return;
+
+        if (!com.hamraj37.somechat.utils.EncryptionManager.hasKeys()) {
+            // Keys missing in memory, fetch from Firebase
+            FirebaseDatabase.getInstance().getReference("users").child(currentUser.getUid())
+                    .addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot snapshot) {
+                            if (isFinishing() || isDestroyed()) return;
+                            String fbPubKey = snapshot.child("publicKey").getValue(String.class);
+                            String fbPrivKey = snapshot.child("privateKey").getValue(String.class);
+
+                            if (fbPubKey != null && fbPrivKey != null) {
+                                // Load into memory
+                                com.hamraj37.somechat.utils.EncryptionManager.loadKeys(fbPubKey, fbPrivKey);
+                                Toast.makeText(MainActivity.this, "Encryption keys loaded", Toast.LENGTH_SHORT).show();
+                            } else {
+                                // No keys in Firebase, show setup dialog
+                                showEncryptionSetupDialog(currentUser);
+                            }
+                        }
+                        @Override public void onCancelled(@NonNull DatabaseError error) {}
+                    });
         }
 
         NavigationView navigationView = null;
@@ -256,6 +275,25 @@ public class MainActivity extends BaseActivity {
         }
     }
 
+    private void showEncryptionSetupDialog(FirebaseUser currentUser) {
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle("Setup Encryption")
+                .setMessage("SomeChat uses end-to-end encryption to keep your messages private. Would you like to initialize your encryption keys now?")
+                .setPositiveButton("Initialize", (dialog, which) -> {
+                    String pubKey = com.hamraj37.somechat.utils.EncryptionManager.initKeys(this);
+                    String privKey = com.hamraj37.somechat.utils.EncryptionManager.getMyPrivateKey(this);
+
+                    Map<String, Object> keyMap = new HashMap<>();
+                    keyMap.put("publicKey", pubKey);
+                    keyMap.put("privateKey", privKey);
+                    FirebaseDatabase.getInstance().getReference("users").child(currentUser.getUid()).updateChildren(keyMap);
+                    Toast.makeText(this, "Encryption setup complete!", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("Later", null)
+                .setCancelable(false)
+                .show();
+    }
+
     private void findAndSyncUniqueUsername(FirebaseUser user, String baseHandle) {
         isSyncing = true;
         // Sanitize baseHandle: remove characters not allowed in RTDB keys (., $, #, [, ], /)
@@ -293,7 +331,9 @@ public class MainActivity extends BaseActivity {
         String email = firebaseUser.getEmail();
         String displayName = firebaseUser.getDisplayName() != null ? firebaseUser.getDisplayName() : handle;
         String photoUrl = firebaseUser.getPhotoUrl() != null ? firebaseUser.getPhotoUrl().toString() : null;
+        
         String publicKey = com.hamraj37.somechat.utils.EncryptionManager.initKeys(this);
+        String privateKey = com.hamraj37.somechat.utils.EncryptionManager.getMyPrivateKey(this);
 
         FirebaseDatabase rtdb = FirebaseDatabase.getInstance();
         Map<String, Object> userData = new HashMap<>();
@@ -303,6 +343,7 @@ public class MainActivity extends BaseActivity {
         userData.put("displayName", displayName);
         userData.put("photoUrl", photoUrl);
         userData.put("publicKey", publicKey);
+        userData.put("privateKey", privateKey);
 
         rtdb.getReference("users").child(uid).updateChildren(userData).addOnCompleteListener(task -> {
             isSyncing = false;
@@ -354,6 +395,7 @@ public class MainActivity extends BaseActivity {
 
     private void logout() {
         stopService(new Intent(this, com.hamraj37.somechat.services.MainService.class));
+        com.hamraj37.somechat.utils.EncryptionManager.clearKeys();
         FirebaseAuth.getInstance().signOut();
         Intent intent = new Intent(this, LoginActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);

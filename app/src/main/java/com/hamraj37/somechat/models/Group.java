@@ -37,18 +37,22 @@ public class Group implements Serializable {
         this.groupId = groupId;
     }
 
+    @com.google.firebase.database.PropertyName("name")
     public String getGroupName() {
         return groupName;
     }
 
+    @com.google.firebase.database.PropertyName("name")
     public void setGroupName(String groupName) {
         this.groupName = groupName;
     }
 
+    @com.google.firebase.database.PropertyName("avatar")
     public String getGroupAvatar() {
         return groupAvatar;
     }
 
+    @com.google.firebase.database.PropertyName("avatar")
     public void setGroupAvatar(String groupAvatar) {
         this.groupAvatar = groupAvatar;
     }

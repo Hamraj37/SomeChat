@@ -23,12 +23,24 @@ public class EncryptionManager {
     private static final String KEY_PRIVATE = "private_key";
     private static final String KEY_PUBLIC = "public_key";
 
-    public static String initKeys(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        if (prefs.contains(KEY_PUBLIC)) {
-            return prefs.getString(KEY_PUBLIC, null);
-        }
+    private static String cachedPrivateKey = null;
+    private static String cachedPublicKey = null;
 
+    public static void loadKeys(String publicKey, String privateKey) {
+        cachedPublicKey = publicKey;
+        cachedPrivateKey = privateKey;
+    }
+
+    public static boolean hasKeys() {
+        return cachedPrivateKey != null && cachedPublicKey != null;
+    }
+
+    public static void clearKeys() {
+        cachedPrivateKey = null;
+        cachedPublicKey = null;
+    }
+
+    public static String initKeys(Context context) {
         try {
             KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
             kpg.initialize(2048);
@@ -37,11 +49,7 @@ public class EncryptionManager {
             String publicKeyStr = Base64.encodeToString(kp.getPublic().getEncoded(), Base64.NO_WRAP);
             String privateKeyStr = Base64.encodeToString(kp.getPrivate().getEncoded(), Base64.NO_WRAP);
 
-            prefs.edit()
-                    .putString(KEY_PUBLIC, publicKeyStr)
-                    .putString(KEY_PRIVATE, privateKeyStr)
-                    .apply();
-
+            loadKeys(publicKeyStr, privateKeyStr);
             return publicKeyStr;
         } catch (Exception e) {
             e.printStackTrace();
@@ -50,7 +58,15 @@ public class EncryptionManager {
     }
 
     public static String getMyPublicKey(Context context) {
-        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getString(KEY_PUBLIC, null);
+        return cachedPublicKey;
+    }
+
+    public static String getMyPrivateKey(Context context) {
+        return cachedPrivateKey;
+    }
+
+    public static void saveKeys(Context context, String publicKey, String privateKey) {
+        loadKeys(publicKey, privateKey);
     }
 
     public static byte[] encryptRaw(byte[] data, SecretKey aesKey) throws Exception {
@@ -129,11 +145,10 @@ public class EncryptionManager {
             byte[] encryptedAesKey = Base64.decode(isSender ? parts[1] : parts[0], Base64.NO_WRAP);
             byte[] encryptedContent = Base64.decode(parts[2], Base64.NO_WRAP);
 
-            // 1. Get Private Key
-            String privateKeyStr = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getString(KEY_PRIVATE, null);
-            if (privateKeyStr == null) return encryptedData;
+            // 1. Get Private Key (From Memory)
+            if (cachedPrivateKey == null) return encryptedData;
 
-            byte[] privateKeyBytes = Base64.decode(privateKeyStr, Base64.NO_WRAP);
+            byte[] privateKeyBytes = Base64.decode(cachedPrivateKey, Base64.NO_WRAP);
             PrivateKey privateKey = KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(privateKeyBytes));
 
             // 2. Decrypt AES Key with RSA Private Key

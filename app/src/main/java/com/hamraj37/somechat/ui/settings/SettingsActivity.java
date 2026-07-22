@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -38,8 +40,81 @@ public class SettingsActivity extends BaseActivity {
         prefs = getSharedPreferences("app_settings", Context.MODE_PRIVATE);
 
         setupBiometricLock();
+        setupEncryptionStatus();
         setupChatBackground();
         setupRestoreTheme();
+    }
+
+    private void setupEncryptionStatus() {
+        boolean isSecured = com.hamraj37.somechat.utils.EncryptionManager.hasKeys();
+
+        binding.textEncryptionStatus.setText(isSecured ? R.string.secured : R.string.not_secured);
+        binding.textEncryptionStatus.setTextColor(isSecured ?
+                ContextCompat.getColor(this, android.R.color.holo_green_dark) : 
+                ContextCompat.getColor(this, android.R.color.holo_red_dark));
+
+        binding.btnEncryptionSettings.setOnClickListener(v -> {
+            if (isSecured) {
+                showViewKeysDialog();
+            } else {
+                showEncryptionSetupDialog();
+            }
+        });
+    }
+
+    private void showViewKeysDialog() {
+        String pubKey = com.hamraj37.somechat.utils.EncryptionManager.getMyPublicKey(this);
+        String privKey = com.hamraj37.somechat.utils.EncryptionManager.getMyPrivateKey(this);
+
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_view_keys, null);
+        TextView textPubKey = dialogView.findViewById(R.id.text_public_key);
+        TextView textPrivKey = dialogView.findViewById(R.id.text_private_key);
+        
+        textPubKey.setText(pubKey);
+        textPrivKey.setText(privKey);
+
+        View.OnClickListener copyListener = view -> {
+            String textToCopy = (view.getId() == R.id.btn_copy_public) ? pubKey : privKey;
+            android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            if (clipboard != null) {
+                android.content.ClipData clip = android.content.ClipData.newPlainText("Encryption Key", textToCopy);
+                clipboard.setPrimaryClip(clip);
+                Toast.makeText(this, "Key copied to clipboard", Toast.LENGTH_SHORT).show();
+            }
+        };
+
+        dialogView.findViewById(R.id.btn_copy_public).setOnClickListener(copyListener);
+        dialogView.findViewById(R.id.btn_copy_private).setOnClickListener(copyListener);
+
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle("Your Encryption Keys")
+                .setView(dialogView)
+                .setPositiveButton(R.string.close, null)
+                .show();
+    }
+
+    private void showEncryptionSetupDialog() {
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.setup_encryption)
+                .setMessage("Your encryption keys are not set up. Initialize them now to secure your messages?")
+                .setPositiveButton("Initialize", (dialog, which) -> {
+                    String pubKey = com.hamraj37.somechat.utils.EncryptionManager.initKeys(this);
+                    String privKey = com.hamraj37.somechat.utils.EncryptionManager.getMyPrivateKey(this);
+
+                    com.google.firebase.auth.FirebaseUser user = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+                    if (user != null) {
+                        java.util.Map<String, Object> keyMap = new java.util.HashMap<>();
+                        keyMap.put("publicKey", pubKey);
+                        keyMap.put("privateKey", privKey);
+                        com.google.firebase.database.FirebaseDatabase.getInstance().getReference("users")
+                                .child(user.getUid()).updateChildren(keyMap);
+                    }
+                    
+                    setupEncryptionStatus(); // Refresh UI
+                    Toast.makeText(this, "Encryption initialized!", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
     }
 
     private void setupRestoreTheme() {

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Public Key"
+        android:textAppearance="?attr/textAppearanceTitleSmall"
+        android:textColor="?attr/colorPrimary" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:background="#10000000"
+        android:orientation="horizontal"
+        android:padding="8dp">
+
+        <TextView
+            android:id="@+id/text_public_key"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="3"
+            android:textIsSelectable="true"
+            android:textSize="12sp" />
+
+        <ImageView
+            android:id="@+id/btn_copy_public"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="8dp"
+            android:src="@android:drawable/ic_menu_edit"
+            app:tint="?attr/colorOnSurface" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Private Key (Sensitive)"
+        android:textAppearance="?attr/textAppearanceTitleSmall"
+        android:textColor="?attr/colorError" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:background="#10000000"
+        android:orientation="horizontal"
+        android:padding="8dp">
+
+        <TextView
+            android:id="@+id/text_private_key"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="3"
+            android:textIsSelectable="true"
+            android:textSize="12sp" />
+
+        <ImageView
+            android:id="@+id/btn_copy_private"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="8dp"
+            android:src="@android:drawable/ic_menu_edit"
+            app:tint="?attr/colorOnSurface" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:alpha="0.6"
+        android:text="Do not share your private key with anyone. It is used to decrypt your messages."
+        android:textAppearance="?attr/textAppearanceBodySmall" />
+
+</LinearLayout>

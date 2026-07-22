@@ -148,4 +148,10 @@
     <string name="no_requests">No friend requests</string>
     <string name="no_pending">No pending requests</string>
     <string name="cancel">Cancel</string>
+    <string name="encryption_status">Encryption Status</string>
+    <string name="e2ee">End-to-End Encryption</string>
+    <string name="secured">Secured</string>
+    <string name="not_secured">Not Secured</string>
+    <string name="setup_encryption">Setup Encryption</string>
+    <string name="encryption_desc">Your messages are private and secure.</string>
 </resources>

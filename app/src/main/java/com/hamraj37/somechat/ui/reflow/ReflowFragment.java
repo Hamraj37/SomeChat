@@ -109,6 +109,7 @@ public class ReflowFragment extends Fragment {
                         statusRef.addValueEventListener(new ValueEventListener() {
                             @Override
                             public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                if (binding == null) return;
                                 statusList.clear();
                                 myStatus = null;
                                 long yesterday = System.currentTimeMillis() - (24 * 60 * 60 * 1000);
@@ -202,6 +203,7 @@ public class ReflowFragment extends Fragment {
     }
 
     private void updateMyStatusUI() {
+        if (binding == null) return;
         if (myStatus != null && !myStatus.getItems().isEmpty()) {
             List<Status.StatusItem> sortedItems = new ArrayList<>(myStatus.getItems());
             sortedItems.sort((i1, i2) -> Long.compare(i1.getTimestamp(), i2.getTimestamp()));
