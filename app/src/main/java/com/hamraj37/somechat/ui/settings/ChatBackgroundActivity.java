@@ -38,7 +38,7 @@ public class ChatBackgroundActivity extends BaseActivity {
     private BackgroundAdapter adapter;
     private final List<Integer> presets = new ArrayList<>();
 
-    private final ActivityResultLauncher<String> mGetContent = registerForActivityResult(new ActivityResultContracts.GetContent(),
+    private final ActivityResultLauncher<androidx.activity.result.PickVisualMediaRequest> mGetContent = registerForActivityResult(new ActivityResultContracts.PickVisualMedia(),
             uri -> {
                 if (uri != null) {
                     processCustomImage(uri);
@@ -63,7 +63,9 @@ public class ChatBackgroundActivity extends BaseActivity {
         setupPresets();
         loadCurrent();
 
-        findViewById(R.id.btn_choose_custom).setOnClickListener(v -> mGetContent.launch("image/*"));
+        findViewById(R.id.btn_choose_custom).setOnClickListener(v -> mGetContent.launch(new androidx.activity.result.PickVisualMediaRequest.Builder()
+                .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                .build()));
         findViewById(R.id.btn_emoji_pattern).setOnClickListener(v -> showEmojiInputDialog());
         findViewById(R.id.btn_remove).setOnClickListener(v -> {
             selectedValue = null;

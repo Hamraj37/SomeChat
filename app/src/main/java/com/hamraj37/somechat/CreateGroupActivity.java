@@ -49,8 +49,8 @@ public class CreateGroupActivity extends BaseActivity {
     private String currentUserId;
     private Uri selectedAvatarUri;
 
-    private final androidx.activity.result.ActivityResultLauncher<String> pickImageLauncher =
-            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.GetContent(),
+    private final androidx.activity.result.ActivityResultLauncher<androidx.activity.result.PickVisualMediaRequest> pickImageLauncher =
+            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia(),
                     uri -> {
                         if (uri != null) {
                             selectedAvatarUri = uri;
@@ -76,7 +76,9 @@ public class CreateGroupActivity extends BaseActivity {
         btnCreate = findViewById(R.id.btn_create_group);
         friendsRecycler = findViewById(R.id.friends_recycler);
 
-        findViewById(R.id.btn_select_avatar).setOnClickListener(v -> pickImageLauncher.launch("image/*"));
+        findViewById(R.id.btn_select_avatar).setOnClickListener(v -> pickImageLauncher.launch(new androidx.activity.result.PickVisualMediaRequest.Builder()
+                .setMediaType(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                .build()));
 
         setupRecyclerView();
         loadFriends();

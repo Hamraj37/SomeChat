@@ -90,16 +90,16 @@ public class GroupChatActivity extends BaseActivity {
     private boolean isRecording = false;
     private android.net.Uri photoUri;
 
-    private final androidx.activity.result.ActivityResultLauncher<String> pickImageLauncher =
-            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.GetContent(),
+    private final androidx.activity.result.ActivityResultLauncher<androidx.activity.result.PickVisualMediaRequest> pickImageLauncher =
+            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia(),
                     uri -> {
                         if (uri != null) {
                             uploadMedia(uri, "image");
                         }
                     });
 
-    private final androidx.activity.result.ActivityResultLauncher<String> pickVideoLauncher =
-            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.GetContent(),
+    private final androidx.activity.result.ActivityResultLauncher<androidx.activity.result.PickVisualMediaRequest> pickVideoLauncher =
+            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia(),
                     uri -> {
                         if (uri != null) {
                             uploadMedia(uri, "video");
@@ -440,11 +440,15 @@ public class GroupChatActivity extends BaseActivity {
     private void setupAttachmentMenuListeners() {
         findViewById(R.id.option_photo).setOnClickListener(v -> {
             toggleAttachmentMenu();
-            pickImageLauncher.launch("image/*");
+            pickImageLauncher.launch(new androidx.activity.result.PickVisualMediaRequest.Builder()
+                    .setMediaType(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                    .build());
         });
         findViewById(R.id.option_video).setOnClickListener(v -> {
             toggleAttachmentMenu();
-            pickVideoLauncher.launch("video/*");
+            pickVideoLauncher.launch(new androidx.activity.result.PickVisualMediaRequest.Builder()
+                    .setMediaType(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.VideoOnly.INSTANCE)
+                    .build());
         });
         findViewById(R.id.option_camera).setOnClickListener(v -> {
             toggleAttachmentMenu();

@@ -44,8 +44,8 @@ public class ReflowFragment extends Fragment {
     private String currentUserId;
     private Status myStatus = null;
 
-    private final androidx.activity.result.ActivityResultLauncher<String> pickStatusLauncher =
-            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.GetContent(),
+    private final androidx.activity.result.ActivityResultLauncher<androidx.activity.result.PickVisualMediaRequest> pickStatusLauncher =
+            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia(),
                     uri -> {
                         if (uri != null) {
                             uploadStatus(uri);
@@ -68,11 +68,15 @@ public class ReflowFragment extends Fragment {
                 intent.putExtra("status", myStatus);
                 startActivity(intent);
             } else {
-                pickStatusLauncher.launch("*/*");
+                pickStatusLauncher.launch(new androidx.activity.result.PickVisualMediaRequest.Builder()
+                        .setMediaType(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageAndVideo.INSTANCE)
+                        .build());
             }
         });
 
-        binding.fabAddStatus.setOnClickListener(v -> pickStatusLauncher.launch("*/*"));
+        binding.fabAddStatus.setOnClickListener(v -> pickStatusLauncher.launch(new androidx.activity.result.PickVisualMediaRequest.Builder()
+                .setMediaType(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageAndVideo.INSTANCE)
+                .build()));
 
         binding.fabTextStatus.setOnClickListener(v -> showTextStatusDialog());
 

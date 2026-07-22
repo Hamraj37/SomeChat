@@ -44,8 +44,8 @@ public class GroupInfoActivity extends BaseActivity {
     private UserAdapter adapter;
     private List<User> membersList = new ArrayList<>();
 
-    private final androidx.activity.result.ActivityResultLauncher<String> pickImageLauncher =
-            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.GetContent(),
+    private final androidx.activity.result.ActivityResultLauncher<androidx.activity.result.PickVisualMediaRequest> pickImageLauncher =
+            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia(),
                     uri -> {
                         if (uri != null) {
                             uploadGroupPhoto(uri);
@@ -88,7 +88,9 @@ public class GroupInfoActivity extends BaseActivity {
             startActivity(intent);
         });
 
-        findViewById(R.id.btn_change_group_photo).setOnClickListener(v -> pickImageLauncher.launch("image/*"));
+        findViewById(R.id.btn_change_group_photo).setOnClickListener(v -> pickImageLauncher.launch(new androidx.activity.result.PickVisualMediaRequest.Builder()
+                .setMediaType(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                .build()));
     }
 
     private void setupRecyclerView() {

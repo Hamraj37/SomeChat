@@ -64,16 +64,16 @@ public class ProfileInfoActivity extends BaseActivity {
     private final List<ValueEventListener> countListeners = new ArrayList<>();
     private final List<DatabaseReference> countRefs = new ArrayList<>();
 
-    private final androidx.activity.result.ActivityResultLauncher<String> pickImageLauncher =
-            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.GetContent(),
+    private final androidx.activity.result.ActivityResultLauncher<androidx.activity.result.PickVisualMediaRequest> pickImageLauncher =
+            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia(),
                     uri -> {
                         if (uri != null) {
                             uploadProfileImage(uri, false);
                         }
                     });
 
-    private final androidx.activity.result.ActivityResultLauncher<String> pickCoverLauncher =
-            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.GetContent(),
+    private final androidx.activity.result.ActivityResultLauncher<androidx.activity.result.PickVisualMediaRequest> pickCoverLauncher =
+            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia(),
                     uri -> {
                         if (uri != null) {
                             uploadProfileImage(uri, true);
@@ -697,9 +697,15 @@ public class ProfileInfoActivity extends BaseActivity {
     private void setupClickListeners() {
         if (isOwnProfile) {
             binding.settingsButton.setOnClickListener(v -> showProfileSettingsDialog());
-            binding.profileImage.setOnClickListener(v -> pickImageLauncher.launch("image/*"));
-            binding.editProfileImageFab.setOnClickListener(v -> pickImageLauncher.launch("image/*"));
-            binding.editCoverImageFab.setOnClickListener(v -> pickCoverLauncher.launch("image/*"));
+            binding.profileImage.setOnClickListener(v -> pickImageLauncher.launch(new androidx.activity.result.PickVisualMediaRequest.Builder()
+                    .setMediaType(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                    .build()));
+            binding.editProfileImageFab.setOnClickListener(v -> pickImageLauncher.launch(new androidx.activity.result.PickVisualMediaRequest.Builder()
+                    .setMediaType(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                    .build()));
+            binding.editCoverImageFab.setOnClickListener(v -> pickCoverLauncher.launch(new androidx.activity.result.PickVisualMediaRequest.Builder()
+                    .setMediaType(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                    .build()));
         } else {
             binding.audioCallButton.setOnClickListener(v -> startCall(false));
             binding.videoCallButton.setOnClickListener(v -> startCall(true));
@@ -742,7 +748,9 @@ public class ProfileInfoActivity extends BaseActivity {
                             showEditWebsitesDialog();
                             break;
                         case 4:
-                            pickImageLauncher.launch("image/*");
+                            pickImageLauncher.launch(new androidx.activity.result.PickVisualMediaRequest.Builder()
+                                    .setMediaType(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                                    .build());
                             break;
                     }
                 })
