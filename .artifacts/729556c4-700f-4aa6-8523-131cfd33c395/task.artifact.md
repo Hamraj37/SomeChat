@@ -1,5 +1,6 @@
-- [x] Fix Firebase field names in `GroupInfoActivity.java`
-- [x] Add backward compatibility for group details in `GroupChatActivity.java`
-- [x] Verify group profile image and name updates sync correctly across the app
-- [x] Ensure `GroupInfoActivity.java` loads legacy group images
-- [x] Refine legacy field name handling in `TransformViewModel.java`
+- [x] Create `SomeChatMessagingService.java` to handle FCM payloads and tokens
+- [x] Update `MainActivity.java` to register FCM token on login/start
+- [x] Implement "Hidden Icon" Foreground Service in `MainService.java`
+- [x] Use `IMPORTANCE_MIN` and a silent channel to hide the background notification
+- [x] Ensure `MainActivity` and `RestartServiceReceiver` use `startForegroundService`
+- [x] Verify background listeners stay active when app is swiped away

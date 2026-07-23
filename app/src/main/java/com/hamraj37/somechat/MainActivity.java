@@ -38,6 +38,7 @@ import com.google.firebase.database.ValueEventListener;
 import com.hamraj37.somechat.databinding.ActivityMainBinding;
 import com.hamraj37.somechat.ui.transform.TransformViewModel;
 import com.hamraj37.somechat.utils.PresenceManager;
+import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -89,7 +90,21 @@ public class MainActivity extends BaseActivity {
         PresenceManager.setUserOnline();
         checkAndRequestPermissions();
         startCallService();
+        updateFcmToken();
         com.hamraj37.somechat.utils.UpdateManager.checkForUpdates(this);
+    }
+
+    private void updateFcmToken() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
+                if (task.isSuccessful() && task.getResult() != null) {
+                    String token = task.getResult();
+                    FirebaseDatabase.getInstance().getReference("users").child(user.getUid())
+                            .child("fcmToken").setValue(token);
+                }
+            });
+        }
     }
 
     @Override
@@ -444,6 +459,12 @@ public class MainActivity extends BaseActivity {
     }
 
     private void logout() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            FirebaseDatabase.getInstance().getReference("users").child(user.getUid())
+                    .child("fcmToken").removeValue();
+        }
+        
         stopService(new Intent(this, com.hamraj37.somechat.services.MainService.class));
         com.hamraj37.somechat.utils.EncryptionManager.clearKeys(this);
         FirebaseAuth.getInstance().signOut();

@@ -1,21 +1,28 @@
-# Walkthrough - Fix Group Profile Image and Name Synchronization
+# Walkthrough - Hidden Background Service & Notification Fix
 
-I have fixed the issue where group profile images and names were not showing correctly, particularly in the Group Info screen and for older groups.
+I have implemented the "Hidden Icon" approach to ensure you receive notifications while the app is closed, without showing an annoying persistent notification.
 
 ## Changes Made
 
-### 1. Fixed Inconsistent Field Names
-- **[GroupInfoActivity.java](file:///C:/Users/Administrator/AndroidStudioProjects/SameChat/app/src/main/java/com/hamraj37/somechat/GroupInfoActivity.java)**: Corrected the Firebase update logic. The app now uses the correct database keys (`name`, `avatar`) instead of Java field names (`groupName`, `groupAvatar`) when saving updates.
+### 1. Restored Background Reliability
+- **[MainService.java](file:///C:/Users/Administrator/AndroidStudioProjects/SameChat/app/src/main/java/com/hamraj37/somechat/services/MainService.java)**: Re-enabled the `startForeground()` call. This is essential to prevent Android from killing the background listeners when you swipe the app away.
 
-### 2. Universal Backward Compatibility
-- **[GroupInfoActivity.java](file:///C:/Users/Administrator/AndroidStudioProjects/SameChat/app/src/main/java/com/hamraj37/somechat/GroupInfoActivity.java)**: Added manual checks for legacy field names during group data loading. This ensures that the group profile image and name appear correctly even if they were stored using the old keys.
-- **[GroupChatActivity.java](file:///C:/Users/Administrator/AndroidStudioProjects/SameChat/app/src/main/java/com/hamraj37/somechat/GroupChatActivity.java)**: Updated the toolbar loading logic to support both old and new field names.
+### 2. "Hidden" Notification Implementation
+- **Silent Channel**: Created a new notification channel specifically for background syncing with `IMPORTANCE_MIN`.
+- **Minimized Visibility**:
+    - The notification will **not** show an icon in your status bar.
+    - It will **not** make any sound.
+    - I removed the "Connected and ready" title and text, making it much less noticeable in the notification tray.
+- **Privacy**: Set the notification visibility to `VISIBILITY_SECRET` for the lock screen.
 
-### 3. Optimized Synchronization
-- **[TransformViewModel.java](file:///C:/Users/Administrator/AndroidStudioProjects/SameChat/app/src/main/java/com/hamraj37/somechat/ui/transform/TransformViewModel.java)**: Refined the chat list observer to prioritize new field names while maintaining fallback support for legacy data.
+### 3. Future-Proofing with FCM
+- Kept the **[SomeChatMessagingService.java](file:///C:/Users/Administrator/AndroidStudioProjects/SameChat/app/src/main/java/com/hamraj37/somechat/services/SomeChatMessagingService.java)** and token registration. While the app currently uses real-time listeners for reliability, it is now fully prepared to switch to full "No-Icon" FCM notifications if you ever set up a backend server or Firebase Cloud Functions.
 
 ## Verification Results
 
-- [x] **Group Info Visibility**: Verified that the group profile image (like for "Support Group") is now visible in the Info screen.
-- [x] **New Group Updates**: Verified that changing a group name or photo in the Info screen propagates correctly to the chat list and group header.
-- [x] **Legacy Group Support**: Older groups with keys like `groupAvatar` are now fully supported across all screens.
+- [x] **Background Receive**: Notifications for calls and messages are now successfully received even after swiping the app away.
+- [x] **Minimized UI**: The persistent notification is now silent, hidden from the status bar, and tucked away at the bottom of the "Silent" section in the notification tray.
+- [x] **FCM Ready**: Device tokens are still being registered for future server-side notification support.
+
+> [!TIP]
+> If you ever want to remove the silent notification entirely, the only way is to use **Firebase Cloud Functions** (which requires a Blaze plan) to send "Push" signals to the app instead of having the app "listen" for them.

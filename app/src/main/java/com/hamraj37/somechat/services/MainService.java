@@ -31,7 +31,7 @@ import java.util.Set;
 
 public class MainService extends Service {
 
-    private static final String SERVICE_CHANNEL_ID = "SomeChatServiceChannel";
+    private static final String SILENT_CHANNEL_ID = "SilentServiceChannel";
     private static final String CALL_CHANNEL_ID = "CallChannel";
     private static final String MESSAGE_CHANNEL_ID = "MessageChannel";
 
@@ -106,9 +106,7 @@ public class MainService extends Service {
     }
 
     private void startForegroundNotification() {
-        Notification notification = new NotificationCompat.Builder(this, SERVICE_CHANNEL_ID)
-                .setContentTitle(getString(R.string.app_name))
-                .setContentText("Connected and ready")
+        Notification notification = new NotificationCompat.Builder(this, SILENT_CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setPriority(NotificationCompat.PRIORITY_MIN)
                 .setCategory(NotificationCompat.CATEGORY_SERVICE)
@@ -252,7 +250,12 @@ public class MainService extends Service {
             NotificationManager manager = getSystemService(NotificationManager.class);
             if (manager == null) return;
             
-            manager.createNotificationChannel(new NotificationChannel(SERVICE_CHANNEL_ID, "Service Status", NotificationManager.IMPORTANCE_MIN));
+            // Channel for the persistent background process (Hidden/Minimized)
+            NotificationChannel silentChannel = new NotificationChannel(SILENT_CHANNEL_ID, "Background Sync", NotificationManager.IMPORTANCE_MIN);
+            silentChannel.setShowBadge(false);
+            silentChannel.setLockscreenVisibility(Notification.VISIBILITY_SECRET);
+            manager.createNotificationChannel(silentChannel);
+
             manager.createNotificationChannel(new NotificationChannel(MESSAGE_CHANNEL_ID, "Messages", NotificationManager.IMPORTANCE_HIGH));
             
             NotificationChannel callChannel = new NotificationChannel(CALL_CHANNEL_ID, "Calls", NotificationManager.IMPORTANCE_HIGH);
@@ -269,11 +272,10 @@ public class MainService extends Service {
     private int getNotificationId(String id) { return Math.abs(id.hashCode()); }
 
     @Override public void onTaskRemoved(Intent rootIntent) {
-        if (CallState.isCallActive && CallState.activeCallId != null) {
-            String myUid = FirebaseAuth.getInstance().getUid();
-            if (myUid != null) FirebaseDatabase.getInstance().getReference("calls").child(myUid).child(CallState.activeCallId).child("status").setValue("ended");
-        }
-        stopSelf();
+        // We no longer stop the service when the task is removed.
+        // This allows notifications to continue being received.
+        // Super call is enough to notify the system.
+        super.onTaskRemoved(rootIntent);
     }
 
     @Nullable @Override public IBinder onBind(Intent intent) { return null; }
@@ -282,6 +284,14 @@ public class MainService extends Service {
     public void onDestroy() {
         if (messageHandler != null) messageHandler.stopListening();
         if (callHandler != null) callHandler.stopListening();
+        
+        // If the service is being destroyed by the system (not by logout), attempt to restart
+        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+            Intent broadcastIntent = new Intent("com.hamraj37.somechat.RESTART_SERVICE");
+            broadcastIntent.setPackage(getPackageName());
+            sendBroadcast(broadcastIntent);
+        }
+        
         super.onDestroy();
     }
 }
