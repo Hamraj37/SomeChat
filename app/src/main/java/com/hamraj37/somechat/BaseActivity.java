@@ -20,6 +20,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -202,20 +203,7 @@ public class BaseActivity extends AppCompatActivity {
 
     private void showCallBar() {
         if (callBar == null) {
-            // Prefer adding to AppBarLayout if it exists (so it shows "after header")
-            View appBar = findViewById(R.id.main_app_bar);
-            if (appBar instanceof ViewGroup) {
-                ViewGroup appBarGroup = (ViewGroup) appBar;
-                callBar = LayoutInflater.from(this).inflate(R.layout.layout_call_bar, appBarGroup, false);
-                appBarGroup.addView(callBar);
-                
-                callBarTimer = callBar.findViewById(R.id.call_bar_timer);
-                setupCallBarClickListener();
-                startCallBarTimer();
-                callBar.setVisibility(View.VISIBLE);
-                return;
-            }
-
+            // Find a suitable parent to attach the call bar
             ViewGroup root = findViewById(android.R.id.content);
             if (root != null) {
                 callBar = LayoutInflater.from(this).inflate(R.layout.layout_call_bar, root, false);
@@ -223,9 +211,21 @@ public class BaseActivity extends AppCompatActivity {
                         ViewGroup.LayoutParams.MATCH_PARENT, 
                         ViewGroup.LayoutParams.WRAP_CONTENT);
                 lp.gravity = android.view.Gravity.TOP;
+                // Add margin to avoid status bar if not fitting system windows
+                lp.topMargin = (int) (32 * getResources().getDisplayMetrics().density); 
                 root.addView(callBar, lp);
 
                 callBarTimer = callBar.findViewById(R.id.call_bar_timer);
+                
+                View btnEnd = callBar.findViewById(R.id.btn_call_bar_end);
+                if (btnEnd != null) {
+                    btnEnd.setOnClickListener(v -> {
+                        Intent endIntent = new Intent("com.hamraj37.somechat.END_CURRENT_CALL");
+                        endIntent.setPackage(getPackageName());
+                        sendBroadcast(endIntent);
+                    });
+                }
+                
                 setupCallBarClickListener();
             }
         }
@@ -264,12 +264,25 @@ public class BaseActivity extends AppCompatActivity {
         callTimerRunnable = new Runnable() {
             @Override
             public void run() {
-                if (CallState.isCallActive && callBarTimer != null) {
+                if (CallState.isCallActive && callBar != null) {
+                    TextView callStatusText = callBar.findViewById(R.id.call_bar_status);
+                    ImageView callIcon = callBar.findViewById(R.id.call_bar_icon);
+                    
+                    if (callIcon != null) {
+                        callIcon.setImageResource(CallState.isActiveCallVideo ? R.drawable.ic_video_call : R.drawable.ic_audio_call);
+                    }
+
                     long millis = System.currentTimeMillis() - CallState.callStartTime;
                     int seconds = (int) (millis / 1000);
                     int minutes = seconds / 60;
                     seconds = seconds % 60;
-                    callBarTimer.setText(String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds));
+                    String timeStr = String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds);
+                    
+                    if (callStatusText != null) {
+                        String name = CallState.activeCallName != null ? CallState.activeCallName : "Ongoing Call";
+                        callStatusText.setText(name + " - " + timeStr);
+                    }
+                    
                     callTimerHandler.postDelayed(this, 1000);
                 }
             }

@@ -7,6 +7,7 @@ public class CallState {
     public static String activeCallAvatar = null;
     public static boolean isActiveCallVideo = false;
     public static boolean isActiveCallIncoming = false;
+    public static boolean isConnected = false;
     public static long callStartTime = 0;
 
     public static void reset() {
@@ -16,6 +17,7 @@ public class CallState {
         activeCallAvatar = null;
         isActiveCallVideo = false;
         isActiveCallIncoming = false;
+        isConnected = false;
         callStartTime = 0;
     }
 }

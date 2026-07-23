@@ -1,0 +1,23 @@
+- [x] Add back buttons to call layouts
+    - [x] `activity_video_call.xml`
+    - [x] `activity_audio_call.xml`
+- [x] Update `VideoCallActivity.java`
+    - [x] Initialize back button and trigger `onBackPressed()`
+    - [x] Enhance PiP mode logic (Auto-enter, keep local video)
+- [x] Update `AudioCallActivity.java`
+    - [x] Initialize back button and trigger `onBackPressed()`
+    - [x] Implement `END_CURRENT_CALL` receiver
+    - [x] Ensure `CallState` is fully populated in `minimizeCall`
+- [x] Redesign `layout_call_bar.xml` for "Call Progress" UI
+- [x] Update `BaseActivity.java`
+    - [x] Handle "End Call" button in `showCallBar`
+    - [x] Update `setupCallBarClickListener` and styling
+- [x] Update `MainService.java` for Dynamic Island support
+    - [x] Implement `NotificationCompat.CallStyle`
+    - [x] Ensure proper `Person` object and actions
+- [x] Notify `MainService` about ongoing calls from activities
+- [x] Fix incoming call notification buttons
+    - [x] Add `isConnected` to `CallState`
+    - [x] Update `isConnected` in activities and service
+    - [x] Refine `showCallNotification` logic for incoming vs ongoing
+    - [x] Robust `CallState` management in `MainService` (handle stuck states)

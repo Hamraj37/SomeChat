@@ -202,6 +202,8 @@ public class VideoCallActivity extends BaseActivity {
         btnFlash = findViewById(R.id.btn_flash);
         screenLightOverlay = findViewById(R.id.screen_light_overlay);
         
+        findViewById(R.id.btn_back).setOnClickListener(v -> onBackPressed());
+
         localVideoView = findViewById(R.id.local_video_view);
         remoteVideoView = findViewById(R.id.remote_video_view);
         localVideoContainer = findViewById(R.id.local_video_container);
@@ -486,6 +488,7 @@ public class VideoCallActivity extends BaseActivity {
             callData.put("callerAvatar", avatar);
             callData.put("isVideo", true);
             callRef.updateChildren(callData);
+            updateServiceNotification();
 
             webRTCClient.createOffer(new SimpleSdpObserver() {
                 @Override
@@ -520,11 +523,13 @@ public class VideoCallActivity extends BaseActivity {
                     CallState.isActiveCallVideo = true;
                     CallState.isActiveCallIncoming = isIncoming;
                     CallState.callStartTime = startTime;
+                    CallState.isConnected = true;
 
                     callStatus.setText("Connected");
                     btnAccept.setVisibility(View.GONE);
                     findViewById(R.id.controls_container).setVisibility(View.VISIBLE);
                     startTimer();
+                    updateServiceNotification();
                     
                     if (!isIncoming && snapshot.hasChild("answer") && !isRemoteDescriptionSet) {
                         String sdp = snapshot.child("answer/sdp").getValue(String.class);
@@ -614,6 +619,8 @@ public class VideoCallActivity extends BaseActivity {
         cancelCallNotification();
         callRef.child("status").setValue("accepted");
         startTimer();
+        CallState.isConnected = true;
+        updateServiceNotification();
         
         webRTCClient.createAnswer(new SimpleSdpObserver() {
             @Override
@@ -737,10 +744,15 @@ public class VideoCallActivity extends BaseActivity {
 
     private void enterPipMode() {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            PictureInPictureParams params = new PictureInPictureParams.Builder()
-                    .setAspectRatio(new Rational(9, 16))
-                    .build();
-            enterPictureInPictureMode(params);
+            PictureInPictureParams.Builder builder = new PictureInPictureParams.Builder()
+                    .setAspectRatio(new Rational(9, 16));
+            
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                builder.setAutoEnterEnabled(true)
+                        .setSeamlessResizeEnabled(true);
+            }
+            
+            enterPictureInPictureMode(builder.build());
         }
     }
 
@@ -750,6 +762,8 @@ public class VideoCallActivity extends BaseActivity {
         if (isInPictureInPictureMode) {
             // Hide UI elements in PiP mode
             findViewById(R.id.controls_container).setVisibility(View.GONE);
+            findViewById(R.id.controls_container_glass).setVisibility(View.GONE);
+            findViewById(R.id.btn_back).setVisibility(View.GONE);
             btnDecline.setVisibility(View.GONE);
             btnAccept.setVisibility(View.GONE);
             callStatus.setVisibility(View.GONE);
@@ -757,10 +771,17 @@ public class VideoCallActivity extends BaseActivity {
             findViewById(R.id.call_avatar).setVisibility(View.GONE);
             findViewById(R.id.call_name).setVisibility(View.GONE);
             if (videoPlaceholder != null) videoPlaceholder.setVisibility(View.GONE);
-            localVideoContainer.setVisibility(View.GONE);
+            
+            // In PiP, we usually want to fill the screen with the remote video
+            // but keep local video small if needed. 
+            // Based on user's screenshot, local video is visible in PiP.
+            // Ensure localVideoContainer is positioned well for PiP
+            localVideoContainer.setX(0); // Reset position for PiP if needed or let it be
         } else {
             // Show UI elements when returning from PiP mode
             findViewById(R.id.controls_container).setVisibility(View.VISIBLE);
+            findViewById(R.id.controls_container_glass).setVisibility(View.VISIBLE);
+            findViewById(R.id.btn_back).setVisibility(View.VISIBLE);
             btnDecline.setVisibility(View.VISIBLE);
             if (isIncoming && !isConnected) {
                 btnAccept.setVisibility(View.VISIBLE);
@@ -778,6 +799,16 @@ public class VideoCallActivity extends BaseActivity {
             }
             localVideoContainer.setVisibility(View.VISIBLE);
         }
+    }
+
+    private void updateServiceNotification() {
+        Intent serviceIntent = new Intent(this, com.hamraj37.somechat.services.MainService.class);
+        serviceIntent.setAction("com.hamraj37.somechat.ACTION_UPDATE_CALL_NOTIFICATION");
+        serviceIntent.putExtra("uid", receiverId);
+        serviceIntent.putExtra("displayName", receiverName);
+        serviceIntent.putExtra("photoUrl", receiverAvatar);
+        serviceIntent.putExtra("isVideo", true);
+        startService(serviceIntent);
     }
 
     private static class SimpleSdpObserver implements SdpObserver {

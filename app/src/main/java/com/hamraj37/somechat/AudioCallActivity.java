@@ -72,6 +72,15 @@ public class AudioCallActivity extends BaseActivity {
     private PowerManager.WakeLock proximityWakeLock;
     private boolean isLogged = false;
 
+    private final android.content.BroadcastReceiver callEndReceiver = new android.content.BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if ("com.hamraj37.somechat.END_CURRENT_CALL".equals(intent.getAction())) {
+                endCall();
+            }
+        }
+    };
+
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
@@ -210,6 +219,8 @@ public class AudioCallActivity extends BaseActivity {
         btnMute = findViewById(R.id.btn_mute);
         btnSpeaker = findViewById(R.id.btn_speaker);
 
+        findViewById(R.id.btn_back).setOnClickListener(v -> onBackPressed());
+
         name.setText(receiverName);
         if (receiverAvatar != null && !receiverAvatar.isEmpty()) {
             Glide.with(this).load(receiverAvatar).circleCrop().into(avatar);
@@ -294,6 +305,7 @@ public class AudioCallActivity extends BaseActivity {
             callData.put("callerAvatar", avatar);
             callData.put("isVideo", false);
             callRef.updateChildren(callData);
+            updateServiceNotification();
 
             webRTCClient.createOffer(new SimpleSdpObserver() {
                 @Override
@@ -328,12 +340,14 @@ public class AudioCallActivity extends BaseActivity {
                     CallState.isActiveCallVideo = false;
                     CallState.isActiveCallIncoming = isIncoming;
                     CallState.callStartTime = startTime;
+                    CallState.isConnected = true;
 
                     updateProximitySensor(true);
                     callStatus.setText("Connected");
                     btnAccept.setVisibility(View.GONE);
                     findViewById(R.id.controls_container).setVisibility(View.VISIBLE);
                     startTimer();
+                    updateServiceNotification();
                     
                     if (!isIncoming && snapshot.hasChild("answer") && !isRemoteDescriptionSet) {
                         String sdp = snapshot.child("answer/sdp").getValue(String.class);
@@ -424,6 +438,8 @@ public class AudioCallActivity extends BaseActivity {
         updateProximitySensor(true);
         callRef.child("status").setValue("accepted");
         startTimer();
+        CallState.isConnected = true;
+        updateServiceNotification();
         
         webRTCClient.createAnswer(new SimpleSdpObserver() {
             @Override
@@ -473,6 +489,19 @@ public class AudioCallActivity extends BaseActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        android.content.IntentFilter filter = new android.content.IntentFilter("com.hamraj37.somechat.END_CURRENT_CALL");
+        ContextCompat.registerReceiver(this, callEndReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        unregisterReceiver(callEndReceiver);
+    }
+
+    @Override
     protected void onDestroy() {
         if (!CallState.isCallActive) {
             updateProximitySensor(false);
@@ -517,6 +546,16 @@ public class AudioCallActivity extends BaseActivity {
             timerHandler.removeCallbacks(timerRunnable);
             timerRunnable = null;
         }
+    }
+
+    private void updateServiceNotification() {
+        Intent serviceIntent = new Intent(this, com.hamraj37.somechat.services.MainService.class);
+        serviceIntent.setAction("com.hamraj37.somechat.ACTION_UPDATE_CALL_NOTIFICATION");
+        serviceIntent.putExtra("uid", receiverId);
+        serviceIntent.putExtra("displayName", receiverName);
+        serviceIntent.putExtra("photoUrl", receiverAvatar);
+        serviceIntent.putExtra("isVideo", false);
+        startService(serviceIntent);
     }
 
     private static class SimpleSdpObserver implements SdpObserver {
