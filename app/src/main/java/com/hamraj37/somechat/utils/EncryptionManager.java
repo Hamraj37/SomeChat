@@ -26,18 +26,36 @@ public class EncryptionManager {
     private static String cachedPrivateKey = null;
     private static String cachedPublicKey = null;
 
-    public static void loadKeys(String publicKey, String privateKey) {
+    public static void loadKeys(Context context, String publicKey, String privateKey) {
         cachedPublicKey = publicKey;
         cachedPrivateKey = privateKey;
+        
+        if (context != null) {
+            SharedPreferences.Editor editor = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).edit();
+            editor.putString(KEY_PUBLIC, publicKey);
+            editor.putString(KEY_PRIVATE, privateKey);
+            editor.apply();
+        }
+    }
+
+    public static void loadKeysFromPrefs(Context context) {
+        if (cachedPublicKey != null && cachedPrivateKey != null) return;
+        
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        cachedPublicKey = prefs.getString(KEY_PUBLIC, null);
+        cachedPrivateKey = prefs.getString(KEY_PRIVATE, null);
     }
 
     public static boolean hasKeys() {
         return cachedPrivateKey != null && cachedPublicKey != null;
     }
 
-    public static void clearKeys() {
+    public static void clearKeys(Context context) {
         cachedPrivateKey = null;
         cachedPublicKey = null;
+        if (context != null) {
+            context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).edit().clear().apply();
+        }
     }
 
     public static String initKeys(Context context) {
@@ -49,7 +67,7 @@ public class EncryptionManager {
             String publicKeyStr = Base64.encodeToString(kp.getPublic().getEncoded(), Base64.NO_WRAP);
             String privateKeyStr = Base64.encodeToString(kp.getPrivate().getEncoded(), Base64.NO_WRAP);
 
-            loadKeys(publicKeyStr, privateKeyStr);
+            loadKeys(context, publicKeyStr, privateKeyStr);
             return publicKeyStr;
         } catch (Exception e) {
             e.printStackTrace();
@@ -66,7 +84,7 @@ public class EncryptionManager {
     }
 
     public static void saveKeys(Context context, String publicKey, String privateKey) {
-        loadKeys(publicKey, privateKey);
+        loadKeys(context, publicKey, privateKey);
     }
 
     public static byte[] encryptRaw(byte[] data, SecretKey aesKey) throws Exception {

@@ -1,44 +1,29 @@
-# Walkthrough - Call Progress & Dynamic Island Support
+# Walkthrough - Persist Encryption Keys Across Devices
 
-I have implemented the requested enhancements for both Video and Audio calls, ensuring a seamless experience when navigating away from an active call.
+I have implemented changes to ensure that encryption keys are persisted locally and synchronized across devices, preventing unnecessary regeneration and data loss.
 
 ## Changes Made
 
-### 1. Unified Back Button for Minimizing Calls
-- Added a back arrow button to the top-left of both `activity_video_call.xml` and `activity_audio_call.xml`.
-- Tapping this button (or the system back button) now triggers the minimization logic (PiP for video, Call Bar for audio) instead of ending the call.
+### 1. Local Caching of Keys
+- **[EncryptionManager.java](file:///C:/Users/Administrator/AndroidStudioProjects/SameChat/app/src/main/java/com/hamraj37/somechat/utils/EncryptionManager.java)**: Added logic to save and load keys from `SharedPreferences`. This ensures that once keys are generated or fetched, they remain available across app restarts without hitting the network.
 
-### 2. Enhanced Video Call Picture-in-Picture (PiP)
-- **Auto-PiP**: Enabled `setAutoEnterEnabled(true)` for Android 12+. Swiping up to go home now automatically transitions the video call into PiP mode.
-- **Clean PiP UI**: Updated `onPictureInPictureModeChanged` to hide all buttons, timers, and names in PiP mode, showing only the participants.
-- **Self-View in PiP**: The local video container now remains visible in PiP mode, as seen in modern messaging apps.
+### 2. Smart Key Synchronization
+- **[MainActivity.java](file:///C:/Users/Administrator/AndroidStudioProjects/SameChat/app/src/main/java/com/hamraj37/somechat/MainActivity.java)**:
+    - Updated `setupNavHeader` to load keys from local storage on app start.
+    - If keys are missing locally, it now fetches them from Firebase RTDB.
+    - In `syncUserToDatabases`, the app now checks if encryption keys already exist in the user's profile before generating new ones. This specifically fixes the issue where logging in on a new device would overwrite existing keys.
 
-### 3. Redesigned Audio Call Progress Bar
-- Redesigned `layout_call_bar.xml` to match the requested compact look.
-- The bar now features:
-    - An icon indicating the call type (Audio/Video).
-    - A combined label: `[Name] - [Timer]`.
-    - A direct **End Call** button (red 'X') so users can hang up without re-entering the full-screen activity.
-- The bar is persistently displayed at the top of other activities while a call is active.
+### 3. Eliminated Accidental Key Regeneration
+- **[ChatActivity.java](file:///C:/Users/Administrator/AndroidStudioProjects/SameChat/app/src/main/java/com/hamraj37/somechat/ChatActivity.java)**: Fixed a critical bug where sending an image, video, or document would accidentally trigger a full key regeneration (`initKeys`). This was the primary reason keys were changing unexpectedly on devices. It now correctly uses the existing public key (`getMyPublicKey`).
+- **[BaseActivity.java](file:///C:/Users/Administrator/AndroidStudioProjects/SameChat/app/src/main/java/com/hamraj37/somechat/BaseActivity.java)**: Added a global call to `loadKeysFromPrefs` in `onCreate` to ensure encryption keys are available as soon as any activity is opened.
 
-### 4. "Dynamic Island" / System Status Pill Support
-- Updated `MainService.java` to use `NotificationCompat.CallStyle`.
-- This triggers the system's native "Call Capsule" or "Status Pill" (Dynamic Island style) in the status bar on supported Android 11+ devices and OEM skins.
-- The pill shows the call status and an active timer even when the app is in the background.
-
-### 5. Fixed Incoming Call Notification & Stuck States
-- Resolved an issue where the Answer/Decline buttons were missing on incoming calls.
-- **Root Cause**: The notification was incorrectly identifying calls as "ongoing" due to a "stuck" global `CallState` or premature status updates.
-- **Fix**:
-    - Introduced an `isConnected` flag in `CallState` to differentiate ringing from connected states.
-    - Updated `MainService` to always prioritize the new incoming call's state.
-    - Improved call cleanup (`removeCall`) to ensure `CallState` is reset whenever the active call ends, preventing state pollution.
+### 4. Improved User Experience in Chats
+- **[ChatActivity.java](file:///C:/Users/Administrator/AndroidStudioProjects/SameChat/app/src/main/java/com/hamraj37/somechat/ChatActivity.java)** and **[GroupChatActivity.java](file:///C:/Users/Administrator/AndroidStudioProjects/SameChat/app/src/main/java/com/hamraj37/somechat/GroupChatActivity.java)**:
+    - Updated the "Encryption Required" check to automatically try and fetch existing keys from Firebase.
+    - The user is now only prompted to "Initialize" (which regenerates keys) if no keys are found in either local storage or the remote database.
 
 ## Verification Results
 
-- [x] **Video PiP**: Smooth transition on back/home; local video visible; controls hidden.
-- [x] **Audio Bar**: Appears correctly on minimization; "End Call" button functional; timer syncs with call.
-- [x] **Dynamic Island**: Ongoing call notification with `CallStyle` verified to trigger system status bar features.
-
-> [!TIP]
-> To see the "Dynamic Island" pill, ensure you have enabled notifications for SomeChat and are running on a device that supports status bar call indications (Android 11+ with supported UI).
+- [x] **Persistence**: Keys survive app force-closes.
+- [x] **Multi-device Sync**: Logging in on Device B after Device A fetches Device A's keys.
+- [x] **No Overwriting**: Re-syncing user profile doesn't generate new keys if they already exist.

@@ -46,6 +46,7 @@ public class BaseActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        com.hamraj37.somechat.utils.EncryptionManager.loadKeysFromPrefs(this);
 
         // Enable Edge-to-Edge: Draw under status and navigation bars
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);

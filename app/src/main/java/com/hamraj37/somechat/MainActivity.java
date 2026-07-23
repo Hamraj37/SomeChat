@@ -207,8 +207,10 @@ public class MainActivity extends BaseActivity {
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser == null) return;
 
+        com.hamraj37.somechat.utils.EncryptionManager.loadKeysFromPrefs(this);
+
         if (!com.hamraj37.somechat.utils.EncryptionManager.hasKeys()) {
-            // Keys missing in memory, fetch from Firebase
+            // Keys missing in memory and prefs, fetch from Firebase
             FirebaseDatabase.getInstance().getReference("users").child(currentUser.getUid())
                     .addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
@@ -218,9 +220,9 @@ public class MainActivity extends BaseActivity {
                             String fbPrivKey = snapshot.child("privateKey").getValue(String.class);
 
                             if (fbPubKey != null && fbPrivKey != null) {
-                                // Load into memory
-                                com.hamraj37.somechat.utils.EncryptionManager.loadKeys(fbPubKey, fbPrivKey);
-                                Toast.makeText(MainActivity.this, "Encryption keys loaded", Toast.LENGTH_SHORT).show();
+                                // Load into memory and prefs
+                                com.hamraj37.somechat.utils.EncryptionManager.loadKeys(MainActivity.this, fbPubKey, fbPrivKey);
+                                Toast.makeText(MainActivity.this, "Encryption keys synchronized", Toast.LENGTH_SHORT).show();
                             } else {
                                 // No keys in Firebase, show setup dialog
                                 showEncryptionSetupDialog(currentUser);
@@ -363,22 +365,38 @@ public class MainActivity extends BaseActivity {
         String email = firebaseUser.getEmail();
         String displayName = firebaseUser.getDisplayName() != null ? firebaseUser.getDisplayName() : handle;
         String photoUrl = firebaseUser.getPhotoUrl() != null ? firebaseUser.getPhotoUrl().toString() : null;
-        
-        String publicKey = com.hamraj37.somechat.utils.EncryptionManager.initKeys(this);
-        String privateKey = com.hamraj37.somechat.utils.EncryptionManager.getMyPrivateKey(this);
 
         FirebaseDatabase rtdb = FirebaseDatabase.getInstance();
-        Map<String, Object> userData = new HashMap<>();
-        userData.put("uid", uid);
-        userData.put("email", email);
-        userData.put("username", handle);
-        userData.put("displayName", displayName);
-        userData.put("photoUrl", photoUrl);
-        userData.put("publicKey", publicKey);
-        userData.put("privateKey", privateKey);
+        rtdb.getReference("users").child(uid).get().addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                DataSnapshot snapshot = task.getResult();
+                String publicKey = snapshot.child("publicKey").getValue(String.class);
+                String privateKey = snapshot.child("privateKey").getValue(String.class);
 
-        rtdb.getReference("users").child(uid).updateChildren(userData).addOnCompleteListener(task -> {
-            isSyncing = false;
+                if (publicKey == null || privateKey == null) {
+                    // Keys missing, generate new ones
+                    publicKey = com.hamraj37.somechat.utils.EncryptionManager.initKeys(this);
+                    privateKey = com.hamraj37.somechat.utils.EncryptionManager.getMyPrivateKey(this);
+                } else {
+                    // Keys exist, load them
+                    com.hamraj37.somechat.utils.EncryptionManager.loadKeys(this, publicKey, privateKey);
+                }
+
+                Map<String, Object> userData = new HashMap<>();
+                userData.put("uid", uid);
+                userData.put("email", email);
+                userData.put("username", handle);
+                userData.put("displayName", displayName);
+                userData.put("photoUrl", photoUrl);
+                userData.put("publicKey", publicKey);
+                userData.put("privateKey", privateKey);
+
+                rtdb.getReference("users").child(uid).updateChildren(userData).addOnCompleteListener(updateTask -> {
+                    isSyncing = false;
+                });
+            } else {
+                isSyncing = false;
+            }
         });
         rtdb.getReference("usernames").child(handle.toLowerCase()).setValue(uid);
     }
@@ -427,7 +445,7 @@ public class MainActivity extends BaseActivity {
 
     private void logout() {
         stopService(new Intent(this, com.hamraj37.somechat.services.MainService.class));
-        com.hamraj37.somechat.utils.EncryptionManager.clearKeys();
+        com.hamraj37.somechat.utils.EncryptionManager.clearKeys(this);
         FirebaseAuth.getInstance().signOut();
         Intent intent = new Intent(this, LoginActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);

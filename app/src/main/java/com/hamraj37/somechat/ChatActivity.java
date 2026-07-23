@@ -216,26 +216,50 @@ public class ChatActivity extends BaseActivity {
     }
 
     private void checkEncryptionStatus() {
+        com.hamraj37.somechat.utils.EncryptionManager.loadKeysFromPrefs(this);
+        
         if (com.hamraj37.somechat.utils.EncryptionManager.getMyPrivateKey(this) == null) {
-            new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                    .setTitle("Encryption Required")
-                    .setMessage("Your encryption keys are not set up. You won't be able to read or send secure messages until you initialize them.")
-                    .setPositiveButton("Initialize Now", (dialog, which) -> {
-                        String pubKey = com.hamraj37.somechat.utils.EncryptionManager.initKeys(this);
-                        String privKey = com.hamraj37.somechat.utils.EncryptionManager.getMyPrivateKey(this);
+            // Check if keys exist in Firebase before asking user to initialize (regenerate)
+            FirebaseDatabase.getInstance().getReference("users").child(senderId)
+                    .addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot snapshot) {
+                            String fbPubKey = snapshot.child("publicKey").getValue(String.class);
+                            String fbPrivKey = snapshot.child("privateKey").getValue(String.class);
 
-                        if (senderId != null) {
-                            java.util.Map<String, Object> keyMap = new java.util.HashMap<>();
-                            keyMap.put("publicKey", pubKey);
-                            keyMap.put("privateKey", privKey);
-                            FirebaseDatabase.getInstance().getReference("users").child(senderId).updateChildren(keyMap);
+                            if (fbPubKey != null && fbPrivKey != null) {
+                                com.hamraj37.somechat.utils.EncryptionManager.loadKeys(ChatActivity.this, fbPubKey, fbPrivKey);
+                                // Reload activity or refresh adapter to decrypt
+                                adapter.notifyDataSetChanged();
+                            } else {
+                                showEncryptionRequiredDialog();
+                            }
                         }
-                        
-                        Toast.makeText(this, "Encryption initialized. Please restart the chat to see decrypted messages.", Toast.LENGTH_LONG).show();
-                    })
-                    .setNegativeButton("Later", null)
-                    .show();
+
+                        @Override public void onCancelled(@NonNull DatabaseError error) {}
+                    });
         }
+    }
+
+    private void showEncryptionRequiredDialog() {
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle("Encryption Required")
+                .setMessage("Your encryption keys are not set up. You won't be able to read or send secure messages until you initialize them.")
+                .setPositiveButton("Initialize Now", (dialog, which) -> {
+                    String pubKey = com.hamraj37.somechat.utils.EncryptionManager.initKeys(this);
+                    String privKey = com.hamraj37.somechat.utils.EncryptionManager.getMyPrivateKey(this);
+
+                    if (senderId != null) {
+                        java.util.Map<String, Object> keyMap = new java.util.HashMap<>();
+                        keyMap.put("publicKey", pubKey);
+                        keyMap.put("privateKey", privKey);
+                        FirebaseDatabase.getInstance().getReference("users").child(senderId).updateChildren(keyMap);
+                    }
+                    
+                    Toast.makeText(this, "Encryption initialized. Please restart the chat to see decrypted messages.", Toast.LENGTH_LONG).show();
+                })
+                .setNegativeButton("Later", null)
+                .show();
     }
 
     private void initChat() {
@@ -602,7 +626,7 @@ public class ChatActivity extends BaseActivity {
                             String mediaInfo = mediaJson.toString();
 
                             String finalContent = mediaInfo;
-                            String myPubKey = com.hamraj37.somechat.utils.EncryptionManager.initKeys(ChatActivity.this);
+                            String myPubKey = com.hamraj37.somechat.utils.EncryptionManager.getMyPublicKey(ChatActivity.this);
                             if (receiverPublicKey != null && myPubKey != null) {
                                 finalContent = com.hamraj37.somechat.utils.EncryptionManager.encrypt(mediaInfo, receiverPublicKey, myPubKey);
                             }

@@ -1,55 +1,33 @@
-# Implementation Plan - Call Progress UI (PiP, Call Bar & Dynamic Island)
+# Implementation Plan - Persist Encryption Keys Across Devices
 
-The goal is to provide a seamless "Ongoing Call" experience. This includes:
-1. **Video Call PiP**: Smooth transition to Picture-in-Picture when navigating away.
-2. **In-App Call Bar**: A persistent bar at the top of the app for audio calls.
-3. **Dynamic Island / Status Pill**: Support for the system-level call capsule in the status bar on modern Android devices.
+The goal is to prevent the app from regenerating encryption keys when a user logs in on a new device or restarts the app. We will achieve this by caching keys locally in `SharedPreferences` and ensuring that the app fetches existing keys from Firebase instead of generating new ones if they already exist.
+
+## User Review Required
+
+> [!IMPORTANT]
+> The private key is currently stored in plain text in Firebase Realtime Database. While this allows for easy multi-device sync, it is not a secure practice for end-to-end encryption. For a truly secure implementation, the private key should be encrypted with a user-derived password before being uploaded. However, to stay consistent with the current architecture and address the user's immediate request, we will focus on preventing unnecessary key regeneration.
 
 ## Proposed Changes
 
 ### [app]
 
-#### [MODIFY] [activity_video_call.xml](file:///C:/Users/Administrator/AndroidStudioProjects/SameChat/app/src/main/res/layout/activity_video_call.xml)
-- Add a "back" button (arrow) at the top left.
-- Ensure proper spacing for the status bar.
+#### [MODIFY] [EncryptionManager.java](file:///C:/Users/Administrator/AndroidStudioProjects/SameChat/app/src/main/java/com/hamraj37/somechat/utils/EncryptionManager.java)
+- Update `loadKeys` and `saveKeys` to persist keys in `SharedPreferences`.
+- Add a `loadKeysFromPrefs(Context context)` method to retrieve keys on app start.
+- Ensure `initKeys` is only used for initial generation.
 
-#### [MODIFY] [VideoCallActivity.java](file:///C:/Users/Administrator/AndroidStudioProjects/SameChat/app/src/main/java/com/hamraj37/somechat/VideoCallActivity.java)
-- Initialize the back button and set its click listener to `onBackPressed()`.
-- Update `enterPipMode()` to use `setAutoEnterEnabled(true)` for Android 12+.
-- Refine `onPictureInPictureModeChanged()` to keep the local video visible in PiP.
+#### [MODIFY] [MainActivity.java](file:///C:/Users/Administrator/AndroidStudioProjects/SameChat/app/src/main/java/com/hamraj37/somechat/MainActivity.java)
+- In `setupNavHeader`, call `EncryptionManager.loadKeysFromPrefs(this)` first.
+- In `syncUserToDatabases`, check if `snapshot` already contains `publicKey` and `privateKey`. If they exist, use them instead of calling `initKeys`.
 
-#### [MODIFY] [layout_call_bar.xml](file:///C:/Users/Administrator/AndroidStudioProjects/SameChat/app/src/main/res/layout/layout_call_bar.xml)
-- Redesign to match the requested "Call Progress" UI:
-    - Change background to a darker green/translucent style.
-    - Horizontal layout: [Mic/Speaker Icon] [Name - Timer] [End Call Button].
-
-#### [MODIFY] [BaseActivity.java](file:///C:/Users/Administrator/AndroidStudioProjects/SameChat/app/src/main/java/com/hamraj37/somechat/BaseActivity.java)
-- Update `showCallBar()`:
-    - Find and set up the new "End Call" button.
-    - The button will send a broadcast (`com.hamraj37.somechat.END_CURRENT_CALL`).
-
-#### [MODIFY] [activity_audio_call.xml](file:///C:/Users/Administrator/AndroidStudioProjects/SameChat/app/src/main/res/layout/activity_audio_call.xml)
-- Add a "back" button (arrow) at the top left, similar to the video call layout.
-
-#### [MODIFY] [AudioCallActivity.java](file:///C:/Users/Administrator/AndroidStudioProjects/SameChat/app/src/main/java/com/hamraj37/somechat/AudioCallActivity.java)
-- Initialize the back button and set its click listener to `onBackPressed()`.
-- Add a `BroadcastReceiver` for `END_CURRENT_CALL`.
-- Update `minimizeCall()` to ensure `CallState` is fully populated.
-
-#### [MODIFY] [MainService.java](file:///C:/Users/Administrator/AndroidStudioProjects/SameChat/app/src/main/java/com/hamraj37/somechat/services/MainService.java)
-- **Dynamic Island Support**: Update `showCallNotification()` to use `NotificationCompat.CallStyle`.
-    - Create a `Person` object for the caller.
-    - Use `CallStyle.forOngoingCall` for active calls.
-    - This will trigger the system status bar capsule (pill) on Android 11+ and various OEM skins (like RealmeUI, ColorOS, etc.).
-- Ensure `setForegroundServiceType(FOREGROUND_SERVICE_TYPE_PHONE_CALL)` is used correctly for active calls.
+#### [MODIFY] [ChatActivity.java](file:///C:/Users/Administrator/AndroidStudioProjects/SameChat/app/src/main/java/com/hamraj37/somechat/ChatActivity.java) and [GroupChatActivity.java](file:///C:/Users/Administrator/AndroidStudioProjects/SameChat/app/src/main/java/com/hamraj37/somechat/GroupChatActivity.java)
+- In `checkEncryptionStatus`, try to load keys from `SharedPreferences` first.
+- If still missing, attempt to fetch them from Firebase RTDB automatically before prompting the user to "Initialize" (which triggers regeneration).
 
 ## Verification Plan
 
 ### Manual Verification
-1.  **Video Call PiP**:
-    - Start video call -> Tap Back -> Verify PiP enters correctly.
-2.  **Audio Call Bar**:
-    - Start audio call -> Tap Back -> Verify the green Call Bar appears.
-    - Tap "End Call" -> Verify call ends.
-3.  **Dynamic Island (Status Pill)**:
-    - Start call -> Go to home screen -> Verify the system status bar shows a green pill/bubble with the call status and timer.
+1.  **Fresh Login**: Log in on a device. Verify keys are generated and saved to Firebase.
+2.  **App Restart**: Close and restart the app on the same device. Verify keys are loaded from `SharedPreferences` and no regeneration occurs.
+3.  **New Device Login**: Log in on a second device. Verify that the app fetches the existing keys from Firebase and doesn't prompt to "Initialize".
+4.  **Decryption Check**: Verify that messages sent from Device 1 can be decrypted on Device 2.
