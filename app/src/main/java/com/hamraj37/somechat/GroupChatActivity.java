@@ -299,8 +299,12 @@ public class GroupChatActivity extends BaseActivity {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (snapshot.exists()) {
-                    groupName = snapshot.child("name").getValue(String.class);
-                    groupAvatar = snapshot.child("avatar").getValue(String.class);
+                    if (snapshot.hasChild("name")) groupName = snapshot.child("name").getValue(String.class);
+                    else if (snapshot.hasChild("groupName")) groupName = snapshot.child("groupName").getValue(String.class);
+                    
+                    if (snapshot.hasChild("avatar")) groupAvatar = snapshot.child("avatar").getValue(String.class);
+                    else if (snapshot.hasChild("groupAvatar")) groupAvatar = snapshot.child("groupAvatar").getValue(String.class);
+                    
                     long membersCount = snapshot.child("members").getChildrenCount();
                     updateToolbar(membersCount);
                 }

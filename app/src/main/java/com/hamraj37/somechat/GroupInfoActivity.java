@@ -275,6 +275,14 @@ public class GroupInfoActivity extends BaseActivity {
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         group = snapshot.getValue(Group.class);
                         if (group != null) {
+                            // Backward compatibility for legacy field names
+                            if (group.getGroupName() == null) {
+                                group.setGroupName(snapshot.child("groupName").getValue(String.class));
+                            }
+                            if (group.getGroupAvatar() == null) {
+                                group.setGroupAvatar(snapshot.child("groupAvatar").getValue(String.class));
+                            }
+
                             java.util.Map<String, Boolean> admins = new java.util.HashMap<>();
                             if (group.getAdmins() != null) {
                                 admins.putAll(group.getAdmins());
@@ -372,7 +380,7 @@ public class GroupInfoActivity extends BaseActivity {
     }
 
     private void updateGroupName(String newName) {
-        FirebaseDatabase.getInstance().getReference("groups").child(groupId).child("groupName").setValue(newName)
+        FirebaseDatabase.getInstance().getReference("groups").child(groupId).child("name").setValue(newName)
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(this, "Group name updated", Toast.LENGTH_SHORT).show();
                     
@@ -419,7 +427,7 @@ public class GroupInfoActivity extends BaseActivity {
             com.hamraj37.somechat.utils.GitHubStorage.uploadBytes(bytes, "group_avatars", fileName, new com.hamraj37.somechat.utils.GitHubStorage.UploadCallback() {
                 @Override
                 public void onSuccess(String downloadUrl) {
-                    FirebaseDatabase.getInstance().getReference("groups").child(groupId).child("groupAvatar").setValue(downloadUrl)
+                    FirebaseDatabase.getInstance().getReference("groups").child(groupId).child("avatar").setValue(downloadUrl)
                             .addOnSuccessListener(aVoid -> {
                                 Toast.makeText(GroupInfoActivity.this, "Group photo updated", Toast.LENGTH_SHORT).show();
                             });

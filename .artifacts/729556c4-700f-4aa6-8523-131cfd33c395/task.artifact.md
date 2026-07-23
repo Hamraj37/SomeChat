@@ -1,7 +1,5 @@
-- [x] Update `EncryptionManager.java` to persist keys in `SharedPreferences`
-- [x] Modify `MainActivity.java` to fetch existing keys from Firebase and avoid regeneration during sync
-- [x] Update `ChatActivity.java` to prioritize fetching keys from Firebase over regeneration
-- [x] Update `GroupChatActivity.java` to prioritize fetching keys from Firebase over regeneration
-- [x] Fix accidental key regeneration during media upload in `ChatActivity.java`
-- [x] Globally load keys from local storage in `BaseActivity.java`
-- [x] Verify that keys are persisted and reused across sessions and devices
+- [x] Fix Firebase field names in `GroupInfoActivity.java`
+- [x] Add backward compatibility for group details in `GroupChatActivity.java`
+- [x] Verify group profile image and name updates sync correctly across the app
+- [x] Ensure `GroupInfoActivity.java` loads legacy group images
+- [x] Refine legacy field name handling in `TransformViewModel.java`

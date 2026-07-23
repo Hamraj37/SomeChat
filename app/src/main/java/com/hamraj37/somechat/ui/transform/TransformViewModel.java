@@ -261,11 +261,12 @@ public class TransformViewModel extends AndroidViewModel {
                 if (!snapshot.exists()) return;
                 
                 String name = null, photo = null;
-                if (snapshot.hasChild("groupName")) name = snapshot.child("groupName").getValue(String.class);
-                else if (snapshot.hasChild("name")) name = snapshot.child("name").getValue(String.class);
+                // Prioritize new field names 'name' and 'avatar'
+                if (snapshot.hasChild("name")) name = snapshot.child("name").getValue(String.class);
+                else if (snapshot.hasChild("groupName")) name = snapshot.child("groupName").getValue(String.class);
                 
-                if (snapshot.hasChild("groupAvatar")) photo = snapshot.child("groupAvatar").getValue(String.class);
-                else if (snapshot.hasChild("avatar")) photo = snapshot.child("avatar").getValue(String.class);
+                if (snapshot.hasChild("avatar")) photo = snapshot.child("avatar").getValue(String.class);
+                else if (snapshot.hasChild("groupAvatar")) photo = snapshot.child("groupAvatar").getValue(String.class);
                 
                 updateGroupChatItem(groupId, name, photo, null, -1);
             }
