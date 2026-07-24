@@ -106,11 +106,18 @@ public class MainService extends Service {
     }
 
     private void startForegroundNotification() {
+        Intent mainIntent = new Intent(this, com.hamraj37.somechat.MainActivity.class);
+        mainIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent contentIntent = PendingIntent.getActivity(this, 0, mainIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
         Notification notification = new NotificationCompat.Builder(this, SILENT_CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentTitle("SomeChat is active")
+                .setContentText("Start a conversation")
                 .setPriority(NotificationCompat.PRIORITY_MIN)
                 .setCategory(NotificationCompat.CATEGORY_SERVICE)
                 .setOngoing(true)
+                .setContentIntent(contentIntent)
                 .build();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
